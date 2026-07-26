@@ -146,7 +146,8 @@ still use the single-dispatch path."
                        (when (and (listp key) (= (length key) (length all-args))
                                   (every (lambda (spec arg)
                                            (or (eq spec t)
-                                               (eq spec (vm-classify-arg arg state))
+                                               (vm-specializer-matches-class-p
+                                                spec (vm-classify-arg arg state))
                                                (%eql-specializer-matches-p spec arg)))
                                          key all-args))
                          (return-from eql-scan method)))

@@ -60,10 +60,65 @@ Values stored as lists are spliced in; scalar values are wrapped in a list."
                    (not (funcall #'%vm-standard-metaclass-p metaclass)))
               (gethash :__name__ metaclass)
               (typecase arg
+                ;; Order matters: the most specific ANSI class first, because
+                ;; TYPECASE takes the first clause that matches and NULL is a
+                ;; SYMBOL, a STRING is a VECTOR, and so on.
+                (null 'null)
+                (cons 'cons)
                 (integer 'integer)
+                (ratio 'ratio)
+                (float 'float)
+                (complex 'complex)
+                (character 'character)
                 (string 'string)
                 (symbol 'symbol)
+                (hash-table 'hash-table)
+                (function 'function)
+                (vector 'vector)
+                (array 'array)
                 (t t)))))))
+
+;;; ── Built-in class precedence ───────────────────────────────────────────────
+;;;
+;;; A method specialised on NUMBER has to apply to an integer. Dispatch used to
+;;; compare the specializer against VM-CLASSIFY-ARG's answer with EQ, so only an
+;;; exact name matched and (defmethod f ((x number))) was reported as having no
+;;; applicable method for 42. What was missing is not the comparison but the
+;;; ancestry: these are the ANSI class precedence lists for the classes
+;;; VM-CLASSIFY-ARG can name, T excluded because the callers test it separately.
+
+(defparameter *vm-builtin-class-precedence*
+  '((null      symbol list sequence)
+    (cons      list sequence)
+    (integer   rational real number)
+    (ratio     rational real number)
+    (float     real number)
+    (complex   number)
+    (character)
+    (string    vector array sequence)
+    (symbol)
+    (hash-table)
+    (function)
+    (vector    array sequence)
+    (array))
+  "Alist of (CLASS . PROPER-ANCESTORS) for the built-in classes.
+
+LIST rather than SEQUENCE alone for NULL and CONS, and VECTOR before ARRAY for
+STRING, so the order is the ANSI precedence order and not merely the set: a
+method on LIST is more specific than one on SEQUENCE and has to win.")
+
+(defun vm-builtin-class-precedence-list (class-name)
+  "Return CLASS-NAME followed by its proper ancestors, most specific first."
+  (let ((entry (assoc class-name *vm-builtin-class-precedence*)))
+    (if entry
+        (cons class-name (cdr entry))
+        (list class-name))))
+
+(defun vm-specializer-matches-class-p (spec class-name)
+  "Return T when a method specialised on SPEC applies to an argument of CLASS-NAME."
+  (or (eq spec t)
+      (eq spec class-name)
+      (and (member spec (vm-builtin-class-precedence-list class-name)) t)))
 
 (defun %eql-specializer-p (key)
   "Return T if KEY is an eql specializer form (eql value)."
@@ -115,13 +170,12 @@ Only single-argument eql specializers are indexed for fast lookup."
           (every (lambda (spec arg)
                    (or (eq spec t)
                        (%eql-specializer-matches-p spec arg)
-                       (eq spec (vm-classify-arg arg state))))
+                       (vm-specializer-matches-class-p spec (vm-classify-arg arg state))))
                  key all-args)))
     (t
      (and (= (length all-args) 1)
           (let ((class-name (vm-classify-arg (car all-args) state)))
-            (or (eq key t)
-                (eq key class-name)))))))
+            (vm-specializer-matches-class-p key class-name))))))
 
 (defun %vm-arg-cpls (state all-args)
   "Return class-precedence lists for ALL-ARGS, each extended with T." 
