@@ -132,6 +132,14 @@ still use the single-dispatch path."
             (loop for ancestor in (cdr (gethash :__cpl__ class-ht))
                   for m = (gethash ancestor methods-ht)
                   when m return m)))
+        ;; The walk above reads :__CPL__ out of the class registry, which holds
+        ;; only classes the program defined -- a built-in has no entry there, so
+        ;; CLASS-HT was NIL and the ancestor search was skipped entirely. That
+        ;; is why a method on NUMBER never applied to an integer: the exact-name
+        ;; GETHASH above missed and nothing else looked.
+        (loop for ancestor in (cdr (vm-builtin-class-precedence-list class-name))
+              for m = (gethash ancestor methods-ht)
+              when m return m)
         (gethash t methods-ht))))
 
 (defun %vm-resolve-composite-dispatch (gf-ht methods-ht state first-arg all-args)
