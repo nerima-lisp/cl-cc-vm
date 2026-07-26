@@ -72,7 +72,11 @@ Values stored as lists are spliced in; scalar values are wrapped in a list."
                 (character 'character)
                 (string 'string)
                 (symbol 'symbol)
-                (hash-table 'hash-table)
+                ;; HASH-TABLE is deliberately absent. A class object is a hash
+                ;; table carrying :__NAME__, and the branch above answers T for
+                ;; one with a standard metaclass on purpose -- naming it here
+                ;; would classify every class object as HASH-TABLE and break the
+                ;; MOP dispatch that relies on the catch-all.
                 (function 'function)
                 (vector 'vector)
                 (array 'array)
@@ -97,7 +101,6 @@ Values stored as lists are spliced in; scalar values are wrapped in a list."
     (character)
     (string    vector array sequence)
     (symbol)
-    (hash-table)
     (function)
     (vector    array sequence)
     (array))
