@@ -1,9 +1,10 @@
 (in-package :cl-cc/vm)
 
-(defstruct (vm-cow-vector (:constructor %make-vm-cow-vector))
-  (backing #() :type vector)
-  (refcount 1 :type integer)
-  (adjustable-p nil :type boolean))
+(defstruct (vm-cow-storage (:constructor %make-vm-cow-storage)) backing (refcount 1 :type integer))
+
+(defstruct (vm-cow-vector (:constructor %make-vm-cow-vector)) (storage (%make-vm-cow-storage :backing #()) :type vm-cow-storage) (adjustable-p nil :type boolean))
+
+(defun vm-cow-vector-backing (value) (vm-cow-storage-backing (vm-cow-vector-storage value)))
 
 (defparameter *vm-cow-vector-enabled* t)
 
@@ -121,10 +122,7 @@ storage word.  :ANY/T arrays retain pointer-scannable element semantics."
     (otherwise
      (setf (aref (vm-specialized-array-storage array) index) value))))
 
-(defun vm-bit-vector-p (value)
-  "Return true when VALUE is a VM packed bit vector."
-  (and (vm-specialized-array-p value)
-       (eq (vm-specialized-array-element-type value) :bit)))
+(defun vm-bit-vector-p (value) "Return true when VALUE is a VM packed bit vector." (let ((array (%vm-cow-vector-materialize value))) (and (vm-specialized-array-p array) (eq (vm-specialized-array-element-type array) :bit))))
 
 (defun vm-bit-vector-ref (bit-vector index)
   "Return bit at INDEX from packed VM BIT-VECTOR."
@@ -138,33 +136,16 @@ storage word.  :ANY/T arrays retain pointer-scannable element semantics."
     (error "Expected VM bit vector, got ~S" bit-vector))
   (setf (vm-specialized-array-ref bit-vector index) value))
 
+(defun %vm-copy-array-backing (array) (cond ((vm-specialized-array-p array) (%make-vm-specialized-array :header (copy-list (vm-specialized-array-header array)) :element-type (vm-specialized-array-element-type array) :length (vm-specialized-array-length array) :storage (copy-seq (vm-specialized-array-storage array)) :gc-skip-p (vm-specialized-array-gc-skip-p array))) ((arrayp array) (let* ((dimensions (array-dimensions array)) (fill-pointer-p (and (= (array-rank array) 1) (array-has-fill-pointer-p array))) (arguments (append (list dimensions :element-type (array-element-type array) :adjustable (adjustable-array-p array)) (when fill-pointer-p (list :fill-pointer (fill-pointer array))))) (copy (apply #'make-array arguments))) (dotimes (index (array-total-size array) copy) (setf (row-major-aref copy index) (row-major-aref array index))))) (t (copy-seq array))))
+
 (defun %vm-cow-vector-materialize (value)
   (cond
     ((vm-cow-vector-p value) (vm-cow-vector-backing value))
     (t value)))
 
-(defun %vm-cow-vector-share (value)
-  (cond
-    ((vm-specialized-array-p value) value)
-    ((vm-cow-vector-p value)
-      (progn
-        (incf (vm-cow-vector-refcount value))
-        (%make-vm-cow-vector :backing (vm-cow-vector-backing value)
-                             :refcount (vm-cow-vector-refcount value)
-                             :adjustable-p (vm-cow-vector-adjustable-p value))))
-    (t (%make-vm-cow-vector :backing value
-                            :refcount 2
-                            :adjustable-p (adjustable-array-p value)))))
+(defun %vm-cow-vector-share (value) (cond ((vm-cow-vector-p value) (let ((storage (vm-cow-vector-storage value))) (incf (vm-cow-storage-refcount storage)) (%make-vm-cow-vector :storage storage :adjustable-p (vm-cow-vector-adjustable-p value)))) ((or (arrayp value) (vm-specialized-array-p value)) (%make-vm-cow-vector :storage (%make-vm-cow-storage :backing value :refcount 2) :adjustable-p (and (arrayp value) (adjustable-array-p value)))) (t value)))
 
-(defun %vm-cow-vector-ensure-writable (value)
-  (if (vm-cow-vector-p value)
-      (progn
-        (when (> (vm-cow-vector-refcount value) 1)
-          (decf (vm-cow-vector-refcount value))
-          (setf (vm-cow-vector-backing value) (copy-seq (vm-cow-vector-backing value))
-                (vm-cow-vector-refcount value) 1))
-        (vm-cow-vector-backing value))
-      value))
+(defun %vm-cow-vector-ensure-writable (value) (if (vm-cow-vector-p value) (let ((storage (vm-cow-vector-storage value))) (when (> (vm-cow-storage-refcount storage) 1) (decf (vm-cow-storage-refcount storage)) (setf (vm-cow-vector-storage value) (%make-vm-cow-storage :backing (%vm-copy-array-backing (vm-cow-storage-backing storage))))) (vm-cow-vector-backing value)) value))
 
 (defun %vm-array-dimensions-designator (size dimensions)
   "Return a MAKE-ARRAY dimensions designator from SIZE and optional DIMENSIONS."
@@ -190,53 +171,19 @@ storage word.  :ANY/T arrays retain pointer-scannable element semantics."
   "Return the host array object for VALUE, materializing VM COW vectors."
   (%vm-cow-vector-materialize value))
 
-(defun vm-array-rank-value (array)
-  "VM-aware ARRAY-RANK supporting specialized one-dimensional arrays."
-  (if (vm-specialized-array-p array)
-      1
-      (array-rank (%vm-array-object array))))
+(defun vm-array-rank-value (array) "VM-aware ARRAY-RANK supporting specialized one-dimensional arrays." (let ((object (%vm-array-object array))) (if (vm-specialized-array-p object) 1 (array-rank object))))
 
-(defun vm-array-dimensions-value (array)
-  "VM-aware ARRAY-DIMENSIONS supporting specialized one-dimensional arrays."
-  (if (vm-specialized-array-p array)
-      (list (vm-specialized-array-length array))
-      (array-dimensions (%vm-array-object array))))
+(defun vm-array-dimensions-value (array) "VM-aware ARRAY-DIMENSIONS supporting specialized one-dimensional arrays." (let ((object (%vm-array-object array))) (if (vm-specialized-array-p object) (list (vm-specialized-array-length object)) (array-dimensions object))))
 
-(defun vm-array-dimension-value (array axis)
-  "VM-aware ARRAY-DIMENSION supporting specialized one-dimensional arrays."
-  (if (vm-specialized-array-p array)
-      (if (zerop axis)
-          (vm-specialized-array-length array)
-          (error "Invalid specialized array dimension axis: ~D" axis))
-      (array-dimension (%vm-array-object array) axis)))
+(defun vm-array-dimension-value (array axis) "VM-aware ARRAY-DIMENSION supporting specialized one-dimensional arrays." (let ((object (%vm-array-object array))) (if (vm-specialized-array-p object) (if (zerop axis) (vm-specialized-array-length object) (error "Invalid specialized array dimension axis: ~D" axis)) (array-dimension object axis))))
 
-(defun vm-array-total-size-value (array)
-  "VM-aware ARRAY-TOTAL-SIZE supporting specialized one-dimensional arrays."
-  (if (vm-specialized-array-p array)
-      (vm-specialized-array-length array)
-      (array-total-size (%vm-array-object array))))
+(defun vm-array-total-size-value (array) "VM-aware ARRAY-TOTAL-SIZE supporting specialized one-dimensional arrays." (let ((object (%vm-array-object array))) (if (vm-specialized-array-p object) (vm-specialized-array-length object) (array-total-size object))))
 
-(defun vm-array-element-type-value (array)
-  "Return the element type for host or VM specialized ARRAY."
-  (if (vm-specialized-array-p array)
-      (case (vm-specialized-array-element-type array)
-        (:fixnum 'fixnum)
-        (:double-float 'double-float)
-        (:character 'character)
-        (:bit 'bit)
-        (:any t)
-        (otherwise (vm-specialized-array-element-type array)))
-      (array-element-type (%vm-array-object array))))
+(defun vm-array-element-type-value (array) "Return the element type for host or VM specialized ARRAY." (let ((object (%vm-array-object array))) (if (vm-specialized-array-p object) (case (vm-specialized-array-element-type object) (:fixnum 'fixnum) (:double-float 'double-float) (:character 'character) (:bit 'bit) (:any t) (otherwise (vm-specialized-array-element-type object))) (array-element-type object))))
 
-(defun vm-adjustable-array-p-value (array)
-  "VM-aware ADJUSTABLE-ARRAY-P that treats COW wrappers as adjustable when their backing was adjustable."
-  (if (vm-cow-vector-p array)
-      (vm-cow-vector-adjustable-p array)
-      (adjustable-array-p (%vm-array-object array))))
+(defun vm-adjustable-array-p-value (array) "VM-aware ADJUSTABLE-ARRAY-P for host, specialized, and COW arrays." (cond ((vm-cow-vector-p array) (vm-cow-vector-adjustable-p array)) ((vm-specialized-array-p array) nil) (t (adjustable-array-p array))))
 
-(defun vm-array-has-fill-pointer-p-value (array)
-  "VM-aware ARRAY-HAS-FILL-POINTER-P for COW arrays."
-  (array-has-fill-pointer-p (%vm-array-object array)))
+(defun vm-array-has-fill-pointer-p-value (array) "VM-aware ARRAY-HAS-FILL-POINTER-P for COW arrays." (let ((object (%vm-array-object array))) (and (not (vm-specialized-array-p object)) (array-has-fill-pointer-p object))))
 
 (defun vm-array-in-bounds-p-value (array subscripts)
   "Return true when SUBSCRIPTS are within ARRAY bounds."
@@ -624,17 +571,7 @@ storage word.  :ANY/T arrays retain pointer-scannable element semantics."
   "Access array element by row-major index."
   (dst nil :reader vm-dst) (lhs nil :reader vm-lhs) (rhs nil :reader vm-rhs)
   (:sexp-tag :row-major-aref) (:sexp-slots dst lhs rhs))
-(defmethod execute-instruction ((inst vm-row-major-aref) state pc labels)
-  (declare (ignore labels))
-  (let ((array (vm-reg-get state (vm-lhs inst)))
-        (index (vm-reg-get state (vm-rhs inst))))
-    (vm-reg-set state (vm-dst inst)
-                (if (vm-specialized-array-p array)
-                    (vm-specialized-array-ref array index)
-                    (let ((host (%vm-array-object array)))
-                      (vm-check-row-major-index host index)
-                      (row-major-aref host index)))))
-  (values (1+ pc) nil nil))
+(defmethod execute-instruction ((inst vm-row-major-aref) state pc labels) (declare (ignore labels)) (let ((array (%vm-array-object (vm-reg-get state (vm-lhs inst)))) (index (vm-reg-get state (vm-rhs inst)))) (vm-reg-set state (vm-dst inst) (if (vm-specialized-array-p array) (vm-specialized-array-ref array index) (progn (vm-check-row-major-index array index) (row-major-aref array index))))) (values (1+ pc) nil nil))
 
 (define-vm-instruction vm-array-row-major-index (vm-instruction)
   "Compute the row-major index for ARRAY given a list of SUBSCRIPTS."
@@ -676,17 +613,9 @@ storage word.  :ANY/T arrays retain pointer-scannable element semantics."
     (vm-reg-set state (vm-dst inst) val)
     (values (1+ pc) nil nil)))
 
-(defun vm-cow-copy-seq (sequence)
-  "Return COW wrapper for vectors and list COW wrappers for lists when enabled."
-  (cond
-    ((listp sequence)
-     (copy-list sequence))
-    ((vectorp sequence)
-     (if *vm-cow-vector-enabled*
-         (%vm-cow-vector-share sequence)
-         (copy-seq sequence)))
-    (t
-     (copy-seq sequence))))
+(defun vm-cow-copy-seq (sequence) "Return a shared COW wrapper for array sequences when enabled." (cond ((listp sequence) (copy-list sequence)) ((or (vectorp sequence) (vm-cow-vector-p sequence) (vm-specialized-array-p sequence)) (if *vm-cow-vector-enabled* (%vm-cow-vector-share sequence) (%vm-copy-array-backing (%vm-array-object sequence)))) (t (copy-seq sequence))))
+
+(defun vm-bit-vector-copy (bit-vector) "Return a structural-sharing copy of BIT-VECTOR when CoW is enabled." (unless (vm-bit-vector-p bit-vector) (error "Not a VM bit vector: ~S" bit-vector)) (if *vm-cow-vector-enabled* (%vm-cow-vector-share bit-vector) (%vm-copy-array-backing (%vm-array-object bit-vector))))
 
 ;;; ─── FR-604: fill-pointer and vector-push ────────────────────────────────
 

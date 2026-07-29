@@ -414,10 +414,7 @@ remainder.  Other numbers preserve the existing host-compatible behavior."
         (values q r))))
 
 ;;; FR-885: ffloor/fceiling/ftruncate/fround
-(defun vm-ffloor (dividend divisor)
-  "FR-885: float floor with two-value float return."
-  (multiple-value-bind (q r) (ffloor dividend divisor)
-    (values q r)))
+(defun vm-ffloor (dividend divisor) "FR-885: float floor with two-value float return." (multiple-value-bind (q r) (ffloor dividend divisor) (values q r)))
 
 ;;; FR-892: load-time-value
 (defmacro vm-load-time-value (form &optional read-only-p)
@@ -475,10 +472,7 @@ mutable control-state containers."
   (or (> value most-positive-fixnum) (< value most-negative-fixnum)))
 
 ;;; FR-873: CoW arrays
-(defun copy-on-write-array-p (obj)
-  "FR-873: Return T when OBJ is a copy-on-write array."
-  (declare (ignore obj))
-  nil)
+(defun copy-on-write-array-p (obj) "FR-873: Return T when OBJ is a copy-on-write array." (vm-cow-vector-p obj))
 
 ;;; FR-865: Multiple values — nth-value
 (defun vm-nth-value (n form-values)
