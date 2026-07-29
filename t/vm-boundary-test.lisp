@@ -133,7 +133,27 @@
       (let ((cl-cc/runtime::*gc-pending* nil))
         (cl-cc/runtime:rt-gc-request heap)
         (expect (cl-cc/vm:run-compiled program :gc-heap heap) :to-be 42)
-        (expect (cl-cc/runtime:rt-heap-gc-pending heap) :to-be nil)))))
+        (expect (cl-cc/runtime:rt-heap-gc-pending heap) :to-be nil))))
+
+  (it "resolves function references through local, parent, then bridge lookup"
+    (let* ((parent-functions (make-hash-table :test #'eq))
+           (parent-function (lambda () :parent))
+           (local-function (lambda () :local))
+           (parent-env (cl-cc/vm::make-vm-parent-environment
+                        :functions parent-functions))
+           (state (cl-cc/vm:make-vm-instance :parent-env parent-env))
+           (instruction (cl-cc/vm:make-vm-func-ref :dst :r0 :label "LENGTH")))
+      (setf (gethash 'cl:length parent-functions) parent-function)
+      (cl-cc/vm:execute-instruction instruction state 0 (make-hash-table))
+      (expect (cl-cc/vm::vm-reg-get state :r0) :to-be parent-function)
+      (setf (gethash 'cl:length (cl-cc/vm:vm-function-registry state)) local-function)
+      (cl-cc/vm:execute-instruction instruction state 0 (make-hash-table))
+      (expect (cl-cc/vm::vm-reg-get state :r0) :to-be local-function)
+      (remhash 'cl:length (cl-cc/vm:vm-function-registry state))
+      (remhash 'cl:length parent-functions)
+      (cl-cc/vm:execute-instruction instruction state 0 (make-hash-table))
+      (expect (cl-cc/vm::vm-reg-get state :r0)
+              :to-be (cl-cc/vm:vm-bridge-callable 'cl:length)))))
 
 (progn
   (describe-sequential "cl-cc-vm package locks"

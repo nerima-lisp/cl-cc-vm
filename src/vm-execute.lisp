@@ -735,7 +735,7 @@ hook is installed, this records no target and execution remains in the interpret
   (let* ((label-str (vm-label-name inst))
          (sym (or (find-symbol label-str :cl-cc)
                   (find-symbol label-str :cl)))
-         (registered (when sym (gethash sym (vm-function-registry state)))))
+         (registered (when sym (vm-instance-function-value state sym))))
     (vm-reg-set state (vm-dst inst)
                 (or (and (cl-cc/vm::%vm-callable-registry-entry-p registered)
                          registered)
