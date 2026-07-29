@@ -308,29 +308,31 @@ nearest preceding label in LABELS, which identifies the caller function region."
         (format stream "  <empty>~%"))
     (values)))
 
-(defun run-program-slice (instructions labels start-pc state)
+(defun run-program-slice (instructions labels start-pc state &key (gc-heap *vm-safepoint-heap*))
   "Execute INSTRUCTIONS (a vector) from START-PC using LABELS and STATE.
 Returns the halted result value, or NIL if execution falls off the end.
+GC-HEAP, when supplied, is polled for pending runtime GC work.
 Used by run-string-repl for incremental REPL execution."
   (let ((result
-           (let ((*vm-managed-cons-allocation-enabled* nil))
-              (loop with pc = start-pc
-                   while (< pc (length instructions))
-                      do (let ((instruction (aref instructions pc)))
-                         (vm-safepoint-poll state pc instruction)
-                         (when (typep instruction 'vm-call)
-                           (vm-check-call-stack-depth state))
-                        (vm-profile-inst-hit state instruction)
-                        (multiple-value-bind (next-pc halted value)
-                            (vm-execute-instruction-guarded instruction state pc labels)
-                          (when halted
-                            (return (vm-force-trampoline-result value)))
-                          (setf pc next-pc)))
-                   finally (return nil)))))
+          (let ((*vm-managed-cons-allocation-enabled* nil)
+                (*vm-safepoint-heap* gc-heap))
+            (loop with pc = start-pc
+                  while (< pc (length instructions))
+                  do (let ((instruction (aref instructions pc)))
+                       (vm-safepoint-poll state pc instruction)
+                       (when (typep instruction (quote vm-call))
+                         (vm-check-call-stack-depth state))
+                       (vm-profile-inst-hit state instruction)
+                       (multiple-value-bind (next-pc halted value)
+                           (vm-execute-instruction-guarded instruction state pc labels)
+                         (when halted
+                           (return (vm-force-trampoline-result value)))
+                         (setf pc next-pc)))
+                  finally (return nil)))))
     (vm-maybe-dump-type-profile state)
     result))
 
-(defun run-compiled (program &key (output-stream *standard-output*) state)
+(defun run-compiled (program &key (output-stream *standard-output*) state (gc-heap *vm-safepoint-heap*))
   "Run a compiled VM program.
 If STATE is provided, execute using that existing vm-io-state (for REPL persistence).
 Otherwise a fresh state is created from OUTPUT-STREAM."
@@ -362,7 +364,8 @@ Otherwise a fresh state is created from OUTPUT-STREAM."
                   (*vm-current-compilation-tier* (vm-program-compilation-tier program))
                   (*vm-current-program-deopt-info* (vm-program-deopt-info program))
                   (*vm-current-program-osr-entry-points* (vm-program-osr-entry-points program)))
-               (let ((*vm-managed-cons-allocation-enabled* nil))
+               (let ((*vm-managed-cons-allocation-enabled* nil)
+                      (*vm-safepoint-heap* gc-heap))
                  (loop with pc = 0
                        while (< pc (length flat))
                        do (let ((instruction (aref flat pc)))

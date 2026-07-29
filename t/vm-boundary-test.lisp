@@ -84,7 +84,56 @@
                                          (cl-cc/vm:make-vm-add :dst :r2 :lhs :r0 :rhs :r1)
                                          (cl-cc/vm:make-vm-halt :reg :r2))
                      :result-register :r2)))
-      (expect (cl-cc/vm:run-compiled program) :to-be 42))))
+      (expect (cl-cc/vm:run-compiled program) :to-be 42)))
+
+  (it "routes managed cons mutation through the runtime write barrier"
+    (let* ((heap (cl-cc/runtime::make-rt-heap :young-size 32 :old-size 32))
+           (state (cl-cc/vm:make-vm-state))
+           (object-address 32)
+           (slot-offset 1)
+           (object-pointer (cl-cc/runtime:encode-pointer object-address cl-cc/runtime:+tag-cons+))
+           (old-value (cl-cc/runtime:encode-pointer 5 cl-cc/runtime:+tag-cons+))
+           (new-value (cl-cc/runtime:encode-pointer 6 cl-cc/runtime:+tag-cons+)))
+      (cl-cc/runtime::rt-heap-set-header
+       heap object-address
+       (cl-cc/runtime:header-set-mark
+        (cl-cc/runtime:make-rt-header 3 cl-cc/runtime:+rt-tag-cons+ :gc-bits 0)))
+      (cl-cc/runtime::rt-heap-set heap (+ object-address slot-offset) old-value)
+      (setf (cl-cc/runtime::rt-heap-gc-state heap) :major-gc
+            (gethash :managed-rt-heap (cl-cc/vm:vm-state-heap state)) heap)
+      (cl-cc/vm::vm-reg-set state :pair object-pointer)
+      (cl-cc/vm::vm-reg-set state :value new-value)
+      (let ((cl-cc/runtime::*rt-use-barrier-batching* nil))
+        (cl-cc/vm:execute-instruction
+         (cl-cc/vm:make-vm-rplaca :cons :pair :val :value)
+         state 0 (make-hash-table)))
+      (expect (cl-cc/runtime::rt-heap-ref heap (+ object-address slot-offset)) :to-be new-value)
+      (expect (cl-cc/runtime::rt-card-dirty-p heap object-address) :to-be-truthy)
+      (expect (member old-value (cl-cc/runtime:rt-heap-satb-queue heap)) :to-be-truthy)))
+
+  (it "services pending GC through run-program-slice"
+    (let* ((heap (cl-cc/runtime:make-rt-heap :young-size 32 :old-size 32))
+           (state (cl-cc/vm:make-vm-state))
+           (instructions (vector (cl-cc/vm:make-vm-const :dst :r0 :value 42)
+                                 (cl-cc/vm:make-vm-halt :reg :r0))))
+      (let ((cl-cc/runtime::*gc-pending* nil))
+        (cl-cc/runtime:rt-gc-request heap)
+        (expect (cl-cc/vm:run-program-slice
+                 instructions (cl-cc/vm::build-label-table instructions) 0 state
+                 :gc-heap heap)
+                :to-be 42)
+        (expect (cl-cc/runtime:rt-heap-gc-pending heap) :to-be nil))))
+
+  (it "services pending GC through run-compiled"
+    (let* ((heap (cl-cc/runtime:make-rt-heap :young-size 32 :old-size 32))
+           (program (cl-cc/vm:make-vm-program
+                     :instructions (list (cl-cc/vm:make-vm-const :dst :r0 :value 42)
+                                         (cl-cc/vm:make-vm-halt :reg :r0))
+                     :result-register :r0)))
+      (let ((cl-cc/runtime::*gc-pending* nil))
+        (cl-cc/runtime:rt-gc-request heap)
+        (expect (cl-cc/vm:run-compiled program :gc-heap heap) :to-be 42)
+        (expect (cl-cc/runtime:rt-heap-gc-pending heap) :to-be nil)))))
 
 (progn
   (describe-sequential "cl-cc-vm package locks"

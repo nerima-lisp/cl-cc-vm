@@ -430,9 +430,9 @@ lets RT-OBJECT-POINTER-SLOTS trace slots 1 and 2 during minor/major GC."
     (unless heap
       (error "cl-cc/vm: managed cons pointer has no associated runtime heap"))
     (let* ((decode-pointer (%vm-runtime-function "DECODE-POINTER" t))
-           (heap-set (%vm-runtime-function "RT-HEAP-SET" t))
+           (write-barrier (%vm-runtime-function "RT-GC-WRITE-BARRIER" t))
            (addr (funcall decode-pointer pointer)))
-      (funcall heap-set heap (+ addr offset) value)
+      (funcall write-barrier heap addr offset value)
       pointer)))
 
 (defmethod execute-instruction :around ((inst vm-cons) state pc labels)
