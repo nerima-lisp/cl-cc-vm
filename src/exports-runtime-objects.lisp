@@ -78,6 +78,8 @@
     %make-instances-obsolete
     generic-function-methods
    generic-function-method-combination
+   satiate-generic-function
+   with-satiating-gfs
    satiating-gfs-p
    %package-symbols
    %package-external-symbols

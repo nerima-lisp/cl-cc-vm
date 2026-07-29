@@ -153,14 +153,34 @@
       (gethash :__method-combination__ gf)
       'standard))
 
-(defun satiating-gfs-p (&optional gf)
-  "Return T when GF is a VM generic-function marked satiated, or when called
-with no argument returns T if any GF has been satiated in the current session."
-  (if gf
-      (and (vm-generic-function-p gf) (gethash :__satiated__ gf) t)
-      nil))
-
-(vm-register-host-bridge 'satiating-gfs-p #'satiating-gfs-p)
+(progn
+  (defvar *satiated-generic-functions* nil
+    "VM generic functions explicitly marked as satiated in this host session.")
+  (defvar *satiating-gfs-active-p* nil
+    "True while WITH-SATIATING-GFS is establishing a satiation session.")
+  (defun satiate-generic-function (gf)
+    "Mark GF as closed to method addition for dispatch optimization."
+    (unless (vm-generic-function-p gf)
+      (error "satiate-generic-function: ~S is not a VM generic function" gf))
+    (setf (gethash :__satiated__ gf) t)
+    (pushnew gf *satiated-generic-functions* :test #'eq)
+    gf)
+  (defmacro with-satiating-gfs ((&rest generic-functions) &body body)
+    "Satiate GENERIC-FUNCTIONS while evaluating BODY."
+    `(let ((*satiating-gfs-active-p* t))
+       (mapc #'satiate-generic-function (list ,@generic-functions))
+       ,@body))
+  (defun satiating-gfs-p (&optional (gf nil supplied-p))
+    "Report whether GF, or the current VM GF satiation session, is active."
+    (if supplied-p
+        (and (vm-generic-function-p gf) (gethash :__satiated__ gf) t)
+        (or *satiating-gfs-active-p*
+            (some (lambda (candidate)
+                    (and (vm-generic-function-p candidate)
+                         (gethash :__satiated__ candidate)))
+                  *satiated-generic-functions*))))
+  (vm-register-host-bridge 'satiate-generic-function #'satiate-generic-function)
+  (vm-register-host-bridge 'satiating-gfs-p #'satiating-gfs-p))
 
 (defun method-combination-type (method-combination)
   "Return METHOD-COMBINATION's type designator."
@@ -258,8 +278,11 @@ with no argument returns T if any GF has been satiated in the current session."
 
 (defun %mop-invalidate-gf (gf)
   "Invalidate method-selection caches associated with GF."
-  (setf (gethash :__satiated__ gf) nil
-        (gethash :__cache-version__ gf) (1+ (or (gethash :__cache-version__ gf) 0)))
+  (setf *satiated-generic-functions*
+        (delete gf *satiated-generic-functions* :test #'eq)
+        (gethash :__satiated__ gf) nil
+        (gethash :__cache-version__ gf)
+        (1+ (or (gethash :__cache-version__ gf) 0)))
   (remhash :__dispatch-cache__ gf)
   gf)
 

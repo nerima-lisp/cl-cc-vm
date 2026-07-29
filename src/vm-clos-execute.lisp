@@ -693,8 +693,7 @@ VM primitives that need protocol hooks without introducing new instructions."
     (when methods-ht
       ;; Adding a method after a GF was marked closed for optimization is
       ;; allowed, but it re-opens dispatch and invalidates existing ICs.
-      (when (gethash :__satiated__ gf-ht)
-        (setf (gethash :__satiated__ gf-ht) nil))
+      (%mop-invalidate-gf gf-ht)
       ;; Create method descriptor with qualifier metadata
       (let ((desc (make-hash-table :test 'eq)))
         (setf (gethash :function desc) method-closure
@@ -716,7 +715,7 @@ VM primitives that need protocol hooks without introducing new instructions."
                     (setf (gethash specializer qual-ht) desc)
                     (push desc (gethash specializer qual-ht))))))))
     ;; FR-009: Method registration invalidates monomorphic IC entries.
-    (%ic-clear-all-generic-caches state)
+    (%ic-clear-gf-caches gf-ht)
     (values (1+ pc) nil nil)))
 
 (defmethod execute-instruction ((inst vm-generic-call) state pc labels)
