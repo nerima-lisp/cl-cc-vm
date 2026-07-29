@@ -116,3 +116,63 @@
         (expect (equal (cl-cc/vm:vm-program-osr-entry-points copy) (quote ((loop . 1)))) :to-be-truthy)
         (expect (equal (cl-cc/vm:vm-program-tier1-entry-points copy) (quote ((entry . 0)))) :to-be-truthy)
         (expect (cl-cc/vm:vm-program-compilation-tier copy) :to-be 1)))))
+
+(describe-sequential "FR-433 Posit arithmetic"
+  (it "encodes and exactly decodes canonical posit8 values"
+    (dolist (sample '((0 0) (1 64) (2 96) (1/2 32) (-1 192)))
+      (destructuring-bind (value bits) sample
+        (let ((posit (cl-cc/vm:vm-posit-encode value :nbits 8 :es 0)))
+          (expect (cl-cc/vm:vm-posit-bits posit) :to-be bits)
+          (expect (cl-cc/vm:vm-posit-decode posit) :to-be value)))))
+
+  (it "reserves one representation for NaR and propagates it"
+    (let* ((one (cl-cc/vm:vm-posit-encode 1 :nbits 8 :es 0))
+           (zero (cl-cc/vm:vm-posit-encode 0 :nbits 8 :es 0))
+           (nar (cl-cc/vm:vm-posit-div one zero)))
+      (expect (cl-cc/vm:vm-posit-bits nar) :to-be 128)
+      (expect (cl-cc/vm:vm-posit-nar-p nar) :to-be-truthy)
+      (expect (cl-cc/vm:vm-posit-nar-p (cl-cc/vm:vm-posit-add nar one))
+              :to-be-truthy)))
+
+  (it "rounds halfway cases to the representation with an even payload"
+    (expect (cl-cc/vm:vm-posit-bits
+             (cl-cc/vm:vm-posit-encode 65/64 :nbits 8 :es 0))
+            :to-be 64)
+    (expect (cl-cc/vm:vm-posit-bits
+             (cl-cc/vm:vm-posit-encode 67/64 :nbits 8 :es 0))
+            :to-be 66))
+
+  (it "provides more precision near one than near maxpos"
+    (let ((near-one (- (cl-cc/vm:vm-posit-decode
+                        (cl-cc/vm:vm-posit-from-bits 65 :nbits 8 :es 0))
+                       (cl-cc/vm:vm-posit-decode
+                        (cl-cc/vm:vm-posit-from-bits 64 :nbits 8 :es 0))))
+          (near-max (- (cl-cc/vm:vm-posit-decode
+                        (cl-cc/vm:vm-posit-from-bits 127 :nbits 8 :es 0))
+                       (cl-cc/vm:vm-posit-decode
+                        (cl-cc/vm:vm-posit-from-bits 126 :nbits 8 :es 0)))))
+      (expect (< near-one near-max) :to-be-truthy)))
+
+  (it "implements rounded arithmetic in a shared format"
+    (let ((three (cl-cc/vm:vm-posit-encode 3 :nbits 8 :es 0))
+          (two (cl-cc/vm:vm-posit-encode 2 :nbits 8 :es 0)))
+      (expect (cl-cc/vm:vm-posit-decode (cl-cc/vm:vm-posit-add three two))
+              :to-be 5)
+      (expect (cl-cc/vm:vm-posit-decode (cl-cc/vm:vm-posit-sub three two))
+              :to-be 1)
+      (expect (cl-cc/vm:vm-posit-decode (cl-cc/vm:vm-posit-mul three two))
+              :to-be 6)
+      (expect (cl-cc/vm:vm-posit-decode (cl-cc/vm:vm-posit-div three two))
+              :to-be 3/2)))
+
+  (it "accumulates products exactly and rounds only at Quire conversion"
+    (let* ((quire (cl-cc/vm:make-vm-quire :nbits 8 :es 0))
+           (half (cl-cc/vm:vm-posit-encode 1/2 :nbits 8 :es 0))
+           (two (cl-cc/vm:vm-posit-encode 2 :nbits 8 :es 0))
+           (three (cl-cc/vm:vm-posit-encode 3 :nbits 8 :es 0))
+           (one (cl-cc/vm:vm-posit-encode 1 :nbits 8 :es 0)))
+      (cl-cc/vm:vm-quire-add-product! quire half two)
+      (cl-cc/vm:vm-quire-add-product! quire three one)
+      (expect (cl-cc/vm:vm-quire-value quire) :to-be 4)
+      (expect (cl-cc/vm:vm-posit-decode (cl-cc/vm:vm-quire-to-posit quire))
+              :to-be 4))))

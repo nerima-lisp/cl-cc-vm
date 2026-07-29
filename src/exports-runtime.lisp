@@ -423,3 +423,5 @@
    lazy-map lazy-filter iterate lazy-range
    *json-null* json-parse json-parse-stream json-stringify json-stringify-stream
    regex-scan regex-all-matches regex-replace regex-replace-all regex-split))
+
+(export (quote (vm-posit vm-posit-p vm-posit-nbits vm-posit-es vm-posit-bits vm-posit-from-bits vm-posit-zero-p vm-posit-nar-p vm-posit-encode vm-posit-decode vm-posit-add vm-posit-sub vm-posit-mul vm-posit-div vm-quire vm-quire-p make-vm-quire vm-quire-nbits vm-quire-es vm-quire-value vm-quire-add-product! vm-quire-to-posit)))
