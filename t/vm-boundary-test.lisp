@@ -161,6 +161,30 @@
       (expect (cl-cc/vm::vm-reg-get state :r0)
               :to-be (cl-cc/vm:vm-bridge-callable cl-symbol)))))
 
+(describe-sequential "package-independent generic function names"
+  (it "matches symbols and SETF names without matching malformed names"
+    (let ((left (make-symbol "SLOT-VALUE-USING-CLASS"))
+          (right (make-symbol "SLOT-VALUE-USING-CLASS")))
+      (expect (cl-cc/vm::%vm-same-function-name-p left right) :to-be-truthy)
+      (expect (cl-cc/vm::%vm-same-function-name-p (list 'setf left) (list 'setf right))
+              :to-be-truthy)
+      (expect (cl-cc/vm::%vm-same-function-name-p (list 'setf left) (list 'other right))
+              :to-be nil)
+      (expect (cl-cc/vm::%vm-same-function-name-p (list 'setf left 'extra) (list 'setf right))
+              :to-be nil)
+      (expect (cl-cc/vm::%vm-same-function-name-p (cons 'setf left) (list 'setf right))
+              :to-be nil)))
+
+  (it "finds a SETF generic function registered with another package's symbol"
+    (let* ((state (cl-cc/vm:make-vm-state))
+           (registered-name (list 'setf (make-symbol "SLOT-VALUE-USING-CLASS")))
+           (lookup-name (list 'setf (make-symbol "SLOT-VALUE-USING-CLASS")))
+           (generic-function (make-hash-table :test #'eq)))
+      (setf (gethash :__methods__ generic-function) (make-hash-table :test #'equal)
+            (gethash registered-name (cl-cc/vm:vm-global-vars state)) generic-function)
+      (expect (cl-cc/vm::%vm-global-generic-function state lookup-name)
+              :to-be generic-function))))
+
 (progn
   (describe-sequential "cl-cc-vm package locks"
     (it "constructs the SBCL package lock condition with complete initargs"

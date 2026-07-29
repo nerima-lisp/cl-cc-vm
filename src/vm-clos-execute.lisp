@@ -213,23 +213,39 @@ descriptor already carries its effective inherited initforms."
   "Return T when CLASS-HT has a custom metaclass."
   (not (%vm-standard-metaclass-p (%vm-class-effective-metaclass class-ht state))))
 
+(defun %vm-same-function-name-p (left right)
+  "Return true when LEFT and RIGHT denote the same package-independent name."
+  (cond
+    ((and (symbolp left) (symbolp right))
+     (string= (symbol-name left) (symbol-name right)))
+    ((and (consp left)
+          (consp right)
+          (consp (cdr left))
+          (consp (cdr right))
+          (null (cddr left))
+          (null (cddr right))
+          (eq (car left) 'setf)
+          (eq (car right) 'setf)
+          (symbolp (cadr left))
+          (symbolp (cadr right)))
+     (string= (symbol-name (cadr left)) (symbol-name (cadr right))))
+    (t nil)))
+
 (defun %vm-same-name-global-generic-function (state name)
-  "Return a generic function stored under any same-named symbol in STATE.
+  "Return a generic function stored under any same-named function name in STATE.
 
 The VM looks protocol generic functions up with symbols read in :CL-CC/VM, while
 guest source is read in :CL-CC — so DEFMETHOD registered
 CL-CC::SLOT-VALUE-USING-CLASS while VM-SLOT-READ asked for
-CL-CC/VM::SLOT-VALUE-USING-CLASS and found nothing. Match on the symbol name."
-  (let ((target (and (symbolp name) (symbol-name name)))
-        (found nil))
-    (when target
-      (maphash (lambda (key value)
-                 (when (and (null found)
-                            (symbolp key)
-                            (string= (symbol-name key) target)
-                            (vm-generic-function-p value))
-                   (setf found value)))
-               (vm-global-vars state)))
+CL-CC/VM::SLOT-VALUE-USING-CLASS and found nothing. SETF function names need the
+same package-independent comparison for VM-SLOT-WRITE."
+  (let ((found nil))
+    (maphash (lambda (key value)
+               (when (and (null found)
+                          (%vm-same-function-name-p key name)
+                          (vm-generic-function-p value))
+                 (setf found value)))
+             (vm-global-vars state))
     found))
 
 (defun %vm-global-generic-function (state name)
