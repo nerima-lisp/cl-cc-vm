@@ -5,6 +5,7 @@
 ;;;; exports-runtime-objects.lisp.
 
 (in-package :cl-cc/vm)
+  (export '(vm-float-precision))
 
 #-cl-cc-self-hosting
 (export

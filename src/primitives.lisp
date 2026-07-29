@@ -163,9 +163,16 @@ The path value is diagnostic and keeps the runtime specialization testable."
           (vm-reg-set state (vm-dst inst) result)
           (values (1+ pc) nil nil)))))
 
-(define-vm-instruction vm-float-div (vm-cl-div)
-  (:sexp-tag :fdiv)
-  (:sexp-slots dst lhs rhs))
+(progn
+  (define-vm-instruction vm-float-div (vm-cl-div)
+    (precision :f64 :reader vm-float-precision :type (member :f32 :f64))
+    (:sexp-tag :fdiv)
+    (:sexp-slots dst lhs rhs precision))
+  (setf (gethash :fdiv *instruction-constructors*)
+        (lambda (sexp)
+          (make-vm-float-div
+           :dst (second sexp) :lhs (third sexp) :rhs (fourth sexp)
+           :precision (if (cddddr sexp) (fifth sexp) :f64)))))
 
 (defmethod execute-instruction ((inst vm-mod) state pc labels)
   (declare (ignore labels))

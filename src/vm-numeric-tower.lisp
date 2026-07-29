@@ -627,15 +627,22 @@ representation and applies signs after quotient/remainder construction."
 ;; define-vm-unary-instruction / define-vm-binary-instruction defined in vm.lisp.
 
 ;;; FR-099: FMA (Fused Multiply-Add)
-(define-vm-instruction vm-fma (vm-instruction)
-  "Fused multiply-add: dst = a * b + c.  Single rounding, no intermediate rounding.
-   On x86-64: VFMADD231SD (FMA3) or VFMADD213SD (FMA4) in XMM registers."
-  (dst nil :reader vm-dst)
-  (a nil :reader vm-a)
-  (b nil :reader vm-b)
-  (c nil :reader vm-c)
-  (:sexp-tag :fma)
-  (:sexp-slots dst a b c))
+(progn
+  (define-vm-instruction vm-fma (vm-instruction)
+    "Fused multiply-add: dst = a * b + c.  Single rounding, no intermediate rounding.
+ On x86-64: VFMADD231SD (FMA3) or VFMADD213SD (FMA4) in XMM registers."
+    (dst nil :reader vm-dst)
+    (a nil :reader vm-a)
+    (b nil :reader vm-b)
+    (c nil :reader vm-c)
+    (precision :f64 :reader vm-float-precision :type (member :f32 :f64))
+    (:sexp-tag :fma)
+    (:sexp-slots dst a b c precision))
+  (setf (gethash :fma *instruction-constructors*)
+        (lambda (sexp)
+          (make-vm-fma
+           :dst (second sexp) :a (third sexp) :b (fourth sexp) :c (fifth sexp)
+           :precision (if (cddddr (cdr sexp)) (sixth sexp) :f64)))))
 
 (defmethod execute-instruction ((inst vm-fma) state pc labels)
   (declare (ignore labels))

@@ -5,6 +5,48 @@
 
 (in-package :cl-cc-vm/test)
 
+  (describe-sequential "floating-point instruction precision"
+    (it "defaults constructors to f64"
+      (dolist (instruction
+               (list (cl-cc/vm:make-vm-float-add :dst :r0 :lhs :r1 :rhs :r2)
+                     (cl-cc/vm:make-vm-float-sub :dst :r0 :lhs :r1 :rhs :r2)
+                     (cl-cc/vm:make-vm-float-mul :dst :r0 :lhs :r1 :rhs :r2)
+                     (cl-cc/vm:make-vm-float-div :dst :r0 :lhs :r1 :rhs :r2)
+                     (cl-cc/vm:make-vm-fma :dst :r0 :a :r1 :b :r2 :c :r3)))
+        (expect (cl-cc/vm:vm-float-precision instruction) :to-be :f64)))
+
+    (it "round-trips explicit precision"
+      (dolist (instruction
+               (list (cl-cc/vm:make-vm-float-add :dst :r0 :lhs :r1 :rhs :r2 :precision :f32)
+                     (cl-cc/vm:make-vm-float-sub :dst :r0 :lhs :r1 :rhs :r2 :precision :f32)
+                     (cl-cc/vm:make-vm-float-mul :dst :r0 :lhs :r1 :rhs :r2 :precision :f32)
+                     (cl-cc/vm:make-vm-float-div :dst :r0 :lhs :r1 :rhs :r2 :precision :f32)
+                     (cl-cc/vm:make-vm-fma :dst :r0 :a :r1 :b :r2 :c :r3 :precision :f32)))
+        (let* ((sexp (cl-cc/vm:instruction->sexp instruction))
+               (copy (cl-cc/vm:sexp->instruction sexp)))
+          (expect (equal (car (last sexp)) :f32) :to-be-truthy)
+          (expect (cl-cc/vm:vm-float-precision copy) :to-be :f32)
+          (expect (equal (cl-cc/vm:instruction->sexp copy) sexp) :to-be-truthy))))
+
+    (it "reads legacy sexps as f64"
+      (dolist (sexp '((:fadd :r0 :r1 :r2)
+                      (:fsub :r0 :r1 :r2)
+                      (:fmul :r0 :r1 :r2)
+                      (:fdiv :r0 :r1 :r2)
+                      (:fma :r0 :r1 :r2 :r3)))
+        (expect (cl-cc/vm:vm-float-precision
+                 (cl-cc/vm:sexp->instruction sexp))
+                :to-be :f64)))
+
+    (it "rejects invalid precision"
+      (expect
+       (handler-case
+           (progn
+             (cl-cc/vm:make-vm-float-add :precision :invalid)
+             nil)
+         (type-error () t))
+       :to-be-truthy)))
+
 (describe-sequential "cl-cc-vm dependency closure"
   (it "loads without any of the cl-cc compiler packages present"
     ;; The design document ruled this system out of scope as part of a

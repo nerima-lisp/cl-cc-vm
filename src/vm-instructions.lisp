@@ -89,15 +89,36 @@ lane/type/op combinations must signal a clear error."
   (:sexp-tag :mul-checked)
   (:sexp-slots dst lhs rhs))
 
-(define-vm-instruction vm-float-add (vm-add)
-  (:sexp-tag :fadd)
-  (:sexp-slots dst lhs rhs))
-(define-vm-instruction vm-float-sub (vm-sub)
-  (:sexp-tag :fsub)
-  (:sexp-slots dst lhs rhs))
-(define-vm-instruction vm-float-mul (vm-mul)
-  (:sexp-tag :fmul)
-  (:sexp-slots dst lhs rhs))
+(progn
+  (define-vm-instruction vm-float-add (vm-add)
+    (precision :f64 :reader vm-float-precision :type (member :f32 :f64))
+    (:sexp-tag :fadd)
+    (:sexp-slots dst lhs rhs precision))
+  (setf (gethash :fadd *instruction-constructors*)
+        (lambda (sexp)
+          (make-vm-float-add
+           :dst (second sexp) :lhs (third sexp) :rhs (fourth sexp)
+           :precision (if (cddddr sexp) (fifth sexp) :f64)))))
+(progn
+  (define-vm-instruction vm-float-sub (vm-sub)
+    (precision :f64 :reader vm-float-precision :type (member :f32 :f64))
+    (:sexp-tag :fsub)
+    (:sexp-slots dst lhs rhs precision))
+  (setf (gethash :fsub *instruction-constructors*)
+        (lambda (sexp)
+          (make-vm-float-sub
+           :dst (second sexp) :lhs (third sexp) :rhs (fourth sexp)
+           :precision (if (cddddr sexp) (fifth sexp) :f64)))))
+(progn
+  (define-vm-instruction vm-float-mul (vm-mul)
+    (precision :f64 :reader vm-float-precision :type (member :f32 :f64))
+    (:sexp-tag :fmul)
+    (:sexp-slots dst lhs rhs precision))
+  (setf (gethash :fmul *instruction-constructors*)
+        (lambda (sexp)
+          (make-vm-float-mul
+           :dst (second sexp) :lhs (third sexp) :rhs (fourth sexp)
+           :precision (if (cddddr sexp) (fifth sexp) :f64)))))
 
 (define-vm-instruction vm-label (vm-instruction)
   (name nil :reader vm-name)
