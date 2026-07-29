@@ -146,24 +146,19 @@
   (declare (ignore labels))
   (let* ((handle (vm-reg-get state (vm-file-handle inst)))
          (stream (vm-get-stream state handle))
-         (position-reg (vm-position-reg inst)))
-    (if (vm-string-input-stream-p stream)
-        (let ((position (and position-reg (vm-reg-get state position-reg))))
-          (vm-reg-set state (vm-dst inst)
-                      (if position-reg
-                          (if (vm-string-input-stream-file-position stream t position) t nil)
-                          (vm-string-input-stream-file-position stream)))
-          (values (1+ pc) nil nil))
-        (if position-reg
-        ;; Set position
-        (let ((new-pos (vm-reg-get state position-reg)))
-          (vm-reg-set state (vm-dst inst)
-                      (if (file-position stream new-pos) t nil))
-          (values (1+ pc) nil nil))
-        ;; Get position
-        (let ((current-pos (file-position stream)))
-          (vm-reg-set state (vm-dst inst) current-pos)
-          (values (1+ pc) nil nil))))))
+         (position-reg (vm-position-reg inst))
+         (position (and position-reg (vm-reg-get state position-reg))))
+    (vm-reg-set state (vm-dst inst)
+                (cond
+                  ((not position-reg)
+                   (if (vm-string-input-stream-p stream)
+                       (vm-string-input-stream-file-position stream)
+                       (vm-file-position stream)))
+                  ((vm-string-input-stream-p stream)
+                   (vm-string-input-stream-file-position stream t position))
+                  (t
+                   (vm-file-position stream position))))
+    (values (1+ pc) nil nil)))
 
 (defmethod execute-instruction ((inst vm-file-length) state pc labels)
   (declare (ignore labels))

@@ -486,10 +486,17 @@ mutable control-state containers."
   (nth n form-values))
 
 ;;; FR-868: file-position random access
-(defun vm-file-position (stream &optional position)
-  "FR-868: Get or set file position on STREAM."
-  (if position
-      (file-position stream position)
+(defun vm-file-position (stream &optional (position nil position-p))
+  "FR-868: Get or set file position on STREAM.
+
+POSITION accepts ANSI FILE-POSITION values (a non-negative integer, :START, or
+:END).  The CL-CC extension :CURRENT performs a no-op seek at the current
+position and returns the normal setter boolean."
+  (if position-p
+      (if (eq position :current)
+          (let ((current (file-position stream)))
+            (and current (if (file-position stream current) t nil)))
+          (if (file-position stream position) t nil))
       (file-position stream)))
 
 ;;; FR-880: User-defined hash table tests

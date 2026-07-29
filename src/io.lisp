@@ -377,11 +377,16 @@ each test begins with a clean execution context."
 (defun vm-string-input-stream-file-position (stream &optional new-position-p new-position)
   "Get or set VM string input STREAM position."
   (if new-position-p
-      (let ((contents (vm-string-input-stream-contents stream)))
-        (if (and (integerp new-position)
-                 (<= 0 new-position (length contents)))
+      (let* ((contents (vm-string-input-stream-contents stream))
+             (position (case new-position
+                         (:start 0)
+                         (:end (length contents))
+                         (:current (vm-string-input-stream-position stream))
+                         (otherwise new-position))))
+        (if (and (integerp position)
+                 (<= 0 position (length contents)))
             (progn
-              (setf (vm-string-input-stream-position stream) new-position
+              (setf (vm-string-input-stream-position stream) position
                     (vm-string-input-stream-unread-character stream) nil)
               t)
             nil))
@@ -523,11 +528,11 @@ through after the usual bridge handle resolution."
   (apply #'make-concatenated-stream (mapcar #'%vm-input-stream-to-host streams)))
 
 (defun %vm-bridge-file-position (stream &optional (position nil position-p))
-  "Host bridge for ANSI FILE-POSITION that accepts VM stream handles."
+  "Host bridge for FILE-POSITION, including CL-CC's :CURRENT extension."
   (let ((resolved (%vm-bridge-stream-arg stream)))
     (if position-p
-        (if (file-position resolved position) t nil)
-        (file-position resolved))))
+        (vm-file-position resolved position)
+        (vm-file-position resolved))))
 
 (defun %vm-bridge-file-length (stream)
   "Host bridge for ANSI FILE-LENGTH that accepts VM stream handles."
