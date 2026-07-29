@@ -103,9 +103,9 @@ SHAPE is one of:
                    :documentation "Global registry mapping class names to class descriptor HTs")
     (values-list :initform nil :accessor vm-values-list
                  :documentation "List of multiple return values from last VALUES call")
-    (mv-buffer :initform (make-array +maximum-multiple-values+ :initial-element nil)
+    (mv-buffer :initform (make-array +maximum-multiple-values+ :initial-element nil :adjustable t)
                :accessor vm-mv-buffer
-               :documentation "Fixed-size multiple-values buffer for allocation-free MV transfer.")
+               :documentation "Dynamically growing multiple-values buffer; initially sized for allocation-free transfer.")
     (mv-count :initform 0 :accessor vm-mv-count
               :documentation "Number of valid entries in MV-BUFFER.")
     (load-time-values :initform (make-hash-table :test #'eql)
