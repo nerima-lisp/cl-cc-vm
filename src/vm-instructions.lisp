@@ -276,6 +276,7 @@ lane/type/op combinations must signal a clear error."
   "Load resolved load-time-value cell CELL-ID into DST."
   (dst nil :reader vm-dst)
   (cell-id nil :reader vm-load-time-value-inst-cell-id)
+  (:conc-name vm-load-time-value-inst-)
   (:sexp-tag :load-time-value)
   (:sexp-slots dst cell-id))
 
