@@ -11,33 +11,14 @@
   "Access element of bit array: (bit array index)."
   (dst nil :reader vm-dst) (arr nil :reader vm-arr) (idx nil :reader vm-idx)
   (:sexp-tag :bit-access) (:sexp-slots dst arr idx))
-(defmethod execute-instruction ((inst vm-bit-access) state pc labels)
-  (declare (ignore labels))
-  (let ((arr (vm-reg-get state (vm-arr inst)))
-        (idx (vm-reg-get state (vm-idx inst))))
-    (vm-reg-set state (vm-dst inst)
-                (cond
-                  ((vm-bit-vector-p arr) (vm-bit-vector-ref arr idx))
-                  ((bit-vector-p arr) (bit arr idx))
-                  (t (aref arr idx)))))
-  (values (1+ pc) nil nil))
+(defmethod execute-instruction ((inst vm-bit-access) state pc labels) (declare (ignore labels)) (let ((arr (%vm-cow-vector-materialize (vm-reg-get state (vm-arr inst)))) (idx (vm-reg-get state (vm-idx inst)))) (vm-reg-set state (vm-dst inst) (cond ((vm-bit-vector-p arr) (vm-bit-vector-ref arr idx)) ((bit-vector-p arr) (bit arr idx)) (t (aref arr idx))))) (values (1+ pc) nil nil))
 
 (define-vm-instruction vm-bit-set (vm-instruction)
   "Set element of bit array: (setf (bit array index) val)."
   (dst nil :reader vm-dst) (arr nil :reader vm-arr) (idx nil :reader vm-idx)
   (val nil :reader vm-val)
   (:sexp-tag :bit-set) (:sexp-slots dst arr idx val))
-(defmethod execute-instruction ((inst vm-bit-set) state pc labels)
-  (declare (ignore labels))
-  (let ((arr (vm-reg-get state (vm-arr inst)))
-        (idx (vm-reg-get state (vm-idx inst)))
-        (v   (vm-reg-get state (vm-val inst))))
-    (cond
-      ((vm-bit-vector-p arr) (setf (vm-bit-vector-ref arr idx) v))
-      ((bit-vector-p arr) (setf (bit arr idx) v))
-      (t (setf (aref arr idx) v)))
-    (vm-reg-set state (vm-dst inst) v)
-    (values (1+ pc) nil nil)))
+(defmethod execute-instruction ((inst vm-bit-set) state pc labels) (declare (ignore labels)) (let ((arr (%vm-cow-vector-ensure-writable (vm-reg-get state (vm-arr inst)))) (idx (vm-reg-get state (vm-idx inst))) (v (vm-reg-get state (vm-val inst)))) (cond ((vm-bit-vector-p arr) (setf (vm-bit-vector-ref arr idx) v)) ((bit-vector-p arr) (setf (bit arr idx) v)) (t (setf (aref arr idx) v))) (vm-reg-set state (vm-dst inst) v) (values (1+ pc) nil nil)))
 
 (define-vm-instruction vm-bit-and (vm-instruction)
   "Element-wise AND of two bit arrays."
@@ -68,15 +49,7 @@
   "Access element of simple bit-vector: (sbit svec index)."
   (dst nil :reader vm-dst) (arr nil :reader vm-arr) (idx nil :reader vm-idx)
   (:sexp-tag :sbit) (:sexp-slots dst arr idx))
-(defmethod execute-instruction ((inst vm-sbit) state pc labels)
-  (declare (ignore labels))
-  (let ((arr (vm-reg-get state (vm-arr inst)))
-        (idx (vm-reg-get state (vm-idx inst))))
-    (vm-reg-set state (vm-dst inst)
-                (if (vm-bit-vector-p arr)
-                    (vm-bit-vector-ref arr idx)
-                    (sbit arr idx))))
-  (values (1+ pc) nil nil))
+(defmethod execute-instruction ((inst vm-sbit) state pc labels) (declare (ignore labels)) (let ((arr (%vm-cow-vector-materialize (vm-reg-get state (vm-arr inst)))) (idx (vm-reg-get state (vm-idx inst)))) (vm-reg-set state (vm-dst inst) (if (vm-bit-vector-p arr) (vm-bit-vector-ref arr idx) (sbit arr idx)))) (values (1+ pc) nil nil))
 
 ;;; ─── FR-605: adjust-array and array-displacement ─────────────────────────────
 
@@ -94,49 +67,13 @@
   (:sexp-slots dst arr dims initial-element fill-pointer fill-pointer-reg
                 element-type element-type-reg displaced-to-reg
                 displaced-index-offset-reg))
-(defmethod execute-instruction ((inst vm-adjust-array) state pc labels)
-  (declare (ignore labels))
-  (let* ((arr (vm-reg-get state (vm-arr inst)))
-         (dims (vm-reg-get state (vm-dims inst)))
-         (new-dims (if (or (integerp dims) (vectorp dims)) dims (copy-list dims)))
-         (init-present-p (vm-initial-element inst))
-         (fp (if (vm-fill-pointer-reg inst)
-                 (vm-reg-get state (vm-fill-pointer-reg inst))
-                 (vm-fill-pointer inst)))
-         (elt-type (if (vm-element-type-reg inst)
-                       (vm-reg-get state (vm-element-type-reg inst))
-                       (vm-element-type inst)))
-         (displaced-to (and (vm-displaced-to-reg inst)
-                            (vm-reg-get state (vm-displaced-to-reg inst))))
-         (displaced-index-offset (if (vm-displaced-index-offset-reg inst)
-                                     (vm-reg-get state (vm-displaced-index-offset-reg inst))
-                                     0))
-         (base-arr (%vm-cow-vector-ensure-writable arr))
-         (args (append (list base-arr new-dims)
-                       (when init-present-p
-                         (list :initial-element
-                               (vm-reg-get state (vm-initial-element inst))))
-                       (when fp
-                         (list :fill-pointer (if (eq fp t) 0 fp)))
-                       (when elt-type
-                         (list :element-type elt-type))
-                       (when displaced-to
-                         (list :displaced-to displaced-to
-                               :displaced-index-offset displaced-index-offset)))))
-    (vm-reg-set state (vm-dst inst) (apply #'adjust-array args))
-    (values (1+ pc) nil nil)))
+(defmethod execute-instruction ((inst vm-adjust-array) state pc labels) (declare (ignore labels)) (let* ((arr (vm-reg-get state (vm-arr inst))) (dims (vm-reg-get state (vm-dims inst))) (new-dims (if (or (integerp dims) (vectorp dims)) dims (copy-list dims))) (init-present-p (vm-initial-element inst)) (fp (if (vm-fill-pointer-reg inst) (vm-reg-get state (vm-fill-pointer-reg inst)) (vm-fill-pointer inst))) (elt-type (if (vm-element-type-reg inst) (vm-reg-get state (vm-element-type-reg inst)) (vm-element-type inst))) (displaced-to (and (vm-displaced-to-reg inst) (%vm-cow-vector-materialize (vm-reg-get state (vm-displaced-to-reg inst))))) (displaced-index-offset (if (vm-displaced-index-offset-reg inst) (vm-reg-get state (vm-displaced-index-offset-reg inst)) 0)) (base-arr (%vm-cow-vector-ensure-writable arr)) (args (append (list base-arr new-dims) (when init-present-p (list :initial-element (vm-reg-get state (vm-initial-element inst)))) (when fp (list :fill-pointer (if (eq fp t) 0 fp))) (when elt-type (list :element-type elt-type)) (when displaced-to (list :displaced-to displaced-to :displaced-index-offset displaced-index-offset))))) (vm-reg-set state (vm-dst inst) (apply #'adjust-array args)) (values (1+ pc) nil nil)))
 
 (define-vm-instruction vm-array-displacement (vm-instruction)
   "Return displaced-to array and offset (both nil for non-displaced arrays)."
   (dst nil :reader vm-dst) (src nil :reader vm-src)
   (:sexp-tag :array-displacement) (:sexp-slots dst src))
-(defmethod execute-instruction ((inst vm-array-displacement) state pc labels)
-  (declare (ignore labels))
-  (multiple-value-bind (displaced-to offset)
-      (array-displacement (%vm-cow-vector-materialize (vm-reg-get state (vm-src inst))))
-    (vm-reg-set state (vm-dst inst) displaced-to)
-    (setf (vm-values-list state) (list displaced-to offset))
-    (values (1+ pc) nil nil)))
+(defmethod execute-instruction ((inst vm-array-displacement) state pc labels) (declare (ignore labels)) (let ((array (%vm-cow-vector-materialize (vm-reg-get state (vm-src inst))))) (multiple-value-bind (displaced-to offset) (if (vm-specialized-array-p array) (values nil 0) (array-displacement array)) (vm-reg-set state (vm-dst inst) displaced-to) (setf (vm-values-list state) (list displaced-to offset)) (values (1+ pc) nil nil))))
 
 ;;; ─── simple-vector-p (FR-648) ────────────────────────────────────────────────
 (define-vm-unary-instruction vm-simple-vector-p :simple-vector-p "Test if value is a simple-vector. Returns 1/0.")
