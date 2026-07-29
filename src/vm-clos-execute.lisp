@@ -111,11 +111,26 @@ descriptor already carries its effective inherited initforms."
     (unless storage (error "Expected hash table, got ~S" table))
     (setf (gethash key storage) value)))
 
-(defun %vm-vector-instance-p (object)
-  "Return T when OBJECT is a vector-backed standard instance."
-  (and (vectorp object)
-       (plusp (length object))
-       (hash-table-p (aref object 0))))
+(progn
+  (defun %vm-vector-instance-p (object)
+    "Return T when OBJECT is a vector-backed standard instance."
+    (and (vectorp object)
+         (plusp (length object))
+         (hash-table-p (aref object 0))))
+  (defun %vm-instance-slot-capacity (instance)
+    (let ((storage (and (> (length instance) 1) (aref instance 1))))
+      (if (%vm-instance-storage-p storage)
+          (length (%vm-instance-storage-values storage))
+          (1- (length instance)))))
+  (defun %vm-replace-instance-slot-storage (instance values)
+    (let ((storage (and (> (length instance) 1) (aref instance 1))))
+      (unless (%vm-instance-storage-p storage)
+        (error "Cannot grow legacy direct-layout instance ~S" instance))
+      (setf (%vm-instance-storage-values storage) values)))
+  (defun %vm-instance-slot-ref (instance index)
+    (slot-value-by-index instance index))
+  (defun (setf %vm-instance-slot-ref) (value instance index)
+    (setf (slot-value-by-index instance index) value)))
 
 (defun %vm-slot-vector-index (class-ht slot-name)
   "Return SLOT-NAME's vector index in CLASS-HT instances, or NIL."
@@ -124,43 +139,34 @@ descriptor already carries its effective inherited initforms."
 
 (defun %vm-update-obsolete-instance (obj-ht)
   "Migrate OBJ-HT from an obsolete class descriptor to its replacement, if any."
-  (let* ((old-class (cond
-                      ((hash-table-p obj-ht) (gethash :__class__ obj-ht))
-                      ((%vm-vector-instance-p obj-ht) (aref obj-ht 0))))
-          (new-class (and (hash-table-p old-class)
-                          (gethash :__obsolete__ old-class)
-                          (gethash :__replacement-class__ old-class))))
+  (let* ((old-class (cond ((hash-table-p obj-ht) (gethash :__class__ obj-ht)) ((%vm-vector-instance-p obj-ht) (aref obj-ht 0))))
+         (new-class (and (hash-table-p old-class) (gethash :__obsolete__ old-class) (gethash :__replacement-class__ old-class))))
     (when (hash-table-p new-class)
-      (let ((old-slots (gethash :__slots__ old-class))
-            (new-slots (gethash :__slots__ new-class)))
+      (let ((old-slots (gethash :__slots__ old-class)) (new-slots (gethash :__slots__ new-class)) (new-initforms (gethash :__initforms__ new-class)))
         (cond
           ((hash-table-p obj-ht)
-           (dolist (slot old-slots)
-             (unless (member slot new-slots :test #'eq)
-               (remhash slot obj-ht)))
+           (dolist (slot old-slots) (unless (member slot new-slots :test (function eq)) (remhash slot obj-ht)))
            (dolist (slot new-slots)
              (multiple-value-bind (value found-p) (gethash slot obj-ht)
                (declare (ignore value))
                (unless found-p
-                 (setf (gethash slot obj-ht) nil))))
+                 (let ((entry (assoc slot new-initforms :test (function eq))))
+                   (setf (gethash slot obj-ht) (if entry (cdr entry) nil))))))
            (setf (gethash :__class__ obj-ht) new-class))
-          ((and (%vm-vector-instance-p obj-ht)
-                (<= (1+ (length new-slots)) (length obj-ht)))
+          ((%vm-vector-instance-p obj-ht)
            (let ((old-values nil))
              (dolist (slot old-slots)
                (let ((index (%vm-slot-vector-index old-class slot)))
-                 (when (and index (< index (length obj-ht)))
-                   (push (cons slot (aref obj-ht index)) old-values))))
-             (loop for index from 1 below (length obj-ht)
-                   do (setf (aref obj-ht index) *unbound-slot-marker*))
+                 (when (and index (<= index (%vm-instance-slot-capacity obj-ht)))
+                   (push (cons slot (%vm-instance-slot-ref obj-ht index)) old-values))))
+             (when (> (length new-slots) (%vm-instance-slot-capacity obj-ht))
+               (%vm-replace-instance-slot-storage obj-ht (make-array (length new-slots) :initial-element *unbound-slot-marker*)))
+             (loop for index from 1 to (%vm-instance-slot-capacity obj-ht) do (setf (%vm-instance-slot-ref obj-ht index) *unbound-slot-marker*))
              (dolist (slot new-slots)
-               (let ((index (%vm-slot-vector-index new-class slot))
-                     (old-entry (assoc slot old-values :test #'eq)))
-                 (when (and index (< index (length obj-ht)))
-                   (setf (aref obj-ht index)
-                         (if old-entry (cdr old-entry) nil)))))
-             (setf (aref obj-ht 0) new-class))))))
-    obj-ht))
+               (let ((index (%vm-slot-vector-index new-class slot)) (old-entry (assoc slot old-values :test (function eq))) (initform-entry (assoc slot new-initforms :test (function eq))))
+                 (setf (%vm-instance-slot-ref obj-ht index) (cond (old-entry (cdr old-entry)) (initform-entry (cdr initform-entry)) (t nil)))))
+             (setf (aref obj-ht 0) new-class)))))
+    obj-ht)))
 
 (defun %vm-obj-class-ht (obj-ht)
   "Return the class hash-table for an instance OBJ-HT, or NIL."
@@ -375,23 +381,21 @@ VM primitives that need protocol hooks without introducing new instructions."
 
 (defun %vm-raw-allocate-instance (class-ht initarg-regs state)
   "Allocate and initialize raw storage for CLASS-HT without protocol dispatch."
-  (let* ((slot-names       (gethash :__slots__            class-ht))
+  (let* ((slot-names (gethash :__slots__ class-ht))
          (standard-layout-p (not (%vm-class-nonstandard-metaclass-p class-ht state)))
-         (obj-ht           (if standard-layout-p
-                               (make-array (1+ (length slot-names))
-                                           :initial-element *unbound-slot-marker*)
-                               (make-hash-table :test #'eq)))
-         (initarg-map      (gethash :__initargs__         class-ht))
-         (initform-values  (gethash :__initforms__        class-ht))
+         (obj-ht (if standard-layout-p
+                     (allocate-instance-vector class-ht *unbound-slot-marker*)
+                     (make-hash-table :test (function eq))))
+         (initarg-map (gethash :__initargs__ class-ht))
+         (initform-values (gethash :__initforms__ class-ht))
          (default-initargs (gethash :__default-initargs__ class-ht))
-         (class-slots      (gethash :__class-slots__      class-ht))
-         (provided-keys    (remove :allow-other-keys (mapcar #'car initarg-regs) :test #'eq)))
-    (if standard-layout-p
-        (setf (aref obj-ht 0) class-ht)
-        (setf (gethash :__class__ obj-ht) class-ht))
+         (class-slots (gethash :__class-slots__ class-ht))
+         (provided-keys (remove :allow-other-keys (mapcar (function car) initarg-regs) :test (function eq))))
+    (unless standard-layout-p
+      (setf (gethash :__class__ obj-ht) class-ht))
     (%vm-validate-initargs initarg-regs initarg-map state)
     (dolist (slot-name slot-names)
-      (unless (member slot-name class-slots :test #'eq)
+      (unless (member slot-name class-slots :test (function eq))
         (let ((initform-entry (assoc slot-name initform-values)))
           (%vm-raw-slot-write class-ht class-slots obj-ht slot-name
                               (if initform-entry (cdr initform-entry) nil)))))
@@ -437,21 +441,21 @@ VM primitives that need protocol hooks without introducing new instructions."
 
 (defun %vm-raw-slot-read (class-ht class-slots obj-ht slot-name)
   "Read SLOT-NAME directly from OBJ-HT/CLASS-HT with standard error behavior."
-  (if (and class-slots (member slot-name class-slots :test #'eq))
+  (if (and class-slots (member slot-name class-slots :test (function eq)))
       (%vm-hashlike-gethash slot-name class-ht)
-      (let ((all-slots  (when class-ht (%vm-hashlike-gethash :__slots__ class-ht)))
+      (let ((all-slots (when class-ht (%vm-hashlike-gethash :__slots__ class-ht)))
             (class-name (when class-ht (%vm-hashlike-gethash :__name__ class-ht))))
         (cond
           ((%vm-vector-instance-p obj-ht)
            (let ((index (%vm-slot-vector-index class-ht slot-name)))
              (cond
-               ((and index (< index (length obj-ht)))
-                (let ((value (aref obj-ht index)))
+               ((and index (<= index (%vm-instance-slot-capacity obj-ht)))
+                (let ((value (%vm-instance-slot-ref obj-ht index)))
                   (if (eq value *unbound-slot-marker*)
-                      (error (make-condition 'unbound-slot :name slot-name :instance obj-ht))
+                      (error (make-condition (quote unbound-slot) :name slot-name :instance obj-ht))
                       value)))
-               ((and all-slots (member slot-name all-slots :test #'eq))
-                (error (make-condition 'unbound-slot :name slot-name :instance obj-ht)))
+               ((and all-slots (member slot-name all-slots :test (function eq)))
+                (error (make-condition (quote unbound-slot) :name slot-name :instance obj-ht)))
                (t
                 (error "The slot ~S is missing from the object~@[ of class ~S~]"
                        slot-name class-name)))))
@@ -460,29 +464,24 @@ VM primitives that need protocol hooks without introducing new instructions."
              (unless obj-storage
                (error "The slot ~S is missing from non-object ~S" slot-name obj-ht))
              (multiple-value-bind (value found-p) (gethash slot-name obj-storage)
-               (if found-p
-                   value
-                   ;; For PHP/JS objects that use string keys, try string conversion.
-                   ;; This allows $obj->method to find "method" stored as a string key.
+               (if found-p value
                    (let ((str-key (string-downcase (symbol-name slot-name))))
-                     (multiple-value-bind (str-val str-found-p)
-                         (gethash str-key obj-storage)
-                       (if str-found-p
-                           str-val
-                           (if (and all-slots (member slot-name all-slots :test #'eq))
-                               (error (make-condition 'unbound-slot :name slot-name :instance obj-ht))
+                     (multiple-value-bind (str-val str-found-p) (gethash str-key obj-storage)
+                       (if str-found-p str-val
+                           (if (and all-slots (member slot-name all-slots :test (function eq)))
+                               (error (make-condition (quote unbound-slot) :name slot-name :instance obj-ht))
                                nil))))))))))))
 
 (defun %vm-raw-slot-write (class-ht class-slots obj-ht slot-name value)
   "Write VALUE directly to SLOT-NAME in OBJ-HT/CLASS-HT."
-  (if (and class-slots (member slot-name class-slots :test #'eq))
+  (if (and class-slots (member slot-name class-slots :test (function eq)))
       (%vm-hashlike-sethash slot-name class-ht value)
       (if (%vm-vector-instance-p obj-ht)
           (let ((index (%vm-slot-vector-index class-ht slot-name)))
-            (unless (and index (< index (length obj-ht)))
+            (unless (and index (<= index (%vm-instance-slot-capacity obj-ht)))
               (error "The slot ~S is missing from the object~@[ of class ~S~]"
                      slot-name (and class-ht (%vm-hashlike-gethash :__name__ class-ht))))
-            (setf (aref obj-ht index) value))
+            (setf (%vm-instance-slot-ref obj-ht index) value))
           (let ((obj-storage (%vm-hashlike-storage obj-ht)))
             (unless obj-storage
               (error "The slot ~S is missing from non-object ~S" slot-name obj-ht))
@@ -490,8 +489,6 @@ VM primitives that need protocol hooks without introducing new instructions."
               (declare (ignore _))
               (if sym-found-p
                   (%vm-hashlike-sethash slot-name obj-ht value)
-                  ;; PHP/JS objects may store property names as strings.  Only
-                  ;; use that path when the canonical symbol slot is absent.
                   (let ((str-key (string-downcase (symbol-name slot-name))))
                     (multiple-value-bind (_ str-found-p) (gethash str-key obj-storage)
                       (declare (ignore _))
@@ -503,32 +500,31 @@ VM primitives that need protocol hooks without introducing new instructions."
   "Return whether SLOT-NAME is bound using direct OBJ-HT/CLASS-HT storage."
   (let ((all-slots (when class-ht (gethash :__slots__ class-ht))))
     (cond
-      ((and all-slots (not (member slot-name all-slots :test #'eq)))
-       nil)
-      ((and class-slots (member slot-name class-slots :test #'eq))
-        (multiple-value-bind (value found-p) (gethash slot-name class-ht)
-          (declare (ignore value))
-          (if found-p t nil)))
+      ((and all-slots (not (member slot-name all-slots :test (function eq)))) nil)
+      ((and class-slots (member slot-name class-slots :test (function eq)))
+       (multiple-value-bind (value found-p) (gethash slot-name class-ht)
+         (declare (ignore value))
+         (if found-p t nil)))
       ((%vm-vector-instance-p obj-ht)
        (let ((index (%vm-slot-vector-index class-ht slot-name)))
          (and index
-              (< index (length obj-ht))
-              (not (eq (aref obj-ht index) *unbound-slot-marker*)))))
+              (<= index (%vm-instance-slot-capacity obj-ht))
+              (not (eq (%vm-instance-slot-ref obj-ht index) *unbound-slot-marker*)))))
       (t
-        (multiple-value-bind (value found-p) (gethash slot-name obj-ht)
-          (declare (ignore value))
-          (if found-p t nil))))))
+       (multiple-value-bind (value found-p) (gethash slot-name obj-ht)
+         (declare (ignore value))
+         (if found-p t nil))))))
 
 (defun %vm-raw-slot-makunbound (class-ht class-slots obj-ht slot-name)
   "Make SLOT-NAME unbound using direct OBJ-HT/CLASS-HT storage."
-  (if (and class-slots (member slot-name class-slots :test #'eq))
+  (if (and class-slots (member slot-name class-slots :test (function eq)))
       (remhash slot-name class-ht)
       (if (%vm-vector-instance-p obj-ht)
           (let ((index (%vm-slot-vector-index class-ht slot-name)))
-            (unless (and index (< index (length obj-ht)))
+            (unless (and index (<= index (%vm-instance-slot-capacity obj-ht)))
               (error "The slot ~S is missing from the object~@[ of class ~S~]"
                      slot-name (and class-ht (%vm-hashlike-gethash :__name__ class-ht))))
-            (setf (aref obj-ht index) *unbound-slot-marker*))
+            (setf (%vm-instance-slot-ref obj-ht index) *unbound-slot-marker*))
           (remhash slot-name obj-ht)))
   obj-ht)
 

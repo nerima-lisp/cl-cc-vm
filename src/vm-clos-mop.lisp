@@ -22,7 +22,10 @@
 (defvar *mop-generic-function-registry* (make-hash-table :test #'equal)
   "Host-side registry for generic functions created by ENSURE-GENERIC-FUNCTION.")
 
-(defvar *unbound-slot-marker*)
+(progn
+  (defvar *unbound-slot-marker*)
+  (defstruct (%vm-instance-storage (:constructor %make-vm-instance-storage (values)))
+    values))
 
 (defun %mop-hash-table-values (table)
   "Return values from TABLE in an unspecified but stable traversal list."
@@ -458,31 +461,47 @@ tables that predate FR-888 metadata."
       (gethash slot-name index))))
 
 (defun allocate-instance-vector (class-ht &optional initial-element)
-  "Allocate a vector-backed instance for CLASS-HT.
-The vector header stores the class descriptor; the descriptor carries the
-numeric class-id used by typep/class-of fast paths."
+  "Allocate a vector-backed instance for CLASS-HT."
   (unless (%vm-fixed-slot-layout-p class-ht)
     (error "Class ~S does not have a fixed slot layout"
            (and (hash-table-p class-ht) (gethash :__name__ class-ht))))
   (%vm-ensure-class-id class-ht)
-  (let ((instance (make-array (1+ (length (gethash :__slots__ class-ht)))
-                              :initial-element initial-element)))
-    (setf (aref instance 0) class-ht)
-    instance))
+  (vector class-ht
+          (%make-vm-instance-storage
+           (make-array (length (gethash :__slots__ class-ht))
+                       :initial-element initial-element))))
 
 (defun slot-value-by-index (instance index)
-  "Return INSTANCE's slot value at vector storage INDEX in O(1)."
-  (unless (and (vectorp instance) (integerp index)
-               (<= 0 index) (< index (length instance)))
+  "Return INSTANCE slot value at vector storage INDEX in O(1)."
+  (unless (and (vectorp instance) (> (length instance) 1)
+               (hash-table-p (aref instance 0)) (integerp index) (plusp index))
     (error "Invalid vector slot index ~S for ~S" index instance))
-  (aref instance index))
+  (let ((storage (aref instance 1)))
+    (if (%vm-instance-storage-p storage)
+        (let ((values (%vm-instance-storage-values storage)))
+          (unless (< (1- index) (length values))
+            (error "Invalid vector slot index ~S for ~S" index instance))
+          (aref values (1- index)))
+        (progn
+          (unless (< index (length instance))
+            (error "Invalid vector slot index ~S for ~S" index instance))
+          (aref instance index)))))
 
 (defun (setf slot-value-by-index) (value instance index)
-  "Set INSTANCE's slot value at vector storage INDEX in O(1)."
-  (unless (and (vectorp instance) (integerp index)
-               (<= 0 index) (< index (length instance)))
+  "Set INSTANCE slot value at vector storage INDEX in O(1)."
+  (unless (and (vectorp instance) (> (length instance) 1)
+               (hash-table-p (aref instance 0)) (integerp index) (plusp index))
     (error "Invalid vector slot index ~S for ~S" index instance))
-  (setf (aref instance index) value))
+  (let ((storage (aref instance 1)))
+    (if (%vm-instance-storage-p storage)
+        (let ((values (%vm-instance-storage-values storage)))
+          (unless (< (1- index) (length values))
+            (error "Invalid vector slot index ~S for ~S" index instance))
+          (setf (aref values (1- index)) value))
+        (progn
+          (unless (< index (length instance))
+            (error "Invalid vector slot index ~S for ~S" index instance))
+          (setf (aref instance index) value)))))
 
 (defun %vm-vector-instance-class-id (instance)
   "Return INSTANCE's class-id from its vector header, or NIL."
@@ -495,10 +514,17 @@ numeric class-id used by typep/class-of fast paths."
   (allocate-instance-vector class-ht initial-element))
 
 (defun %vm-copy-instance-template (class-ht &optional initial-element)
-  "Return a fresh instance by copying CLASS-HT's zero-arg template."
-  (copy-seq (or (gethash :__instance-template__ class-ht)
-                (setf (gethash :__instance-template__ class-ht)
-                      (%vm-build-instance-template class-ht initial-element)))))
+  "Return a fresh instance by copying CLASS-HTs zero-arg template."
+  (let* ((template (or (gethash :__instance-template__ class-ht)
+                       (setf (gethash :__instance-template__ class-ht)
+                             (%vm-build-instance-template class-ht initial-element))))
+         (copy (copy-seq template))
+         (storage (and (> (length copy) 1) (aref copy 1))))
+    (when (%vm-instance-storage-p storage)
+      (setf (aref copy 1)
+            (%make-vm-instance-storage
+             (copy-seq (%vm-instance-storage-values storage)))))
+    copy))
 
 (defun %vm-initargs-signature (initargs)
   "Return a compact cache signature for INITARGS.
