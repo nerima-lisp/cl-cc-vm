@@ -35,11 +35,11 @@
     "cl-cc-runtime": {
       "flake": false,
       "locked": {
-        "lastModified": 1785080164,
-        "narHash": "sha256-PJA/17J2zn/tPZggHfIT4ceh0s9GR3HX8YhzpSN+tcM=",
+        "lastModified": 1785358969,
+        "narHash": "sha256-LqVaoT5BJYCOjr1DbgUgiUGsINzuQUS3aGSgW0O2/gI=",
         "owner": "nerima-lisp",
         "repo": "cl-cc-runtime",
-        "rev": "095a8649254650dd7fc2f697473101bf21418ba6",
+        "rev": "e7d2419bdf7d3edb870773150b44643c5b55c0df",
         "type": "github"
       },
       "original": {

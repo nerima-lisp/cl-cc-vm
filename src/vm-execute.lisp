@@ -91,10 +91,11 @@
 (defstruct (vm-continuation (:constructor %make-vm-continuation))
   "Heap-copied VM continuation snapshot.
 
-The register file, call stack, handler stack, method stack, prompt stack, and
-closure environment are copied at capture time. Invocation copies the snapshot
-again before restoration, keeping continuations multi-shot. KIND is :FULL,
-:ESCAPE, or :DELIMITED; escape continuations are one-shot by convention."
+The register file, call stack, handler stack, method stack, prompt stack,
+physical stack metadata, and closure environment are copied at capture time.
+Invocation copies or restores each snapshot again, keeping continuations
+multi-shot. KIND is :FULL, :ESCAPE, or :DELIMITED; escape continuations are
+one-shot by convention."
   (kind :full :type keyword)
   pc
   dst-reg
@@ -103,6 +104,7 @@ again before restoration, keeping continuations multi-shot. KIND is :FULL,
   handler-stack
   method-call-stack
   prompt-stack
+  stack-segment-snapshot
   closure-env
   values-list
   labels
@@ -121,12 +123,26 @@ again before restoration, keeping continuations multi-shot. KIND is :FULL,
     (t
      (error "Unsupported VM register file: ~S" table))))
 
+(defun %vm-stack-segment-snapshot (state)
+  (cl-cc/runtime::stack-segment-snapshot (vm-current-stack-segment state)))
+
+(defun %vm-replace-stack-segments (state snapshot)
+  "Replace STATE's chain only after SNAPSHOT has restored successfully."
+  (let ((replacement (cl-cc/runtime::stack-segment-restore snapshot))
+        (current (vm-current-stack-segment state)))
+    (cl-cc/runtime::release-stack-segment-chain current)
+    (setf (vm-current-stack-segment state) replacement)))
+
 (defun vm-capture-continuation (state pc dst-reg &key (kind :full) prompt-frame labels)
-  "Copy STATE's VM control stack to a reusable heap continuation object." 
+  "Copy STATE's VM control stack to a reusable heap continuation object."
   (let* ((call-stack (copy-tree (vm-call-stack state)))
          (method-stack (copy-tree (vm-method-call-stack state)))
          (handler-stack (copy-tree (vm-handler-stack state)))
-         (prompt-stack (copy-tree (vm-continuation-prompts state))))
+         (prompt-stack (copy-tree (vm-continuation-prompts state)))
+         (stack-segment-snapshot
+           (if prompt-frame
+               (copy-tree (getf prompt-frame :stack-segment-snapshot))
+               (%vm-stack-segment-snapshot state))))
     (when (and prompt-frame (member prompt-frame prompt-stack :test #'equal))
       (setf call-stack (copy-tree (getf prompt-frame :call-stack))
             method-stack (copy-tree (getf prompt-frame :method-call-stack))
@@ -140,16 +156,19 @@ again before restoration, keeping continuations multi-shot. KIND is :FULL,
      :handler-stack handler-stack
      :method-call-stack method-stack
      :prompt-stack prompt-stack
+     :stack-segment-snapshot stack-segment-snapshot
      :closure-env (vm-closure-env state)
      :values-list (copy-list (vm-values-list state))
      :labels labels)))
 
 (defun vm-invoke-continuation (state continuation value)
-  "Restore CONTINUATION into STATE, store VALUE, and return the resume PC." 
+  "Restore CONTINUATION into STATE, store VALUE, and return the resume PC."
   (when (and (eq (vm-continuation-kind continuation) :escape)
              (vm-continuation-used-p continuation))
     (error "Escape continuation invoked more than once: ~S" continuation))
   (setf (vm-continuation-used-p continuation) t)
+  (%vm-replace-stack-segments
+   state (vm-continuation-stack-segment-snapshot continuation))
   (vm-restore-registers state (%vm-copy-register-table (vm-continuation-registers continuation)))
   (setf (vm-call-stack state) (copy-tree (vm-continuation-call-stack continuation))
         (vm-handler-stack state) (copy-tree (vm-continuation-handler-stack continuation))
@@ -618,7 +637,8 @@ hook is installed, this records no target and execution remains in the interpret
                       :dst-reg (vm-dst inst)
                       :call-stack (copy-tree (vm-call-stack state))
                       :handler-stack (copy-tree (vm-handler-stack state))
-                      :method-call-stack (copy-tree (vm-method-call-stack state)))))
+                      :method-call-stack (copy-tree (vm-method-call-stack state))
+                      :stack-segment-snapshot (%vm-stack-segment-snapshot state))))
     (push frame (vm-continuation-prompts state))
     (%vm-dispatch-call func state pc labels nil (vm-dst inst) nil)))
 
@@ -631,6 +651,7 @@ hook is installed, this records no target and execution remains in the interpret
                       :test #'equal)))
     (unless frame
       (error "No continuation prompt named ~S is active" prompt-name))
+    (%vm-replace-stack-segments state (getf frame :stack-segment-snapshot))
     (setf (vm-call-stack state) (copy-tree (getf frame :call-stack))
           (vm-handler-stack state) (copy-tree (getf frame :handler-stack))
           (vm-method-call-stack state) (copy-tree (getf frame :method-call-stack))
