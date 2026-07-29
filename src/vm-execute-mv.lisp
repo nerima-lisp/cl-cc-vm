@@ -17,32 +17,45 @@
 
 ;;; ── Multiple Values and Apply ────────────────────────────────────────────
 
-(defun vm-store-multiple-values (state values)
-  "Store VALUES in STATE's fixed MV buffer and compatibility VALUES-LIST slot."
-  (let* ((buffer (vm-mv-buffer state))
-         (count (min (length values) +maximum-multiple-values+)))
-    (dotimes (i +maximum-multiple-values+)
-      (setf (aref buffer i) nil))
-    (loop for value in values
-          for i below count
-          do (setf (aref buffer i) value))
-    (when (zerop count)
-      (setf (aref buffer 0) nil))
-    (setf (vm-mv-count state) count
-          (slot-value state 'values-list) (subseq values 0 count))
-    count))
+(progn
+  (defun vm-ensure-mv-buffer-capacity (state count)
+    "Return STATEs MV buffer, growing it when COUNT exceeds its capacity."
+    (let ((buffer (vm-mv-buffer state)))
+      (if (<= count (length buffer))
+          buffer
+          (setf (vm-mv-buffer state)
+                (adjust-array buffer
+                              (max count (* 2 (length buffer)))
+                              :initial-element nil)))))
+
+  (defun vm-store-multiple-values (state values)
+    "Store every value in VALUES in STATEs MV buffer and compatibility slot."
+    (let* ((count (length values))
+           (old-count (vm-mv-count state))
+           (buffer (vm-ensure-mv-buffer-capacity state count)))
+      (loop for value in values
+            for i from 0
+            do (setf (aref buffer i) value))
+      (loop for i from count below old-count
+            do (setf (aref buffer i) nil))
+      (when (zerop count)
+        (setf (aref buffer 0) nil))
+      (setf (vm-mv-count state) count
+            (slot-value state (quote values-list)) (copy-list values))
+      count)))
 
 (defmethod (setf vm-values-list) :after (value (state vm-state))
   (let* ((values (cond ((null value) nil)
                        ((listp value) value)
                        (t (list value))))
-         (buffer (vm-mv-buffer state))
-         (count (min (length values) +maximum-multiple-values+)))
-    (dotimes (i +maximum-multiple-values+)
-      (setf (aref buffer i) nil))
+         (count (length values))
+         (old-count (vm-mv-count state))
+         (buffer (vm-ensure-mv-buffer-capacity state count)))
     (loop for item in values
-          for i below count
+          for i from 0
           do (setf (aref buffer i) item))
+    (loop for i from count below old-count
+          do (setf (aref buffer i) nil))
     (when (zerop count)
       (setf (aref buffer 0) nil))
     (setf (vm-mv-count state) count)))

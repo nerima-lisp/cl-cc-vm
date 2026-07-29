@@ -524,7 +524,7 @@ Options:
   (info nil))
 
 (defconstant +maximum-multiple-values+ 64
-  "Maximum number of multiple values preserved in the VM MV frame buffer.")
+  "Initial allocation-free capacity of the VM multiple-values frame buffer.")
 
 (defstruct vm-load-time-value-cell
   "Serialized load-time-value cell metadata stored in VM programs/FASLs."
