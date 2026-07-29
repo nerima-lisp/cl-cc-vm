@@ -65,7 +65,7 @@ Saves and restores call stack around the sub-invocation."
         ;; On non-local exit (js-exception / abort), drain any orphaned frames
         ;; pushed during this sub-invocation so the caller's stack is intact.
         (loop while (> (length (vm-call-stack state)) saved-stack-depth)
-              do (pop (vm-call-stack state))
+              do (vm-pop-call-frame state)
                  (pop (vm-method-call-stack state)))))))
 
 (defun %vm-closure-object-p (value)
@@ -226,9 +226,18 @@ helper for known-call snapshot trimming experiments."
           (vm-call-stack state))))
 
 (defun vm-pop-call-frame (state)
-  "Pop one VM call frame while maintaining the O(1) stack-depth counter."
+  "Pop one VM call frame and release its native stack-segment allocation."
   (when (slot-exists-p state 'stack-depth)
     (setf (vm-stack-depth state) (max 0 (1- (vm-stack-depth state)))))
+  (when (and (slot-exists-p state 'current-stack-segment)
+             (vm-current-stack-segment state)
+             (find-package :cl-cc/runtime))
+    (let ((release-frame (find-symbol "STACK-SEGMENT-RELEASE-FRAME" :cl-cc/runtime)))
+      (when (and release-frame (fboundp release-frame))
+        (setf (vm-current-stack-segment state)
+              (funcall (symbol-function release-frame)
+                       (vm-current-stack-segment state)
+                       64)))))
   (pop (vm-call-stack state)))
 
 (defun vm-bind-closure-args (closure state arg-values)
