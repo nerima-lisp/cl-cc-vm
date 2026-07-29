@@ -278,9 +278,9 @@
 (defmethod execute-instruction ((inst vm-load-time-value) state pc labels)
   (declare (ignore labels))
   (multiple-value-bind (value found-p)
-      (gethash (vm-load-time-value-cell-id inst) (vm-load-time-values state))
+      (gethash (vm-load-time-value-inst-cell-id inst) (vm-load-time-values state))
     (unless found-p
-      (error "Unresolved load-time-value cell: ~D" (vm-load-time-value-cell-id inst)))
+      (error "Unresolved load-time-value cell: ~D" (vm-load-time-value-inst-cell-id inst)))
     (vm-reg-set state (vm-dst inst) value)
     (values (1+ pc) nil nil)))
 
