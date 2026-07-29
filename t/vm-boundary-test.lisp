@@ -43,3 +43,19 @@
                                          (cl-cc/vm:make-vm-halt :reg :r2))
                      :result-register :r2)))
       (expect (cl-cc/vm:run-compiled program) :to-be 42))))
+
+(describe-sequential "cl-cc-vm package locks"
+  (it "constructs the SBCL package lock condition with complete initargs"
+    (let ((package (make-package (symbol-name (gensym "LOCK-TEST-")) :use nil)))
+      (unwind-protect
+           (progn
+             (cl-cc/vm::vm-lock-package package)
+             (let ((condition
+                     (handler-case
+                         (progn
+                           (cl-cc/vm::check-package-lock package)
+                           nil)
+                       (sb-ext:package-locked-error (condition) condition))))
+               (expect condition :to-be-truthy)))
+        (cl-cc/vm::vm-unlock-package package)
+        (delete-package package)))))
