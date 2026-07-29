@@ -282,7 +282,30 @@ Example: (define-arith-dispatch-fns (ff + - * /) (fi + - * /) (dd + - * /))"
                     (aref +arith-type-tags+ right-tag))
               function)))
 
-(defparameter *arith-dispatch-table*
+(defparameter (defparameter *arith-dispatch-table*
+  (let ((table (make-array +arith-dispatch-table-size+ :initial-element nil)))
+    (dolist (op (coerce +arith-operation-tags+ (quote list)))
+      (dotimes (left-tag +arith-tag-count+)
+        (dotimes (right-tag +arith-tag-count+)
+          (%set-arith-dispatch table op left-tag right-tag
+                               (ecase op
+                                 (+ (function +))
+                                 (- (function -))
+                                 (* (function *))
+                                 (/ (function /)))))))
+    (dolist (spec (quote ((+ %ff+ %fi+ %dd+)
+                          (- %ff- %fi- %dd-)
+                          (* %ff* %fi* %dd*)
+                          (/ %ff/ %fi/ %dd/))))
+      (destructuring-bind (op ff fi dd) spec
+        (%set-arith-dispatch table op 0 0 (symbol-function ff))
+        (%set-arith-dispatch table op 0 3 (symbol-function fi))
+        (%set-arith-dispatch table op 3 0 (symbol-function fi))
+        (%set-arith-dispatch table op 3 3 (symbol-function dd))))
+    table)
+  "Flattened inline arithmetic dispatch table.  Every operation and arithmetic
+ tag pair has an entry; hot fixnum/float combinations retain dedicated inline
+ functions while other pairs jump directly to the corresponding CL operator.")
   (let ((table (make-array +arith-dispatch-table-size+ :initial-element nil)))
     (dolist (spec '((+ %ff+ %fi+ %dd+)
                     (- %ff- %fi- %dd-)
