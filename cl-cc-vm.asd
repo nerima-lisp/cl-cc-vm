@@ -22,6 +22,7 @@
   :source-control (:git "https://github.com/nerima-lisp/cl-cc-vm.git")
   :version "0.1.0"
   :depends-on (:cl-cc-bootstrap :cl-cc-runtime)
+  :in-order-to ((asdf:test-op (asdf:test-op "cl-cc-vm/test")))
   :pathname "src"
   :serial t
   :components
