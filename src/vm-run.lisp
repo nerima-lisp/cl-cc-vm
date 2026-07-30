@@ -220,7 +220,7 @@ Used by both vm-signal-error and vm-throw."
         (matching nil)
         (to-skip 0))
     (dolist (entry (vm-handler-stack state))
-      (if (and (eq (first entry) :catch) (eql (fourth entry) tag-value))
+      (if (and (eq (first entry) :catch) (eq (fourth entry) tag-value))
           (progn (setf matching entry) (return))
           (incf to-skip)))
     (if matching
