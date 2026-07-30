@@ -409,7 +409,7 @@ this models dynamic propagation without a runtime handler stack."
 (defun build-label-table (instructions)
   "Build an integer-keyed label table and associate any exception side table."
   (let ((labels (make-hash-table :test #'eql)))
-    (loop for inst in instructions
+    (loop for inst across (coerce instructions 'vector)
           for pc from 0
           do (when (typep inst 'vm-label)
                (vm-label-table-store labels (vm-name inst) pc)))
