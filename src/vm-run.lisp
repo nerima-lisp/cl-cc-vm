@@ -243,10 +243,10 @@ Used by both vm-signal-error and vm-throw."
 The outer hash table uses EQL on integer hash keys, while collisions are kept
 in per-key buckets keyed by the original label object."
   (let ((labels (make-hash-table :test #'eql)))
-    (loop for inst in instructions
+    (loop for inst across (coerce instructions 'vector)
           for pc from 0
-           do (when (typep inst 'vm-label)
-                (vm-label-table-store labels (vm-name inst) pc)))
+          do (when (typep inst 'vm-label)
+               (vm-label-table-store labels (vm-name inst) pc)))
     labels))
 
 (defun %vm-label-table-entries (labels)
