@@ -42,7 +42,7 @@
       (expect
        (handler-case
            (progn
-             (cl-cc/vm:make-vm-float-add :precision :invalid)
+             (funcall (symbol-function (find-symbol "MAKE-VM-FLOAT-ADD" "CL-CC/VM")) :precision :invalid)
              nil)
          (type-error () t))
        :to-be-truthy)))
@@ -159,7 +159,7 @@
       (remhash cl-symbol parent-functions)
       (cl-cc/vm:execute-instruction instruction state 0 (make-hash-table))
       (expect (cl-cc/vm::vm-reg-get state :r0)
-              :to-be (cl-cc/vm:vm-bridge-callable cl-symbol)))))
+              :to-be (cl-cc/vm::vm-bridge-callable cl-symbol)))))
 
 (describe-sequential "package-independent generic function names"
   (it "matches symbols and SETF names without matching malformed names"
@@ -323,21 +323,21 @@
     (let* ((state (cl-cc/vm:make-vm-state))
            (captured-root (cl-cc/runtime::stack-segment-note-frame nil 128))
            (captured-current (cl-cc/runtime::stack-segment-note-frame captured-root 9000)))
-      (setf (cl-cc/vm:vm-current-stack-segment state) captured-current)
+      (setf (cl-cc/vm::vm-current-stack-segment state) captured-current)
       (let ((continuation (cl-cc/vm:vm-capture-continuation state 17 :r0)))
         (cl-cc/vm:vm-invoke-continuation state continuation :first)
-        (let ((first (cl-cc/vm:vm-current-stack-segment state)))
+        (let ((first (cl-cc/vm::vm-current-stack-segment state)))
           (expect (not (eq first captured-current)) :to-be-truthy)
           (expect (cl-cc/runtime::stack-segment-used captured-current) :to-be 0)
           (cl-cc/vm:vm-invoke-continuation state continuation :second)
-          (let ((second (cl-cc/vm:vm-current-stack-segment state)))
+          (let ((second (cl-cc/vm::vm-current-stack-segment state)))
             (expect (not (eq second first)) :to-be-truthy)
             (expect (cl-cc/runtime::stack-segment-used first) :to-be 0)
             (expect (cl-cc/runtime::stack-segment-prev first) :to-be-null)
             (expect (cl-cc/runtime::stack-segment-used second) :to-be 9000)
             (expect (cl-cc/runtime::stack-segment-used (cl-cc/runtime::stack-segment-prev second)) :to-be 128)
             (cl-cc/runtime::release-stack-segment-chain second)
-            (setf (cl-cc/vm:vm-current-stack-segment state) nil)))))))
+            (setf (cl-cc/vm::vm-current-stack-segment state) nil)))))))
 (describe-sequential
     "allocate-instance direct method detection"
   (it
@@ -381,17 +381,17 @@
             (gethash t before) (quote before-fallback)
             (gethash (list (quote integer) t t) after) (quote after-specific)
             (gethash t after) (quote after-fallback))
-      (expect (cl-cc/vm:vm-get-all-applicable-methods gf state args)
+      (expect (cl-cc/vm::vm-get-all-applicable-methods gf state args)
               :to-equal (list (quote specific) (quote fallback)))
       (expect (cl-cc/vm::%lookup-qualified-methods gf :__before__ state args)
               :to-equal (list (quote before-specific) (quote before-fallback)))
       (expect (cl-cc/vm::%lookup-qualified-methods gf :__after__ state args)
               :to-equal (list (quote after-specific) (quote after-fallback)))
       (setf (gethash t methods) (quote specific))
-      (expect (cl-cc/vm:vm-get-all-applicable-methods gf state args)
+      (expect (cl-cc/vm::vm-get-all-applicable-methods gf state args)
               :to-equal (list (quote specific)))
       (setf (gethash :__lambda-list__ gf)
             (list (quote first) (quote second) (quote third))
             (gethash t methods) (quote fallback))
-      (expect (cl-cc/vm:vm-get-all-applicable-methods gf state args)
+      (expect (cl-cc/vm::vm-get-all-applicable-methods gf state args)
               :to-equal (list (quote specific))))))
