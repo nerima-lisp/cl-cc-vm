@@ -338,3 +338,60 @@
             (expect (cl-cc/runtime::stack-segment-used (cl-cc/runtime::stack-segment-prev second)) :to-be 128)
             (cl-cc/runtime::release-stack-segment-chain second)
             (setf (cl-cc/vm:vm-current-stack-segment state) nil)))))))
+(describe-sequential
+    "allocate-instance direct method detection"
+  (it
+      "accepts only the primary allocation protocol shape owned by the generic function"
+    (let* ((gf (make-hash-table :test (function eq)))
+           (methods (make-hash-table :test (function equal)))
+           (method (make-hash-table :test (function eq)))
+           (metaclass (quote allocation-metaclass)))
+      (setf (gethash :__methods__ gf) methods
+            (gethash :function method) (function identity)
+            (gethash :qualifiers method) nil
+            (gethash :specializer method) (list metaclass t t)
+            (gethash :gf method) gf
+            (gethash (list metaclass t t) methods) method)
+      (expect (cl-cc/vm::%vm-direct-primary-method-p gf metaclass) :to-be-truthy)
+      (remhash (list metaclass t t) methods)
+      (setf (gethash (list metaclass (quote non-top) t) methods) method)
+      (expect (cl-cc/vm::%vm-direct-primary-method-p gf metaclass) :to-be nil)
+      (clrhash methods)
+      (setf (gethash :qualifiers method) (list :before)
+            (gethash (list metaclass t) methods) method)
+      (expect (cl-cc/vm::%vm-direct-primary-method-p gf metaclass) :to-be nil)
+      (setf (gethash :qualifiers method) nil
+            (gethash :gf method) (make-hash-table :test (function eq)))
+      (expect (cl-cc/vm::%vm-direct-primary-method-p gf metaclass) :to-be nil)))
+  (it
+      "orders scalar rest fallbacks without leaking into fixed-arity dispatch"
+    (let ((gf (make-hash-table :test (function equal)))
+          (methods (make-hash-table :test (function equal)))
+          (before (make-hash-table :test (function equal)))
+          (after (make-hash-table :test (function equal)))
+          (state (cl-cc/vm:make-vm-state))
+          (args (list 42 :x :value)))
+      (setf (gethash :__lambda-list__ gf) (list (quote object) (quote &rest) (quote initargs))
+            (gethash :__methods__ gf) methods
+            (gethash :__before__ gf) before
+            (gethash :__after__ gf) after
+            (gethash (list (quote integer) t t) methods) (quote specific)
+            (gethash t methods) (quote fallback)
+            (gethash (list (quote integer) t t) before) (quote before-specific)
+            (gethash t before) (quote before-fallback)
+            (gethash (list (quote integer) t t) after) (quote after-specific)
+            (gethash t after) (quote after-fallback))
+      (expect (cl-cc/vm:vm-get-all-applicable-methods gf state args)
+              :to-equal (list (quote specific) (quote fallback)))
+      (expect (cl-cc/vm::%lookup-qualified-methods gf :__before__ state args)
+              :to-equal (list (quote before-specific) (quote before-fallback)))
+      (expect (cl-cc/vm::%lookup-qualified-methods gf :__after__ state args)
+              :to-equal (list (quote after-specific) (quote after-fallback)))
+      (setf (gethash t methods) (quote specific))
+      (expect (cl-cc/vm:vm-get-all-applicable-methods gf state args)
+              :to-equal (list (quote specific)))
+      (setf (gethash :__lambda-list__ gf)
+            (list (quote first) (quote second) (quote third))
+            (gethash t methods) (quote fallback))
+      (expect (cl-cc/vm:vm-get-all-applicable-methods gf state args)
+              :to-equal (list (quote specific))))))

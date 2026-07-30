@@ -224,43 +224,64 @@ Only single-argument eql specializers are indexed for fast lookup."
           (error "Method descriptor missing :function"))
       method))
 
-(defun %vm-collect-applicable-methods (methods-ht state all-args)
-  "Collect applicable methods from METHODS-HT in most-specific-first order." 
-  (let ((result nil)
-        (seen nil))
-    ;; EQL-specialized methods first.
-    (maphash (lambda (key value)
-               (when (and (%vm-key-has-eql-specializer-p key)
-                          (%vm-specializer-key-matches-args-p key all-args state))
+(defun %vm-single-required-rest-lambda-list-p (lambda-list)
+    "Return T for a lambda list with one required parameter followed by &REST."
+    (let ((required-count 0)
+          (rest-p nil))
+      (dolist (entry lambda-list)
+        (if (and (symbolp entry)
+                 (char= (char (symbol-name entry) 0) #\&))
+            (when (string-equal (symbol-name entry) "&REST")
+              (setf rest-p t))
+            (unless rest-p
+              (incf required-count))))
+      (and (= required-count 1) rest-p)))
+
+  (defun %vm-collect-applicable-methods
+      (methods-ht state all-args &optional scalar-rest-p)
+    "Collect applicable methods from METHODS-HT in most-specific-first order."
+    (let ((result nil)
+          (seen nil))
+      (labels ((collect-methods (value)
                  (dolist (method (%vm-method-value->list value))
                    (unless (member method seen)
                      (push method seen)
                      (setf result (append result (list method)))))))
-             methods-ht)
-    ;; Then walk class-precedence combinations in canonical key form.
-    (dolist (combo (%vm-dispatch-key-combinations (%vm-arg-cpls state all-args)))
-      (dolist (method (%vm-method-value->list
-                       (gethash (%vm-canonical-dispatch-key combo) methods-ht)))
-        (unless (member method seen)
-          (push method seen)
-          (setf result (append result (list method))))))
-    result))
+        ;; EQL-specialized methods first.
+        (maphash (lambda (key value)
+                   (when (and (%vm-key-has-eql-specializer-p key)
+                              (%vm-specializer-key-matches-args-p
+                               key all-args state))
+                     (collect-methods value)))
+                 methods-ht)
+        ;; Then walk class-precedence combinations in canonical key form.
+        (let ((cpls (%vm-arg-cpls state all-args)))
+          (dolist (combo (%vm-dispatch-key-combinations cpls))
+            (collect-methods
+             (gethash (%vm-canonical-dispatch-key combo) methods-ht)))
+          (when (and scalar-rest-p (cdr all-args))
+            (dolist (class (car cpls))
+              (collect-methods (gethash class methods-ht)))))
+        result)))
 
 (defun vm-get-all-applicable-methods (gf-ht state all-args)
-  "Return list of all applicable method closures for GF-HT and ALL-ARGS, most-specific first.
-EQL specializers are checked first (most specific), then class-based dispatch via CPL."
+  "Return applicable primary methods for GF-HT and ALL-ARGS, most-specific first."
   (%vm-collect-applicable-methods
-   (when (and (hash-table-p gf-ht)
-              (nth-value 1 (gethash :__methods__ gf-ht)))
-     (gethash :__methods__ gf-ht))
-   state all-args))
+    (when (and (hash-table-p gf-ht)
+               (nth-value 1 (gethash :__methods__ gf-ht)))
+      (gethash :__methods__ gf-ht))
+    state all-args
+    (%vm-single-required-rest-lambda-list-p
+      (gethash :__lambda-list__ gf-ht))))
 
 (defun %lookup-qualified-methods (gf-ht qual-key state all-arg-values)
-  "Look up qualified methods for QUAL-KEY (:__BEFORE__, :__AFTER__, :__AROUND__) in GF-HT.
-Returns a flat list of applicable closures, most-specific first."
+  "Look up applicable qualified methods for QUAL-KEY, most-specific first."
   (let ((qual-ht (gethash qual-key gf-ht)))
     (when qual-ht
-      (%vm-collect-applicable-methods qual-ht state all-arg-values))))
+      (%vm-collect-applicable-methods
+        qual-ht state all-arg-values
+        (%vm-single-required-rest-lambda-list-p
+          (gethash :__lambda-list__ gf-ht))))))
 
 (defun %collect-combo-methods (gf-ht qual-key state all-arg-values)
   "Collect all applicable methods for custom combination by walking the CPL.
