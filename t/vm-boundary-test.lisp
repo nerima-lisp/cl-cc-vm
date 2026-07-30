@@ -159,6 +159,32 @@
       (cl-cc/vm:execute-instruction instruction state 0 (make-hash-table))
       (expect (cl-cc/vm::vm-reg-get state :r0)
               :to-be (cl-cc/vm::vm-bridge-callable cl-symbol)))))
+(describe-sequential "catch tag identity"
+  (it "does not match distinct EQL numeric tags"
+    (let* ((digits "10000000000000000000000000000000000000001")
+           (outer-tag (parse-integer digits))
+           (inner-tag (parse-integer digits))
+           (program
+             (cl-cc/vm:make-vm-program
+              :instructions
+              (list (cl-cc/vm:make-vm-const :dst :outer-tag :value outer-tag)
+                    (cl-cc/vm:make-vm-establish-catch
+                     :tag-reg :outer-tag :handler-label :outer-handler :result-reg :result)
+                    (cl-cc/vm:make-vm-const :dst :inner-tag :value inner-tag)
+                    (cl-cc/vm:make-vm-establish-catch
+                     :tag-reg :inner-tag :handler-label :inner-handler :result-reg :result)
+                    (cl-cc/vm:make-vm-const :dst :throw-tag :value outer-tag)
+                    (cl-cc/vm:make-vm-const :dst :throw-value :value :outer)
+                    (cl-cc/vm:make-vm-throw :tag-reg :throw-tag :value-reg :throw-value)
+                    (cl-cc/vm:make-vm-label :name :inner-handler)
+                    (cl-cc/vm:make-vm-const :dst :result :value :inner)
+                    (cl-cc/vm:make-vm-halt :reg :result)
+                    (cl-cc/vm:make-vm-label :name :outer-handler)
+                    (cl-cc/vm:make-vm-halt :reg :result))
+              :result-register :result)))
+      (expect (eql outer-tag inner-tag) :to-be-truthy)
+      (expect (eq outer-tag inner-tag) :to-be nil)
+      (expect (cl-cc/vm:run-compiled program) :to-be :outer))))
 
 (describe-sequential "package-independent generic function names"
   (it "matches symbols and SETF names without matching malformed names"
