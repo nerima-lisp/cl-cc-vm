@@ -12,17 +12,26 @@
 ;;;; and cl-cc-runtime. Loading it leaves cl-cc/expand, cl-cc/compile,
 ;;;; cl-cc/optimize, cl-cc/parse, cl-cc/ast and cl-cc/type unloaded.
 
-(asdf:defsystem :cl-cc-vm
+;;;; This form comes FIRST, before any defsystem. ASDF binds *package* to
+;;;; ASDF-USER only for a file it loads itself; read any other way — a REPL
+;;;; `load`, an editor evaluating the buffer, flake.nix parsing :version — the
+;;;; file is read in whatever package happens to be current.
+
+(in-package #:asdf-user)
+
+;;;; System names are written as STRINGS, not keywords: a string does not
+;;;; depend on the reader's current package state, and it is what lets the org
+;;;; conformance checker locate this form at all.
+(asdf:defsystem "cl-cc-vm"
   :description "VM instruction set, executor, I/O, CLOS, conditions, collections"
   :author "takeokunn <bararararatty@gmail.com>"
   :maintainer "takeokunn <bararararatty@gmail.com>"
   :license "MIT"
+  :version "0.1.0"
   :homepage "https://github.com/nerima-lisp/cl-cc-vm"
   :bug-tracker "https://github.com/nerima-lisp/cl-cc-vm/issues"
   :source-control (:git "https://github.com/nerima-lisp/cl-cc-vm.git")
-  :version "0.1.0"
   :depends-on (:cl-cc-bootstrap :cl-cc-runtime :cl-regex-kit :cl-tty-kit)
-  :in-order-to ((asdf:test-op (asdf:test-op "cl-cc-vm/test")))
   :pathname "src"
   :serial t
   :components
@@ -151,10 +160,11 @@
         (:file "vm-ryu")
        (:file "vm-terminal")
        (:file "crash-report")
-       (:file "vm-serialize")))
+       (:file "vm-serialize"))
+  :in-order-to ((asdf:test-op (asdf:test-op "cl-cc-vm/test"))))
 
 ;;;; ---------------------------------------------------------------------
-;;;; Tests — run with (asdf:test-system :cl-cc-vm) or :cl-cc-vm/tests.
+;;;; Tests — run with (asdf:test-system "cl-cc-vm").
 ;;;; The monorepo's cl-cc-vm/tests system is deliberately not carried over. It
 ;;;; depended on :cl-cc-testing-framework, which exists only inside cl-cc, and
 ;;;; its tests live on there as packages/vm/tests -- they exercise this system

@@ -1,5 +1,5 @@
 {
-  description = "cl-cc AST node types and protocol (ast-children, ast-bound-names)";
+  description = "VM instruction set, executor, I/O, CLOS, conditions, collections";
 
   inputs = {
     # nixos-unstable, not nixpkgs-unstable: it advances only after the NixOS
@@ -112,15 +112,19 @@
       ...
     }:
     let
-      # Only platforms that something actually verifies are declared.
-      # x86_64-linux is what CI runs; aarch64-darwin is the development
-      # machine, so it is verified on every local `nix flake check`. Dropping
-      # aarch64-darwin would make that local run skip every derivation and
-      # still report success. aarch64-linux and x86_64-darwin are declared by
-      # nobody's verification, so they are not declared here either.
+      # CI builds and tests only x86_64-linux, so that is the sole declared
+      # system: the flake never advertises a platform it does not verify.
+      # `nix flake check --all-systems` fails with a platform mismatch on a
+      # platform no runner can build, rather than skipping it.
+      #
+      # Consequence, accepted deliberately on 2026-08-01: `forAllSystems`
+      # below generates EVERY per-system output from this one list -- packages,
+      # checks, apps and devShells alike -- so dropping aarch64-darwin also
+      # drops devShells.aarch64-darwin. `nix develop` and `nix build` therefore
+      # do not work on macOS; development happens on Linux. See
+      # PACKAGE_STANDARD.md, section "systems".
       systems = [
         "x86_64-linux"
-        "aarch64-darwin"
       ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
 
@@ -172,6 +176,33 @@
           # Build fully offline: Material for MkDocs bundles all of its assets,
           # so no network access is required inside the Nix sandbox. --strict
           # promotes broken links and unlisted pages to build failures.
+          #
+          # Invoked from the repository root with --config-file docs/mkdocs.yml
+          # (not `cd docs`), so the config path in the build phase below matches
+          # the one a contributor types by hand.
+          docs = pkgs.stdenvNoCC.mkDerivation {
+            pname = "cl-cc-vm-docs";
+            inherit version;
+            src = pkgs.lib.fileset.toSource {
+              root = ./.;
+              fileset = pkgs.lib.fileset.unions [
+                ./docs/mkdocs.yml
+                ./docs/src
+              ];
+            };
+            nativeBuildInputs = [ pkgs.python3Packages.mkdocs-material ];
+            buildPhase = ''
+              runHook preBuild
+              mkdocs build --strict --config-file docs/mkdocs.yml --site-dir "$out"
+              runHook postBuild
+            '';
+            dontInstall = true;
+            meta = {
+              description = "Rendered MkDocs (Material) documentation for cl-cc-vm";
+              homepage = "https://github.com/nerima-lisp/cl-cc-vm";
+              license = pkgs.lib.licenses.mit;
+            };
+          };
 
           # sb-cover instrumentation is slow enough (tens of minutes) that it
           # does not belong in `checks` (every `nix flake check` would pay
@@ -235,6 +266,13 @@
           # Fails `nix flake check` when any tracked file is unformatted,
           # turning the formatter into an enforced CI gate.
           formatting = treefmtEval.${system}.config.build.check self;
+
+          # `mkdocs build --strict` turns a broken link or a page missing from
+          # the nav into a build failure. Putting that build in `checks` is
+          # what keeps such a break inside a pull request instead of surfacing
+          # as a failed post-merge Pages deploy, which is when docs.yml would
+          # otherwise be the first thing to notice.
+          docs = self.packages.${system}.docs;
 
           # Dead code, TODO/FIXME markers, and adapter/backward-compatibility
           # shims have been repeatedly verified absent by hand across this
