@@ -132,3 +132,7 @@ lazy byte retrieval."
 (export '(*fasl-toc-enabled* *fasl-preload-forms* *pgo-data-path*
           fasl-toc-read fasl-page-fault load-fasl-demand-paged
           save-pgo-data load-pgo-data))
+
+(export '(*fasl-toc-enabled* *fasl-preload-forms* *pgo-data-path*
+          fasl-toc-read fasl-page-fault load-fasl-demand-paged
+          save-pgo-data load-pgo-data))

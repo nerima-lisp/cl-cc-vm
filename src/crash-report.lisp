@@ -20,19 +20,6 @@
 ;;; ──── Crash handler ────
 (defvar *crash-handler-installed* nil)
 
-(defun install-crash-handler ()
-  "Install the global crash handler for uncaught conditions."
-  (unless *crash-handler-installed*
-    ;; Hook for unhandled errors in non-debugger threads
-    (setf sb-ext:*invoke-debugger-hook*
-	    (lambda (condition hook)
-	      (declare (ignore hook))
-	      (when (typep condition 'serious-condition)
-	        (save-crash-dump condition))
-	      (let ((sb-ext:*invoke-debugger-hook* nil))
-	        (invoke-debugger condition))))
-    (setf *crash-handler-installed* t)))
-
 ;;; ──── Crash dump saving ────
 (defun save-crash-dump (condition)
   "Save a structured crash dump for CONDITION to disk.
@@ -138,21 +125,7 @@ x86-64: RAX, RBX, RCX, RDX, RSI, RDI, RBP, RSP, R8-R15, RIP."
                                          :format-control name
                                          :format-arguments nil))))))
 
-(defun install-signal-handlers ()
-  "Install signal handlers for SIGSEGV and SIGABRT."
-  (%install-signal-handler (%signal-number "SIGSEGV") "SIGSEGV")
-  (%install-signal-handler (or (%signal-number "SIGABRT")
-                               (%signal-number "SIGIOT"))
-                           "SIGABRT"))
-
 ;;; ──── CLI analysis command integration ────
-(defun analyze-crash-dump (pathname)
-  "Read and display a crash dump from PATHNAME."
-  (with-open-file (in pathname :direction :input)
-    (loop for line = (read-line in nil nil)
-          while line
-          do (format t "~A~%" line))))
-
 ;;; ──── Helpers ────
 (defun format-timestamp (universal-time)
   "Format UNIX-UNIVERSAL-TIME as YYYYMMDD-HHMMSS."

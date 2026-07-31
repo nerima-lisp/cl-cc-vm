@@ -9,22 +9,6 @@
     "Pc" "Pd" "Ps" "Pe" "Pi" "Pf" "Po" "Sm" "Sc" "Sk" "So"
     "Zs" "Zl" "Zp" "Cc" "Cf" "Cs" "Co" "Cn"))
 
-(defvar +ucd-category-lu+ "Lu")  (defvar +ucd-category-ll+ "Ll")
-(defvar +ucd-category-lt+ "Lt")  (defvar +ucd-category-lm+ "Lm")
-(defvar +ucd-category-lo+ "Lo")  (defvar +ucd-category-mn+ "Mn")
-(defvar +ucd-category-mc+ "Mc")  (defvar +ucd-category-me+ "Me")
-(defvar +ucd-category-nd+ "Nd")  (defvar +ucd-category-nl+ "Nl")
-(defvar +ucd-category-no+ "No")  (defvar +ucd-category-pc+ "Pc")
-(defvar +ucd-category-pd+ "Pd")  (defvar +ucd-category-ps+ "Ps")
-(defvar +ucd-category-pe+ "Pe")  (defvar +ucd-category-pi+ "Pi")
-(defvar +ucd-category-pf+ "Pf")  (defvar +ucd-category-po+ "Po")
-(defvar +ucd-category-sm+ "Sm")  (defvar +ucd-category-sc+ "Sc")
-(defvar +ucd-category-sk+ "Sk")  (defvar +ucd-category-so+ "So")
-(defvar +ucd-category-zs+ "Zs")  (defvar +ucd-category-zl+ "Zl")
-(defvar +ucd-category-zp+ "Zp")  (defvar +ucd-category-cc+ "Cc")
-(defvar +ucd-category-cf+ "Cf")  (defvar +ucd-category-cs+ "Cs")
-(defvar +ucd-category-co+ "Co")  (defvar +ucd-category-cn+ "Cn")
-
 (defconstant +unicode-max-code-point+ #x10ffff)
 (defconstant +unicode-bmp-limit+ #x10000)
 (defconstant +unicode-replacement-character+ #xfffd)

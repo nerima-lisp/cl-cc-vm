@@ -3,9 +3,7 @@
 
 ;; FR-794: Compiler Fuzzing (src/testing/fuzzer.lisp)
 ;; FR-795: Translation Validation
-(defvar *validate-transforms* nil)
 ;; FR-796: Test Case Reduction
-(defun delta-debug (program property) (declare (ignore program property)) program)
 ;; FR-797: Compile-Time Assertions
 (defmacro static-assert (condition &optional (message ""))
   `(eval-when (:compile-toplevel) (unless ,condition (error "Static assertion failed: ~A" ,message))))

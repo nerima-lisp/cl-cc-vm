@@ -47,25 +47,12 @@
 (defparameter *dns-default-ttl* 60
   "Default DNS cache TTL in seconds.")
 
-(defun %unsupported (feature)
-  (error "~a is unsupported on this host Lisp" feature))
-
 ;;; ─── Socket protocol helpers ─────────────────────────────────────────────────
 
 (defun %socket-class (family)
   (ecase family
     ((:ipv4 :inet 4) 'sb-bsd-sockets:inet-socket)
     ((:ipv6 :inet6 6) 'sb-bsd-sockets:inet6-socket)))
-
-(defun %socket-type (type)
-  (ecase type
-    ((:tcp :stream) :stream)
-    ((:udp :datagram :dgram) :datagram)))
-
-(defun %socket-protocol (type)
-  (ecase type
-    ((:tcp :stream) :tcp)
-    ((:udp :datagram :dgram) :udp)))
 
 (defun %parse-ipv4 (host)
   (let ((parts nil) (start 0) (text (string host)))

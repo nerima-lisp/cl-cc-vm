@@ -19,13 +19,6 @@
 
 ;;; ── Generic dispatch helpers ──────────────────────────────────────────────
 
-(defun %gethash-multi-key (ht keys)
-  "Try each key form in KEYS against HT; collect all matches into a flat list.
-Values stored as lists are spliced in; scalar values are wrapped in a list."
-  (loop for key in keys
-        for val = (gethash key ht)
-        when val nconc (if (listp val) (copy-list val) (list val))))
-
 (defun vm-classify-arg (arg state)
   "Determine the class name of an argument for generic dispatch."
   (let ((class-ht (cond

@@ -1,6 +1,10 @@
 ;;; vm-terminal.lisp — FR-1100: Terminal control
 ;;;
-;;; ANSI terminal escape sequences, terminal sizing, raw mode, and readline.
+;;; ANSI terminal escape sequences, raw mode, and readline. Terminal sizing
+;;; and raw-mode entry/exit are cl-tty-kit's TERMINAL-SIZE and WITH-RAW-MODE,
+;;; used directly: both talk to the terminal through termios/ioctl rather
+;;; than shelling out to stty, which is what this file did before adopting
+;;; cl-tty-kit.
 
 (in-package :cl-cc/vm)
 
@@ -10,16 +14,13 @@
       (ignore-errors (sb-unix:unix-isatty (sb-sys:fd-stream-fd stream)))))
 
 (defun vm-terminal-size (&optional (stream *standard-output*))
-  "Return (values columns rows) for the terminal attached to STREAM.
-   Uses TIOCGWINSZ ioctl or ANSI cursor position report as fallback."
+  "Return (values columns rows) for the terminal attached to STREAM, or the
+80x24 default when STREAM is not a terminal or its size is unavailable."
   (declare (ignore stream))
-  (ignore-errors
-    (let* ((output (uiop:run-program '("stty" "size") :output :string :error-output nil))
-           (rows (with-input-from-string (in output) (read in nil nil)))
-           (cols (with-input-from-string (in output) (read in nil nil) (read in nil nil))))
-      (when (and cols rows)
-        (return-from vm-terminal-size (values cols rows)))))
-  (values 80 24))
+  (multiple-value-bind (columns rows) (cl-tty-kit:terminal-size)
+    (if (and columns rows)
+        (values columns rows)
+        (values 80 24))))
 
 (defun vm-ansi-color (stream color)
   "Emit ANSI escape sequence for COLOR on STREAM.
@@ -31,20 +32,16 @@
                 (:bright-black 90) (:bright-red 91) (:bright-green 92)
                 (:bright-yellow 93) (:bright-blue 94) (:bright-magenta 95)
                 (:bright-cyan 96) (:bright-white 97))))
-    (format stream "~C[~Dm" #\Escape code)))
+    (write-string (cl-tty-kit:ansi-sgr code) stream)))
 
 (defun vm-ansi-reset (stream)
   "Reset all ANSI attributes on STREAM."
-  (format stream "~C[0m" #\Escape))
+  (write-string (cl-tty-kit:ansi-sgr) stream))
 
 (defun vm-with-raw-terminal (thunk)
   "Execute THUNK with terminal in raw mode (no line buffering, no echo).
    Restores original terminal settings on exit."
-  (unwind-protect
-       (progn
-         (ignore-errors (uiop:run-program '("stty" "raw" "-echo") :input nil :output nil :error-output nil))
-         (funcall thunk))
-    (ignore-errors (uiop:run-program '("stty" "sane") :input nil :output nil :error-output nil))))
+  (cl-tty-kit:with-raw-mode () (funcall thunk)))
 
 (defun vm-read-key (&optional (stream *standard-input*))
   "Read a single keypress from STREAM without waiting for newline.

@@ -147,17 +147,3 @@ name symbol pairs."
                                 (funcall handler state code pc regs))))))
              finally (return nil)))))
 
-(defun run-vm (code state)
-  "Run bytecode CODE (a simple-vector) using STATE (a vm2-state struct).
-Returns the value in the result register when halt2 executes."
-  (declare (type simple-vector code)
-           (type vm2-state state))
-  (%run-vm-core code state))
-
-(defun run-vm-with-opcode-bigrams (code state)
-  "Run CODE and return two values: result and executed opcode bigram counts."
-  (declare (type simple-vector code)
-           (type vm2-state state))
-  (let ((counts (make-hash-table :test #'equal)))
-    (values (%run-vm-core code state :bigram-counts counts)
-            counts)))

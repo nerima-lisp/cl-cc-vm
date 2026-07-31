@@ -178,10 +178,6 @@ Accepts symbols/functions for EQ/EQL/EQUAL/EQUALP and falls back to EQL."
   "Return public slot-definition objects for CLASS using metadata list KEY."
   (%class-slot-definitions-from-key class key))
 
-(defun %class-direct-slot-definitions (class)
-  "Return public direct slot-definition objects for CLASS."
-  (%class-slot-definitions-from-key class :__direct-slots__))
-
 (defun slot-definition-name (slot)
   "Return the slot-definition name for SLOT.
 Current lightweight CLOS metadata may represent slots as symbols; future

@@ -127,10 +127,14 @@ for STREAM-EXTERNAL-FORMAT and supplies *DEFAULT-EXTERNAL-FORMAT* when omitted."
   "Linearly interpolate between START and END by AMOUNT."
   (+ start (* amount (- end start))))
 
-(defun vm-clamp (value min max) (clamp value min max))
-(defun vm-wrap (value min max) (wrap value min max))
-(defun vm-lerp (start end amount) (lerp start end amount))
-(defun vm-signum (value) (signum value))
+(defmacro define-vm-alias (vm-name host-name (&rest args))
+  "Define VM-NAME as the guest-visible ARGS-arity alias for HOST-NAME."
+  `(defun ,vm-name (,@args) (,host-name ,@args)))
+
+(define-vm-alias vm-clamp clamp (value min max))
+(define-vm-alias vm-wrap wrap (value min max))
+(define-vm-alias vm-lerp lerp (start end amount))
+(define-vm-alias vm-signum signum (value))
 
 (eval-when (:load-toplevel :execute)
   (vm-register-host-bridge 'open #'open)

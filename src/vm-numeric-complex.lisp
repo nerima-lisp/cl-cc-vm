@@ -28,9 +28,3 @@
             :real (+ (getf lhs-plan :real) (getf rhs-plan :real))
             :imag (+ (getf lhs-plan :imag) (getf rhs-plan :imag))))))
 
-(defun vm-complex-add-with-unboxing (lhs rhs &key local-p)
-  "Execute complex addition via unboxed plan when possible, else boxed fallback."
-  (let ((plan (vm-complex-unboxed-add-plan lhs rhs :local-p local-p)))
-    (if plan
-        (complex (getf plan :real) (getf plan :imag))
-        (+ lhs rhs))))

@@ -35,9 +35,6 @@
     (loop for v in vals for i from old do (setf (aref arr i) (logand v #xFF)))
     arr))
 
-(defun %bc-emit-word (bytes w)
-  (%bc-emit bytes (logand w #xFF) (logand (ash w -8) #xFF)))
-
 (defun %bc-read-word (bytes pc)
   (values (+ (aref bytes pc) (ash (aref bytes (1+ pc)) 8)) (+ pc 2)))
 

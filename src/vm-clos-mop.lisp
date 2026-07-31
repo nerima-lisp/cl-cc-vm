@@ -1,14 +1,16 @@
 (in-package :cl-cc/vm)
 ;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;; VM — MOP Introspection and Allocation Caches
+;;; VM — MOP Introspection and Method Dispatch
 ;;;
 ;;; Contains: FR-930/FR-931 MOP helpers (%mop-*), slot-definition-*,
 ;;; class-direct-*, generic-function-methods, method-*, add-method,
-;;; remove-method, ensure-generic-function, slot-value-using-class,
-;;; and FR-888/FR-889 allocation cache functions
-;;; (%vm-ensure-class-id through finalize-class-allocation-cache).
+;;; remove-method, ensure-generic-function, slot-value-using-class.
 ;;;
-;;; Load order: after vm-clos.lisp, before vm-clos-execute.lisp.
+;;; FR-888/FR-889 instance allocation caching (%vm-ensure-class-id through
+;;; finalize-class-allocation-cache) is in vm-clos-instance-cache.lisp
+;;; (loads next).
+;;;
+;;; Load order: after vm-clos.lisp, before vm-clos-instance-cache.lisp.
 ;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ;;; ── FR-930/FR-931 MOP introspection and method selection ────────────────
@@ -81,43 +83,25 @@
   "Return effective slot-definition objects for CLASS."
   (%mop-slot-definitions class :__slots__))
 
-(defun class-direct-slots (class)
-  "Return direct slot-definition objects for CLASS."
-  (%mop-slot-definitions class :__direct-slots__))
-
 (defun slot-definition-name (slot)
   "Return SLOT's name."
   (cond ((hash-table-p slot) (gethash :name slot))
         ((symbolp slot) slot)
         (t nil)))
 
-(defun slot-definition-type (slot)
-  "Return SLOT's declared type, defaulting to T."
-  (if (hash-table-p slot) (or (gethash :type slot) t) t))
+(defmacro define-slot-definition-accessor (name key &optional default)
+  "Define NAME as a reader of SLOT's KEY metadata, defaulting to DEFAULT
+when SLOT is not a hash-table-backed slot-definition descriptor or KEY is
+absent."
+  `(defun ,name (slot)
+     ,(format nil "Return SLOT's ~(~A~) metadata, defaulting to ~S." key default)
+     (if (hash-table-p slot) (or (gethash ,key slot) ,default) ,default)))
 
-(defun slot-definition-initform (slot)
-  "Return SLOT's initform metadata, or NIL."
-  (and (hash-table-p slot) (gethash :initform slot)))
-
-(defun slot-definition-initargs (slot)
-  "Return SLOT's initarg metadata."
-  (and (hash-table-p slot) (gethash :initargs slot)))
-
-(defun slot-definition-allocation (slot)
-  "Return SLOT's allocation mode, defaulting to :INSTANCE."
-  (if (hash-table-p slot) (or (gethash :allocation slot) :instance) :instance))
-
-(defun slot-definition-location (slot)
-  "Return SLOT's effective storage location, or NIL."
-  (and (hash-table-p slot) (gethash :location slot)))
-
-(defun class-direct-superclasses (class)
-  "Return direct superclass designators for CLASS."
-  (and (hash-table-p class) (gethash :__superclasses__ class)))
-
-(defun class-direct-subclasses (class)
-  "Return direct subclass designators recorded in CLASS metadata."
-  (and (hash-table-p class) (gethash :__direct-subclasses__ class)))
+(define-slot-definition-accessor slot-definition-type :type t)
+(define-slot-definition-accessor slot-definition-initform :initform)
+(define-slot-definition-accessor slot-definition-initargs :initargs)
+(define-slot-definition-accessor slot-definition-allocation :allocation :instance)
+(define-slot-definition-accessor slot-definition-location :location)
 
 (defun class-precedence-list (class)
   "Return CLASS's class precedence list."
@@ -184,12 +168,6 @@
                   *satiated-generic-functions*))))
   (vm-register-host-bridge 'satiate-generic-function #'satiate-generic-function)
   (vm-register-host-bridge 'satiating-gfs-p #'satiating-gfs-p))
-
-(defun method-combination-type (method-combination)
-  "Return METHOD-COMBINATION's type designator."
-  (if (hash-table-p method-combination)
-      (or (gethash :type method-combination) (gethash :name method-combination) 'standard)
-      method-combination))
 
 (defun %mop-normalize-specializer-key (specializers)
   "Return the dispatch-table key for SPECIALIZERS."
@@ -394,19 +372,6 @@
                        new-value))))
           (t (error "(setf slot-value-using-class): unsupported object ~S" object)))))
 
-(defun slot-bound-using-class-p (class object slot-name)
-  "Return true when SLOT-NAME is bound in OBJECT using CLASS metadata."
-  (let ((class-slots (and (hash-table-p class) (gethash :__class-slots__ class))))
-    (cond ((and class-slots (member slot-name class-slots :test #'eq))
-           (nth-value 1 (gethash slot-name class)))
-          ((and (vectorp object) (plusp (length object)) (hash-table-p class))
-           (let ((index (class-slot-vector-index class slot-name)))
-             (and index (not (eq (aref object index) *unbound-slot-marker*)))))
-          ((hash-table-p object)
-           (let ((key (%vm-hashlike-slot-key object slot-name)))
-             (and key (nth-value 1 (gethash key object)))))
-          (t nil))))
-
 (defun slot-makunbound-using-class (class object slot-name)
   "Make SLOT-NAME unbound in OBJECT using CLASS metadata and return OBJECT."
   (let ((class-slots (and (hash-table-p class) (gethash :__class-slots__ class))))
@@ -423,160 +388,3 @@
                  (remhash (string-downcase (symbol-name slot-name)) object))))
           (t (error "slot-makunbound-using-class: unsupported object ~S" object))))
   object)
-
-;;; ── FR-888/FR-889 allocation caches ──────────────────────────────────────
-
-(defvar *vm-next-class-id* 0
-  "Monotonic class id source used by vector-backed instances.")
-
-(defun %vm-ensure-class-id (class-ht)
-  "Return CLASS-HT's stable numeric class id, assigning one if needed."
-  (or (gethash :__class-id__ class-ht)
-      (setf (gethash :__class-id__ class-ht) (incf *vm-next-class-id*))))
-
-(defun %vm-build-slot-vector-index (slots)
-  "Build a SLOT-NAME→storage-index hash table for vector instance slots.
-Index 0 is reserved for the class header, so the first slot starts at 1."
-  (let ((index (make-hash-table :test #'eq)))
-    (loop for slot-name in slots
-          for storage-index from 1
-          do (setf (gethash slot-name index) storage-index))
-    index))
-
-(defun %vm-fixed-slot-layout-p (class-ht)
-  "Return true when CLASS-HT can use vector-backed fixed slot storage."
-  (and (hash-table-p class-ht)
-       (not (gethash :__dynamic-slot-layout__ class-ht))
-       (not (gethash :__obsolete__ class-ht))))
-
-(defun class-slot-vector-index (class-ht slot-name)
-  "Return SLOT-NAME's O(1) vector storage index in CLASS-HT, or NIL.
-The cache is created during finalization and lazily rebuilt for older class
-tables that predate FR-888 metadata."
-  (when (hash-table-p class-ht)
-    (let ((index (or (gethash :__slot-vector-index__ class-ht)
-                     (setf (gethash :__slot-vector-index__ class-ht)
-                           (%vm-build-slot-vector-index
-                            (gethash :__slots__ class-ht))))))
-      (gethash slot-name index))))
-
-(defun allocate-instance-vector (class-ht &optional initial-element)
-  "Allocate a vector-backed instance for CLASS-HT."
-  (unless (%vm-fixed-slot-layout-p class-ht)
-    (error "Class ~S does not have a fixed slot layout"
-           (and (hash-table-p class-ht) (gethash :__name__ class-ht))))
-  (%vm-ensure-class-id class-ht)
-  (vector class-ht
-          (%make-vm-instance-storage
-           (make-array (length (gethash :__slots__ class-ht))
-                       :initial-element initial-element))))
-
-(defun slot-value-by-index (instance index)
-  "Return INSTANCE slot value at vector storage INDEX in O(1)."
-  (unless (and (vectorp instance) (> (length instance) 1)
-               (hash-table-p (aref instance 0)) (integerp index) (plusp index))
-    (error "Invalid vector slot index ~S for ~S" index instance))
-  (let ((storage (aref instance 1)))
-    (if (%vm-instance-storage-p storage)
-        (let ((values (%vm-instance-storage-values storage)))
-          (unless (< (1- index) (length values))
-            (error "Invalid vector slot index ~S for ~S" index instance))
-          (aref values (1- index)))
-        (progn
-          (unless (< index (length instance))
-            (error "Invalid vector slot index ~S for ~S" index instance))
-          (aref instance index)))))
-
-(defun (setf slot-value-by-index) (value instance index)
-  "Set INSTANCE slot value at vector storage INDEX in O(1)."
-  (unless (and (vectorp instance) (> (length instance) 1)
-               (hash-table-p (aref instance 0)) (integerp index) (plusp index))
-    (error "Invalid vector slot index ~S for ~S" index instance))
-  (let ((storage (aref instance 1)))
-    (if (%vm-instance-storage-p storage)
-        (let ((values (%vm-instance-storage-values storage)))
-          (unless (< (1- index) (length values))
-            (error "Invalid vector slot index ~S for ~S" index instance))
-          (setf (aref values (1- index)) value))
-        (progn
-          (unless (< index (length instance))
-            (error "Invalid vector slot index ~S for ~S" index instance))
-          (setf (aref instance index) value)))))
-
-(defun %vm-vector-instance-class-id (instance)
-  "Return INSTANCE's class-id from its vector header, or NIL."
-  (when (and (vectorp instance) (plusp (length instance))
-             (hash-table-p (aref instance 0)))
-    (gethash :__class-id__ (aref instance 0))))
-
-(defun %vm-build-instance-template (class-ht &optional initial-element)
-  "Build the zero-arg make-instance template for CLASS-HT."
-  (allocate-instance-vector class-ht initial-element))
-
-(defun %vm-copy-instance-template (class-ht &optional initial-element)
-  "Return a fresh instance by copying CLASS-HTs zero-arg template."
-  (let* ((template (or (gethash :__instance-template__ class-ht)
-                       (setf (gethash :__instance-template__ class-ht)
-                             (%vm-build-instance-template class-ht initial-element))))
-         (copy (copy-seq template))
-         (storage (and (> (length copy) 1) (aref copy 1))))
-    (when (%vm-instance-storage-p storage)
-      (setf (aref copy 1)
-            (%make-vm-instance-storage
-             (copy-seq (%vm-instance-storage-values storage)))))
-    copy))
-
-(defun %vm-initargs-signature (initargs)
-  "Return a compact cache signature for INITARGS.
-Only keys affect the specialized constructor path; values remain per-call."
-  (loop for entry in initargs
-        for key = (car entry)
-        unless (eq key :allow-other-keys)
-          collect key))
-
-(defun %vm-make-instance-cache (class-ht)
-  "Return CLASS-HT's make-instance specialized path cache."
-  (or (gethash :__make-instance-cache__ class-ht)
-      (setf (gethash :__make-instance-cache__ class-ht)
-            (make-hash-table :test #'equal))))
-
-(defun %vm-cached-constructor-path (class-ht initargs)
-  "Return the cached constructor path for CLASS-HT and INITARGS."
-  (let* ((signature (%vm-initargs-signature initargs))
-         (cache-key (cons class-ht signature))
-         (cache (%vm-make-instance-cache class-ht)))
-    (or (gethash cache-key cache)
-        (setf (gethash cache-key cache)
-              (if signature :standard-vector :zero-arg-template)))))
-
-(defun merge-cached-default-initargs (cached-defaults initargs)
-  "Merge evaluated CACHED-DEFAULTS with INITARGS in one pass.
-Explicit INITARGS win over default-initargs.  Both arguments are alists."
-  (let ((seen (make-hash-table :test #'eq))
-        (merged nil))
-    (dolist (entry initargs)
-      (setf (gethash (car entry) seen) t)
-      (push entry merged))
-    (dolist (entry cached-defaults)
-      (unless (gethash (car entry) seen)
-        (push entry merged)))
-    (nreverse merged)))
-
-(defun finalize-class-allocation-cache (class-ht)
-  "Finalize FR-888/FR-889 allocation metadata on CLASS-HT.
-This records fixed-layout slot indexes, evaluated default-initargs, the class-id,
-the zero-arg instance template, and the per-signature make-instance cache."
-  (unless (hash-table-p class-ht)
-    (error "Expected class hash table, got ~S" class-ht))
-  (setf (gethash :__fixed-slot-layout-p__ class-ht) (%vm-fixed-slot-layout-p class-ht)
-        (gethash :__slot-vector-index__ class-ht)
-        (%vm-build-slot-vector-index (gethash :__slots__ class-ht))
-        (gethash :__cached-default-initargs__ class-ht)
-        (copy-list (gethash :__default-initargs__ class-ht))
-        (gethash :__make-instance-cache__ class-ht)
-        (make-hash-table :test #'equal))
-  (%vm-ensure-class-id class-ht)
-  (when (gethash :__fixed-slot-layout-p__ class-ht)
-    (setf (gethash :__instance-template__ class-ht)
-          (%vm-build-instance-template class-ht)))
-  class-ht)

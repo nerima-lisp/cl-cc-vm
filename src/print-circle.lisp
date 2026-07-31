@@ -114,11 +114,6 @@
        (%write-circle-atom object stream escape))))
   object)
 
-(defun %print-with-circle (object stream &key (escape t))
-  (let ((state (%collect-shared-objects object)))
-    (%write-circle-object object stream state escape))
-  object)
-
 (defun %vm-host-write-object-to-string (object escape)
   (let ((cl:*print-escape* escape)
         (cl:*package* (if (and (symbolp object) (symbol-package object))

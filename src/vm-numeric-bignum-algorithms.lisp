@@ -182,16 +182,6 @@ Falls back to schoolbook when operand length is below THRESHOLD."
               :karatsuba
               :schoolbook)))))
 
-(defun vm-bignum-multiply-plan
-    (lhs rhs &key (threshold +vm-bignum-karatsuba-threshold+))
-  "Describe a bignum multiplication plan without depending on host bignum internals."
-  (multiple-value-bind (lhs-digits lhs-sign) (vm-bignum-digit-vector lhs)
-    (multiple-value-bind (rhs-digits rhs-sign) (vm-bignum-digit-vector rhs)
-      (list :strategy (vm-bignum-multiplication-strategy lhs rhs :threshold threshold)
-            :sign (* lhs-sign rhs-sign)
-            :lhs-digits lhs-digits
-            :rhs-digits rhs-digits))))
-
 (defun vm-bignum-burnikel-ziegler-divide-plan
     (lhs rhs &key (base +vm-bignum-digit-base+) (block-size 16))
   "Return a conservative Burnikel-Ziegler style division plan descriptor.

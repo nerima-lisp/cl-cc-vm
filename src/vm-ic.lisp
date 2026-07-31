@@ -18,9 +18,6 @@
 (defvar *profile-output* nil
   "Optional stream or pathname used by RUN-COMPILED to dump FR-058 type profiles.")
 
-(defparameter +ic-pgo-dominance-threshold+ 0.9
-  "Minimum single-type ratio required before PGO specializes a generic-call site.")
-
 (defun %ic-specializer-key (arg-regs state)
   "Compute a stable IC key from ARG-REGS.
 Returns a list of argument class names for single- and multi-dispatch generic
@@ -117,23 +114,6 @@ CACHE = (specializer-key generation . method-closure)."
       (when (typep site 'vm-generic-call)
         (setf (vm-ic-cache site) nil)
         (setf (vm-pgo-specializer site) nil)))))
-
-(defun %ic-clear-all-generic-caches (state)
-  "Clear inline caches for all generic functions reachable from STATE."
-  (let ((seen (make-hash-table :test #'eq)))
-    (flet ((clear-value (value)
-             (when (and (vm-generic-function-p value)
-                        (not (gethash value seen)))
-               (setf (gethash value seen) t)
-               (%ic-clear-gf-caches value))))
-      (maphash (lambda (k v)
-                 (declare (ignore k))
-                 (clear-value v))
-               (vm-function-registry state))
-      (maphash (lambda (k v)
-                 (declare (ignore k))
-                 (clear-value v))
-               (vm-global-vars state)))))
 
 (defun %ic-direct-call (method state pc labels dst-reg arg-regs gf-ht)
   "Execute a direct cached call to METHOD, pushing method-call-stack for

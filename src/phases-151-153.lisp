@@ -32,8 +32,6 @@
 
 ;; FR-857: GC External Roots
 (defun register-gc-root (ptr) (declare (ignore ptr)) t)
-(defun unregister-gc-root (ptr) (declare (ignore ptr)) t)
-
 ;; FR-860: Pass Pipeline Configuration
 (defvar *pass-pipeline* nil)
 

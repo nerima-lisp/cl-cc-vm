@@ -28,8 +28,6 @@
 
 ;; FR-839: Macro Expansion Memoization (VM-local cache to avoid namespace conflict
 ;; with cl-cc/expand:*macro-expansion-cache*)
-(defvar *vm-macro-expansion-cache* (make-hash-table :test #'equal :weakness :key))
-
 ;; FR-842: Function Versioning / Argument Specialization
 (defun version-function (fn arg-values) (declare (ignore fn arg-values)) fn)
 

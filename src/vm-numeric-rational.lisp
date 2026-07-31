@@ -1,13 +1,8 @@
 (in-package :cl-cc/vm)
-;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;; VM — Native Rational Number Support (FR-955)
-;;;
-;;; Provides: vm-ratio struct, vm-make-ratio, additive/multiplicative
-;;; operations, vm-rational, vm-rationalize, vm-floor.
-;;;
-;;; Load order: after vm-bignum.lisp (depends on vm-bignum-gcd,
-;;; vm-bignum-to-integer, vm-bignum-burnikel-ziegler-divide).
-;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+;;; Native VM rational value: the vm-ratio struct, additive/multiplicative
+;;; ops, VM-RATIONAL/VM-RATIONALIZE/VM-FLOOR, and print-object. Depends on
+;;; vm-numeric-bignum.lisp (loads before) for vm-bignum-gcd.
 
 (defstruct (vm-ratio
             (:constructor %make-vm-ratio (numerator denominator))
@@ -15,9 +10,6 @@
   "Native VM rational represented by normalized numerator/denominator integers."
   numerator
   denominator)
-
-(defmethod print-object ((value vm-ratio) stream)
-  (format stream "~D/~D" (vm-ratio-numerator value) (vm-ratio-denominator value)))
 
 (defun %vm-number->integer (value)
   (if (vm-bignum-p value) (vm-bignum-to-integer value) value))
@@ -43,23 +35,19 @@
     ((rationalp value) (vm-make-ratio (numerator value) (denominator value)))
     (t (error "Not a rational value: ~S" value))))
 
-;;; ─── Additive operations (structurally identical except for the operator) ───
+(defun vm-rational-add (lhs rhs)
+  (let ((a (%vm-coerce-ratio lhs))
+        (b (%vm-coerce-ratio rhs)))
+    (vm-make-ratio (+ (* (vm-ratio-numerator a) (vm-ratio-denominator b))
+                      (* (vm-ratio-numerator b) (vm-ratio-denominator a)))
+                   (* (vm-ratio-denominator a) (vm-ratio-denominator b)))))
 
-(defmacro define-vm-rational-additive-op (name operator)
-  "Define a rational additive operation NAME using OPERATOR (+ or -).
-Both vm-rational-add and vm-rational-sub share the same structure:
-  num = (OPERATOR (an * bd) (bn * ad))
-  den = ad * bd
-where an/ad are the numerator/denominator of LHS and bn/bd of RHS."
-  `(defun ,name (lhs rhs)
-     (let ((a (%vm-coerce-ratio lhs))
-           (b (%vm-coerce-ratio rhs)))
-       (vm-make-ratio (,operator (* (vm-ratio-numerator a) (vm-ratio-denominator b))
-                                 (* (vm-ratio-numerator b) (vm-ratio-denominator a)))
-                      (* (vm-ratio-denominator a) (vm-ratio-denominator b))))))
-
-(define-vm-rational-additive-op vm-rational-add +)
-(define-vm-rational-additive-op vm-rational-sub -)
+(defun vm-rational-sub (lhs rhs)
+  (let ((a (%vm-coerce-ratio lhs))
+        (b (%vm-coerce-ratio rhs)))
+    (vm-make-ratio (- (* (vm-ratio-numerator a) (vm-ratio-denominator b))
+                      (* (vm-ratio-numerator b) (vm-ratio-denominator a)))
+                   (* (vm-ratio-denominator a) (vm-ratio-denominator b)))))
 
 (defun vm-rational-mul (lhs rhs)
   (let ((a (%vm-coerce-ratio lhs))
@@ -118,3 +106,6 @@ where an/ad are the numerator/denominator of LHS and bn/bd of RHS."
                                 (vm-ratio-denominator ratio)
                                 :rounding :floor)
       (values q (vm-make-ratio r (vm-ratio-denominator ratio))))))
+
+(defmethod print-object ((value vm-ratio) stream)
+  (format stream "~D/~D" (vm-ratio-numerator value) (vm-ratio-denominator value)))

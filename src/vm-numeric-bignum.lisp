@@ -1,12 +1,17 @@
 (in-package :cl-cc/vm)
+
 ;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;; VM — Native Bignum Implementation (FR-952/FR-955/FR-956)
+;;; VM — Native Bignum (FR-952 / FR-955 / FR-956)
 ;;;
-;;; Provides: vm-bignum struct, limb arithmetic (add/sub/mul/div),
-;;; conversion to/from host integers, and rational number support.
+;;; Native limb-based vm-bignum struct, integer<->bignum conversion, bignum
+;;; arithmetic ops (add/sub/mul/div/gcd/expt/isqrt/to-string), and
+;;; print-object. vm-ratio and vm-complex are in vm-numeric-rational.lisp
+;;; and vm-numeric-complex-native.lisp; the float/round/decode-float VM
+;;; instructions built on all three are in vm-numeric-tower.lisp.
 ;;;
-;;; Load order: after vm-numeric.lisp (digit-based planning layer).
+;;; Load order: after vm-numeric-complex.lisp, before vm-numeric-rational.lisp.
 ;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 ;;; ─── FR-952 / FR-955 / FR-956 Native VM Number Tower ─────────────────────
 
 (defconstant +vm-bignum-limb-bits+ 64
@@ -343,26 +348,13 @@ representation and applies signs after quotient/remainder construction."
                 (setf v (vm-bignum-sub v u)))
        (%vm-bignum-ash-left u shift)))))
 
+(defun vm-bignum-add-integers (lhs rhs)
+  "Native VM bignum addition fallback, externalized as a host integer."
+  (vm-bignum-to-integer (vm-bignum-add lhs rhs)))
 
-(defun vm-bignum-to-string (value &optional (radix 10))
-  "Render VM bignum VALUE in RADIX (2..36)."
-  (check-type radix (integer 2 36))
-  (let ((n (%vm-bignum-abs value))
-        (base (vm-integer->bignum radix))
-        (digits "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
-        (chars nil))
-    (if (%vm-bignum-zero-p n)
-        "0"
-        (progn
-          (loop until (%vm-bignum-zero-p n)
-                do (multiple-value-bind (q r) (vm-bignum-div n base)
-                     (push (char digits (vm-bignum-to-integer r)) chars)
-                     (setf n q)))
-          (coerce (if (vm-bignum-negative-p (%vm-coerce-bignum value))
-                      (cons #\- chars)
-                      chars)
-                  'string)))))
+(defun vm-bignum-subtract-integers (lhs rhs)
+  "Native VM bignum subtraction fallback, externalized as a host integer."
+  (vm-bignum-to-integer (vm-bignum-sub lhs rhs)))
 
 (defmethod print-object ((value vm-bignum) stream)
   (format stream "~D" (vm-bignum-to-integer value)))
-

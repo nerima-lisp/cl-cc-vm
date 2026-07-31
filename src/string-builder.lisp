@@ -66,11 +66,6 @@ Returns SB.  Existing contents are preserved."
       (replace buffer string :start1 old-length :end1 new-length)))
   sb)
 
-(defun string-builder-clear! (sb)
-  "Reset SB to empty while retaining its allocated buffer for reuse. Returns SB."
-  (setf (fill-pointer (sb-buffer sb)) 0)
-  sb)
-
 (defun string-builder-finish (sb)
   "Return the final string from SB. Performs exactly ONE copy (O(n))."
   (copy-seq (sb-buffer sb)))
@@ -214,49 +209,3 @@ Returns (values left-rope right-rope)."
       (%flatten (rope-root r))
       result)))
 
-(defun rope-insert (r i string)
-  "Return a new rope with STRING inserted into R at character index I."
-  (check-type string string)
-  (let* ((r (%rope-coerce r))
-         (index (max 0 (min i (rope-length r)))))
-    (multiple-value-bind (left right) (rope-split r index)
-      (rope-concat (rope-concat left string) right))))
-
-(defun rope-delete (r start end)
-  "Return a new rope with the half-open range [START, END) removed."
-  (let* ((r (%rope-coerce r))
-         (length (rope-length r))
-         (from (max 0 (min start length)))
-         (to (max from (min end length))))
-    (multiple-value-bind (left rest) (rope-split r from)
-      (multiple-value-bind (_deleted right) (rope-split rest (- to from))
-        (declare (ignore _deleted))
-        (rope-concat left right)))))
-
-(defun rope-substring (r start end)
-  "Extract the half-open range [START, END) from R as a new rope."
-  (let* ((r (%rope-coerce r))
-         (length (rope-length r))
-         (from (max 0 (min start length)))
-         (to (max from (min end length))))
-    (multiple-value-bind (_left rest) (rope-split r from)
-      (declare (ignore _left))
-      (multiple-value-bind (middle _right) (rope-split rest (- to from))
-        (declare (ignore _right))
-        middle))))
-
-(defun test-string-builder-performance (&key (iterations 10000) (chunk "x"))
-  "Demonstrate O(1) amortized append by reporting linear growth metrics.
-Returns a plist containing append count, final length, capacity, and average
-allocated capacity per appended character."
-  (let ((builder (make-string-builder :capacity 1)))
-    (dotimes (_ iterations)
-      (declare (ignore _))
-      (string-builder-append-string! builder chunk))
-    (let ((length (string-builder-length builder)))
-      (list :iterations iterations
-            :length length
-            :capacity (sb-capacity builder)
-            :capacity-per-character (if (zerop length)
-                                        0
-                                        (/ (sb-capacity builder) length))))))

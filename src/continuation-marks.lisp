@@ -81,10 +81,3 @@ The list is in mark order (most recent first)."
 ;;; At the CL expander level, this is just a passthrough that ensures the
 ;;; form is recognized as a special construct by the compiler pipeline.
 
-(defmacro with-continuation-mark ((key value) &body body)
-  "Execute BODY with KEY-VALUE mark on the current continuation.
-The mark is visible to called functions and is automatically cleaned
-up when the current call frame returns.
-Tail calls from BODY replace (not append) the mark list."
-  (declare (ignore key value))
-  `(progn ,@body))

@@ -39,68 +39,6 @@
         (+ epoch +unix-to-universal-time-offset+)
         (cl:get-universal-time))))
 
-(defun normalize-build-path (path &optional (root (uiop:getcwd)))
-  "Normalize PATH so build artifacts do not embed absolute build roots."
-  (let* ((pathname (uiop:parse-native-namestring path))
-         (path-string (namestring pathname))
-         (root-string (namestring (uiop:ensure-directory-pathname root))))
-    (cond
-      ((and (uiop:absolute-pathname-p pathname)
-            (<= (length root-string) (length path-string))
-            (string= root-string path-string :end2 (length root-string)))
-       (subseq path-string (length root-string)))
-      ((uiop:absolute-pathname-p pathname)
-       (file-namestring pathname))
-      (t path-string))))
-
-(defun deterministic-hash-code (object &optional (seed *deterministic-hash-table-seed*))
-  "Return a deterministic 32-bit hash code independent of host hash salting."
-  (labels ((mix (hash value)
-             (logand #xffffffff (+ (* 16777619 hash) (logand value #xffffffff))))
-           (hash-string (string hash)
-             (loop for ch across string
-                   for h = hash then (mix h (char-code ch))
-                   finally (return h))))
-    (let ((hash (logand #xffffffff (or seed 2166136261))))
-      (typecase object
-        (null (mix hash 0))
-        (integer (mix hash object))
-        (character (mix hash (char-code object)))
-        (string (hash-string object hash))
-        (symbol (hash-string (format nil "~A::~A"
-                                     (package-name (or (symbol-package object)
-                                                       (find-package :cl-user)))
-                                     (symbol-name object))
-                             hash))
-        (cons (reduce (lambda (h item) (mix h (deterministic-hash-code item seed)))
-                      object :initial-value hash))
-        (t (hash-string (write-to-string object :readably nil :circle t) hash))))))
-
-(defun apply-build-seed (&optional (seed *build-seed*))
-  "Apply deterministic build SEED to random state, hash seed, and gensyms."
-  (when seed
-    (let ((seed (logand #xffffffff seed)))
-      (setf *build-seed* seed
-            *deterministic-hash-table-seed* seed
-            cl:*gensym-counter* 0
-            *random-state* (%vm-mt-seed seed))
-      (setf cl:*random-state* (sb-ext:seed-random-state seed))
-      seed)))
-
-(defun build-fingerprint (&rest input-files)
-  "Return a deterministic SHA256 hex digest of concatenated INPUT-FILES."
-  (let ((hash 5381))
-    (dolist (file input-files)
-      (handler-case
-          (with-open-file (in file :direction :input :element-type '(unsigned-byte 8)
-                                  :if-does-not-exist nil)
-            (when in
-              (loop for byte = (read-byte in nil nil)
-                    while byte
-                    do (setf hash (logand (+ (* hash 33) byte) #xFFFFFFFF)))))
-        (error () nil)))
-    (format nil "~64,'0x" hash)))
-
 ;; ── FR-920: Forward References ─────────────────────────────────────────
 
 (defstruct vm-forward-reference-cell

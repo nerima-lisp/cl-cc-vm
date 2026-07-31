@@ -75,9 +75,6 @@ V8 Hidden Classes / SpiderMonkey Shapes equivalent."
   "Bits [2:3] of mark word: object kind.")
 (defconstant +mark-word-hash-bits+ 28
   "Bits [4:31] of mark word: identity hash code (lazy computation).")
-(defconstant +mark-word-lock-bits+ 32
-  "Bits [32:63] of mark word: lock state / class index.")
-
 (defun make-mark-word (&key (gc-color 0) (object-kind 0) (identity-hash 0) (lock-state 0))
   "Create a 64-bit mark word with specified fields."
   (logior gc-color

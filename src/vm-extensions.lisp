@@ -22,10 +22,6 @@
 (defun %vm-symbol-property-entry-p (entry)
   (typep entry 'vm-symbol-property-hash-store))
 
-(defun %vm-symbol-property-entry-table (entry)
-  (and (%vm-symbol-property-entry-p entry)
-       (vm-symbol-property-hash-store-table entry)))
-
 (defun %vm-plist-entry-count (plist)
   (loop for tail on plist by #'cddr
         while tail
@@ -177,24 +173,6 @@
     (values (%vm-symbol-property-entry->plist
              (gethash sym (vm-symbol-plists state)))
             (vm-symbol-plist-read-barrier state))))
-
-(defun vm-system-property-get (state sym indicator &optional default)
-  "Return VM-only system property INDICATOR from SYM, or DEFAULT if absent."
-  (%vm-symbol-property-get state (vm-system-symbol-plists state) sym indicator default))
-
-(defun vm-system-property-set (state sym indicator value)
-  "Set VM-only system property INDICATOR on SYM to VALUE."
-  (%vm-symbol-property-set state (vm-system-symbol-plists state) sym indicator value))
-
-(defun vm-system-property-remprop (state sym indicator)
-  "Remove VM-only system property INDICATOR from SYM."
-  (%vm-symbol-property-remprop state (vm-system-symbol-plists state) sym indicator))
-
-(defun vm-system-property-plist (state sym)
-  "Return a plist snapshot of VM-only system properties for SYM."
-  (cl-cc/runtime:rt-with-lock ((vm-symbol-plist-lock state))
-    (%vm-symbol-property-entry->plist
-     (gethash sym (vm-system-symbol-plists state)))))
 
 (define-vm-instruction vm-symbol-get (vm-instruction)
   "Get property INDICATOR from symbol SYM's plist. Returns default if absent."
@@ -456,24 +434,9 @@ mutable control-state containers."
 (vm-register-host-bridge 'vm-call/cc #'vm-call/cc)
 
 ;;; FR-905: TCO unwind support
-(defun vm-check-dynamic-extent (tag)
-  "FR-905: Check dynamic extent boundary for tail-call-through-unwind-protect."
-  (declare (ignore tag))
-  nil)
-
 ;;; FR-828: Stack canary
-(defun vm-stack-canary-check ()
-  "FR-828: Check stack canary value for stack overflow detection."
-  t)
-
 ;;; FR-829: Integer overflow detection
-(defun vm-check-fixnum-overflow (value)
-  "FR-829: Check whether VALUE overflows the fixnum range."
-  (or (> value most-positive-fixnum) (< value most-negative-fixnum)))
-
 ;;; FR-873: CoW arrays
-(defun copy-on-write-array-p (obj) "FR-873: Return T when OBJ is a copy-on-write array." (vm-cow-vector-p obj))
-
 ;;; FR-865: Multiple values — nth-value
 (defun vm-nth-value (n form-values)
   "FR-865: Return the Nth value from FORM-VALUES (a list of multiple values)."
@@ -494,10 +457,6 @@ position and returns the normal setter boolean."
       (file-position stream)))
 
 ;;; FR-880: User-defined hash table tests
-(defmacro define-hash-table-test (name test-fn hash-fn)
-  "FR-880: Define a custom hash table test using TEST-FN and HASH-FN."
-  `(sb-ext:define-hash-table-test ,name ,test-fn ,hash-fn))
-
 ;;; FR-847: Mutex/condition variable
 (defstruct (vm-mutex (:constructor make-mutex (&optional (name "mutex"))))
   "FR-847: Mutex for mutual exclusion."
@@ -509,7 +468,3 @@ position and returns the normal setter boolean."
   (name "rwlock"))
 
 ;;; FR-914: Delimited continuations
-(defun call-with-continuation-prompt (thunk &optional tag handler)
-  "FR-914: Call THUNK with a continuation prompt boundary."
-  (declare (ignore tag handler))
-  (funcall thunk))

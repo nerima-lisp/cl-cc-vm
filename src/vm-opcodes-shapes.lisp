@@ -133,11 +133,3 @@ OUTPUT-STREAM: stream for I/O."
   (profile-samples nil :type hash-table)
   (output-stream *standard-output*))
 
-(defun vm2-reg-get (state reg)
-  "Get register REG (integer) from vm2-state STATE."
-  (svref (vm2-state-registers state) reg))
-
-(defun vm2-reg-set (state reg value)
-  "Set register REG (integer) to VALUE in vm2-state STATE. Returns VALUE."
-  (setf (svref (vm2-state-registers state) reg) value)
-  value)

@@ -7,15 +7,6 @@
 (defmacro vm-handler-case (form &rest clauses)
   `(cl:handler-case ,form ,@clauses))
 
-(defmacro vm-handler-bind (bindings &body body)
-  `(cl:handler-bind ,bindings ,@body))
-
-(defmacro vm-restart-case (form &rest clauses)
-  `(cl:restart-case ,form ,@clauses))
-
-(defmacro vm-ignore-errors (&body body)
-  `(cl:ignore-errors ,@body))
-
 ;;; VM Condition Instructions and Execution
 ;;;
 ;;; Defines vm-signal, vm-error-instruction, vm-cerror, vm-warn, vm-push-handler,

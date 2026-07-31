@@ -200,24 +200,6 @@ abort count and retry under table lock fallback path."
             (vm-hash-table-refcount table-obj) 1)))
   table-obj)
 
-(defun vm-cow-copy-hash-table (table-obj)
-  "Return a logically copied hash object; writes detach on first mutation."
-  (if (typep table-obj 'vm-hash-table-object)
-      (progn
-        (setf (vm-hash-table-shared-p table-obj) t)
-        (incf (vm-hash-table-refcount table-obj))
-        (make-instance 'vm-hash-table-object
-                       :table (vm-hash-table-internal table-obj)
-                       :weakness (vm-hash-table-weakness table-obj)
-                       :weak-entries (vm-hash-table-weak-entries table-obj)
-                       :shared-p t
-                       :refcount (vm-hash-table-refcount table-obj)
-                       :lock #+sb-thread (sb-thread:make-mutex :name "vm-hash-table-lock")
-                             #-sb-thread nil))
-      (let ((copy (make-hash-table :test (hash-table-test table-obj))))
-        (maphash (lambda (k v) (setf (gethash k copy) v)) table-obj)
-        copy)))
-
 ;;; Hash Table Instruction Classes
 
 (define-vm-instruction vm-make-hash-table (vm-instruction)

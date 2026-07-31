@@ -43,21 +43,6 @@ Returns an EQUAL hash-table keyed by (opcode-a opcode-b) symbol pairs."
             do (incf (gethash (list name-a name-b) counts 0)))
     counts))
 
-(defun vm2-top-superoperator-candidates (code &key (limit 20))
-  "Return the top opcode bigram candidates from CODE.
-
-Each result element is (pair count), sorted by descending count then name."
-  (let (pairs)
-    (maphash (lambda (pair count)
-               (push (list pair count) pairs))
-             (vm2-collect-opcode-bigrams code))
-    (subseq (sort pairs (lambda (a b)
-                          (or (> (second a) (second b))
-                              (and (= (second a) (second b))
-                                   (string< (prin1-to-string (first a))
-                                   (prin1-to-string (first b)))))))
-            0 (min limit (length pairs)))))
-
 (defparameter *vm2-fusion-opcode-symbol-pairs*
   '((+op2-add2+    . +op2-add-imm2+)
     (+op2-sub2+    . +op2-sub-imm2+)

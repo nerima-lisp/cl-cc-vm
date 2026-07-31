@@ -42,29 +42,6 @@ Returns ACC (modified)."
   "Return the current compensated sum from accumulator ACC."
   (kahan-accumulator-sum acc))
 
-(defun kahan-sum (sequence)
-  "Return the Kahan-compensated sum of the numbers in SEQUENCE.
-More accurate than (+ a b c ...) for float sequences with large magnitude
-differences."
-  (let ((acc (make-kahan-accumulator)))
-    (map nil (lambda (val) (kahan-add! acc val)) sequence)
-    (kahan-result acc)))
-
-(defun pairwise-sum (sequence)
-  "Return the pairwise (divide-and-conquer) sum of SEQUENCE.
-Performs O(n) additions with a balanced binary tree reduction, keeping
-error growth O(log n) instead of O(n).  Coerces list arguments to a vector
-for O(1) random access."
-  (let ((vec (if (typep sequence 'vector) sequence (coerce sequence 'vector))))
-    (labels ((rec (start end)
-               (case (- end start)
-                 (0 0.0d0)
-                 (1 (float (aref vec start) 1.0d0))
-                 (otherwise
-                  (let ((mid (floor (+ start end) 2)))
-                    (+ (rec start mid) (rec mid end)))))))
-      (rec 0 (length vec)))))
-
 ;;; FR-843 float exception control forms have been moved to
 ;;; primitives-numeric-fp-traps.lisp (loaded before this file).
 

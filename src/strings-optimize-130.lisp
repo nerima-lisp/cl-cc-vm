@@ -50,9 +50,6 @@ Interned strings can be compared with EQ (O(1) pointer comparison)."
   (code-char (ldb (byte 4 (+ 4 (* index 4))) sso)))
 
 ;;; ──── FR-724: Numeric Tower Optimization ────
-(defconstant +fixnum-tag+ 0
-  "Tag for fixnum: least significant bit = 0 (63-bit signed on 64-bit arch).")
-
 (defun fixnum-p (x)
   "Return T if X is a tagged fixnum."
   (and (integerp x) (zerop (logand x #b1))))
