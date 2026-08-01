@@ -80,12 +80,12 @@ for STREAM-EXTERNAL-FORMAT and supplies *DEFAULT-EXTERNAL-FORMAT* when omitted."
 (defun setenv (name value &key overwrite)
   "Set environment variable NAME to VALUE.  Returns VALUE on success."
   (declare (ignore overwrite))
-  (setf (uiop:getenv (string name)) (string value))
+  (setf (host-kit:getenv (string name)) (string value))
   value)
 
 (defun exit (&optional (code 0))
   "Exit the hosting process with CODE."
-  (uiop:quit code))
+  (host-kit:quit code))
 
 ;;; ── FR-1066: SBCL-compatible implementation surface ───────────────────────
 

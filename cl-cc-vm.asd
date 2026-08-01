@@ -31,7 +31,7 @@
   :homepage "https://github.com/nerima-lisp/cl-cc-vm"
   :bug-tracker "https://github.com/nerima-lisp/cl-cc-vm/issues"
   :source-control (:git "https://github.com/nerima-lisp/cl-cc-vm.git")
-  :depends-on (:cl-cc-bootstrap :cl-cc-runtime :cl-regex-kit :cl-tty-kit)
+  :depends-on (:cl-cc-bootstrap :cl-cc-runtime :cl-regex-kit :cl-tty-kit :cl-host-kit)
   :pathname "src"
   :serial t
   :components
@@ -192,4 +192,4 @@
                (:file "vm-clos-execute-test"))
   :perform (asdf:test-op (op system)
              (declare (ignore op system))
-             (uiop:symbol-call :cl-weave :run-all-tests :pass-with-no-tests nil)))
+             (host-kit:symbol-call :cl-weave :run-all-tests :pass-with-no-tests nil)))

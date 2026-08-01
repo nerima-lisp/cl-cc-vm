@@ -48,8 +48,9 @@ Windows: uses signtool.exe.
 Linux: IMA signature support."
   (when identity
     #+darwin
-    (uiop:run-program (list "codesign" "--sign" identity binary-path)
-                      :output t :error-output t)
+    (let ((result (host-kit:run-program "codesign" (list "--sign" identity binary-path))))
+      (write-string (host-kit:process-result-stdout result) *standard-output*)
+      (write-string (host-kit:process-result-stderr result) *error-output*))
     #-darwin
     (warn "Code signing not supported on this platform"))
   t)

@@ -30,7 +30,7 @@
 
 (defun source-date-epoch ()
   "Return SOURCE_DATE_EPOCH as Unix seconds, or NIL when unset/invalid."
-  (%parse-non-negative-integer (uiop:getenv "SOURCE_DATE_EPOCH")))
+  (%parse-non-negative-integer (host-kit:getenv "SOURCE_DATE_EPOCH")))
 
 (defun build-timestamp ()
   "Return build timestamp as universal-time, honoring SOURCE_DATE_EPOCH."

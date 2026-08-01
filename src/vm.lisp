@@ -16,7 +16,7 @@ closures, and reader states."))
 
 (defun vm-getenv (name)
   "Return environment variable NAME marked as tainted external input."
-  (let ((value (uiop:getenv (string name))))
+  (let ((value (host-kit:getenv (string name))))
     (and value (taint-mark value :environment))))
 
 (defvar *vm-self-host-mode* nil
