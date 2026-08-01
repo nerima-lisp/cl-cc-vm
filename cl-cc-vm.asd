@@ -190,6 +190,11 @@
                (:file "vm-hash-execute-test")
                (:file "vm-string-execute-test")
                (:file "vm-clos-execute-test"))
+  ;; Not HOST-KIT:SYMBOL-CALL: a .asd is read before :depends-on is ever
+  ;; consulted, so a CL-HOST-KIT-prefixed token here would be a read-time
+  ;; PACKAGE-DOES-NOT-EXIST error regardless of what the system depends on.
+  ;; FIND-SYMBOL/FIND-PACKAGE/FUNCALL are CL, always present.
   :perform (asdf:test-op (op system)
              (declare (ignore op system))
-             (host-kit:symbol-call :cl-weave :run-all-tests :pass-with-no-tests nil)))
+             (funcall (find-symbol "RUN-ALL-TESTS" (find-package "CL-WEAVE"))
+                      :pass-with-no-tests nil)))
