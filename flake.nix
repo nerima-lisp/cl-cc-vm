@@ -12,20 +12,26 @@
     # `flake = false` source tree handed to the runner through an environment
     # variable; it is a normal flake input now, which is what lets ASDF find
     # cl-weave through CL_SOURCE_REGISTRY like any other dependency.
-    # cl-cc-bootstrap has cut no tagged release yet, so this necessarily
-    # follows its default branch; every other input below has a tag and is
-    # pinned to one, for the reason cl-weave's comment gives.
+    # cl-cc-bootstrap does have a v0.1.0 tag now, but this repository has been
+    # building against its default branch, so the pin below freezes the commit
+    # that branch is at rather than moving the build back to v0.1.0. A
+    # 40-character SHA is as immutable as a tag and is what CONFORMANCE.md
+    # prescribes when a tag is not the right target; what it removes is the
+    # silent drift a bare `github:nerima-lisp/cl-cc-bootstrap` had, where an
+    # upstream push changed this build with no change here.
     cl-cc-bootstrap = {
-      url = "github:nerima-lisp/cl-cc-bootstrap";
+      url = "github:nerima-lisp/cl-cc-bootstrap/821bc1f853dbdad2a66e852216d651a7deee5ad2";
       flake = false;
     };
     # cl-cc-runtime has a v0.1.0 tag, but it predates the stack-segment
     # continuation-snapshot and mmap-backed-stack work this repository's own
     # test suite already exercises (cl-cc-runtime commits 9094079/e1bc75f,
     # both after the v0.1.0 tag). Pinning to v0.1.0 would be a regression, so
-    # this follows the default branch until a release includes that work.
+    # this is pinned to a SHA on the default branch instead of to the tag,
+    # until a release includes that work. The SHA keeps the same tree the bare
+    # branch reference resolved to, without the silent drift.
     cl-cc-runtime = {
-      url = "github:nerima-lisp/cl-cc-runtime";
+      url = "github:nerima-lisp/cl-cc-runtime/e47f0917abc759f4798633cfa427f30ad08eb277";
       flake = false;
     };
     # cl-cc-runtime's own dependencies; ASDF resolves them off the same registry.
@@ -62,11 +68,12 @@
     };
     # This repository's own guest-visible regex stdlib (src/regex.lisp) is
     # cl-regex-kit directly -- no hand-rolled matcher, no adapter layer.
-    # cl-regex-kit has cut no tagged release yet, so it follows its default
-    # branch like cl-cc-bootstrap above; cl-parser-kit is its own tokenizer
-    # dependency and does have a tag.
+    # cl-regex-kit has published no tag at all -- v0.2.0 exists only in a local
+    # clone and was never pushed -- so a SHA on its default branch is the only
+    # immutable target available. CONFORMANCE.md names exactly this case.
+    # cl-parser-kit is its own tokenizer dependency and does have a tag.
     cl-regex-kit = {
-      url = "github:nerima-lisp/cl-regex-kit";
+      url = "github:nerima-lisp/cl-regex-kit/d7d1a0e4d5a15765b1f781993949ae2e3cb796f9";
       flake = false;
     };
     cl-parser-kit = {
