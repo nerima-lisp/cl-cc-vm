@@ -36,19 +36,19 @@
     };
     # cl-cc-runtime's own dependencies; ASDF resolves them off the same registry.
     cl-log-kit = {
-      url = "github:nerima-lisp/cl-log-kit/v2.0.0";
+      url = "github:nerima-lisp/cl-log-kit/v2.0.1";
       flake = false;
     };
     cl-process-kit = {
-      url = "github:nerima-lisp/cl-process-kit/v2.0.0";
+      url = "github:nerima-lisp/cl-process-kit/v3.1.0";
       flake = false;
     };
     cl-json-kit = {
-      url = "github:nerima-lisp/cl-json-kit/v1.0.1";
+      url = "github:nerima-lisp/cl-json-kit/v1.0.2";
       flake = false;
     };
     cl-boundary-kit = {
-      url = "github:nerima-lisp/cl-boundary-kit/v1.0.0";
+      url = "github:nerima-lisp/cl-boundary-kit/v2.0.1";
       flake = false;
     };
     # cl-log-kit 2.0.0's runtime deps: it stopped being zero-dependency in
@@ -59,11 +59,11 @@
       flake = false;
     };
     cl-concurrent-kit = {
-      url = "github:nerima-lisp/cl-concurrent-kit/v0.1.0";
+      url = "github:nerima-lisp/cl-concurrent-kit/v0.3.0";
       flake = false;
     };
     cl-host-kit = {
-      url = "github:nerima-lisp/cl-host-kit/v0.2.1";
+      url = "github:nerima-lisp/cl-host-kit/v0.2.5";
       flake = false;
     };
     # This repository's own guest-visible regex stdlib (src/regex.lisp) is
@@ -77,18 +77,18 @@
       flake = false;
     };
     cl-parser-kit = {
-      url = "github:nerima-lisp/cl-parser-kit/v1.0.1";
+      url = "github:nerima-lisp/cl-parser-kit/v1.0.3";
       flake = false;
     };
     # vm-terminal.lisp's raw-mode entry/exit and terminal-size queries are
     # cl-tty-kit's WITH-RAW-MODE/TERMINAL-SIZE directly, replacing what used
     # to shell out to stty(1). Zero dependencies of its own.
     cl-tty-kit = {
-      url = "github:nerima-lisp/cl-tty-kit/v1.0.3";
+      url = "github:nerima-lisp/cl-tty-kit/v1.2.0";
       flake = false;
     };
     cl-weave = {
-      url = "github:nerima-lisp/cl-weave/v1.1.0";
+      url = "github:nerima-lisp/cl-weave/v1.1.4";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
