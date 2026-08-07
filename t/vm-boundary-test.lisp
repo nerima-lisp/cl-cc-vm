@@ -204,11 +204,16 @@
     (let* ((state (cl-cc/vm:make-vm-state))
            (registered-name (list 'setf (make-symbol "SLOT-VALUE-USING-CLASS")))
            (lookup-name (list 'setf (make-symbol "SLOT-VALUE-USING-CLASS")))
-           (generic-function (make-hash-table :test #'eq)))
-      (setf (gethash :__methods__ generic-function) (make-hash-table :test #'equal)
-            (gethash registered-name (cl-cc/vm:vm-global-vars state)) generic-function)
+           (generic-function (make-hash-table :test #'eq))
+           (class-descriptor (make-hash-table :test #'eq)))
+      (setf (gethash :__generic__ generic-function) t
+            (gethash :__methods__ generic-function) (make-hash-table :test #'equal)
+            (gethash registered-name (cl-cc/vm:vm-global-vars state)) generic-function
+            (gethash :__methods__ class-descriptor) (make-hash-table :test #'equal))
       (expect (cl-cc/vm::%vm-global-generic-function state lookup-name)
-              :to-be generic-function))))
+              :to-be generic-function)
+      (expect (cl-cc/vm:vm-generic-function-p class-descriptor)
+              :to-be nil))))
 
 (progn
   (describe-sequential "cl-cc-vm package locks"
@@ -376,7 +381,8 @@
            (methods (make-hash-table :test (function equal)))
            (method (make-hash-table :test (function eq)))
            (metaclass (quote allocation-metaclass)))
-      (setf (gethash :__methods__ gf) methods
+      (setf (gethash :__generic__ gf) t
+            (gethash :__methods__ gf) methods
             (gethash :function method) (function identity)
             (gethash :qualifiers method) nil
             (gethash :specializer method) (list metaclass t t)
@@ -401,7 +407,8 @@
           (after (make-hash-table :test (function equal)))
           (state (cl-cc/vm:make-vm-state))
           (args (list 42 :x :value)))
-      (setf (gethash :__lambda-list__ gf) (list (quote object) (quote &rest) (quote initargs))
+      (setf (gethash :__generic__ gf) t
+            (gethash :__lambda-list__ gf) (list (quote object) (quote &rest) (quote initargs))
             (gethash :__methods__ gf) methods
             (gethash :__before__ gf) before
             (gethash :__after__ gf) after
