@@ -126,13 +126,37 @@ check the host bridge whitelist."
   (or (%resolve-direct-function-designator value)
       (and (symbolp value)
            (%resolve-symbol-function-designator state value))
-      ;; A callable JS object (super, Intl/Symbol/Temporal stubs) carries its
-      ;; implementation under the "__call__" key - resolve to that function so
-      ;; super(args) and stub(...) calls dispatch to it.
       (and (hash-table-p value)
            (let ((callimpl (gethash "__call__" value)))
              (and callimpl (vm-resolve-function state callimpl))))
-      (error "Invalid function designator: ~S" value)))
+      (progn
+        (when (hash-table-p value)
+          (let ((value-keys nil)
+                (register-hits nil)
+                (global-hits nil)
+                (function-hits nil))
+            (maphash (lambda (key ignored)
+                       (declare (ignore ignored))
+                       (push key value-keys))
+                     value)
+            (maphash (lambda (key candidate)
+                       (when (eq candidate value)
+                         (push key register-hits)))
+                     (vm-state-registers state))
+            (maphash (lambda (key candidate)
+                       (when (eq candidate value)
+                         (push key global-hits)))
+                     (vm-global-vars state))
+            (maphash (lambda (key candidate)
+                       (when (eq candidate value)
+                         (push key function-hits)))
+                     (vm-function-registry state))
+            (format *error-output*
+                    "~&VM invalid callable: type=~S count=~S keys=~S registers=~S globals=~S functions=~S~%"
+                    (type-of value) (hash-table-count value)
+                    (nreverse value-keys) (nreverse register-hits)
+                    (nreverse global-hits) (nreverse function-hits))))
+        (error "Invalid function designator: ~S" value))))
 
 (defun vm-label-table-store (table label pc)
   "Store LABEL → PC in TABLE using an integer-keyed collision bucket."

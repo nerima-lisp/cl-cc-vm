@@ -444,9 +444,18 @@ abort count and retry under table lock fallback path."
   "Get the internal hash table from a VM hash table object or native CL hash table.
 Class registry entries and GF dispatch tables are native hash tables, so we
 must handle both representations transparently."
-  (etypecase table-obj
-    (vm-hash-table-object (vm-hash-table-internal table-obj))
-    (hash-table table-obj)))
+  (handler-case
+      (etypecase table-obj
+        (vm-hash-table-object (vm-hash-table-internal table-obj))
+        (hash-table table-obj))
+    (type-error (condition)
+      (let ((*print-level* 3)
+            (*print-length* 8))
+        (format *error-output*
+                "~&VM invalid hash operand: type=~S value=~S~%"
+                (type-of table-obj)
+                table-obj))
+      (error condition))))
 
 ;;; Instruction Execution - Hash Table Operations
 ;;; are in hash-execute.lisp (loaded after this file).

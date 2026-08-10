@@ -128,8 +128,10 @@ preserving existing closure semantics."
         closure
         (ecase (car tag)
           (:known-function
-           (or (gethash (cdr tag) (vm-function-registry state))
-               closure))
+           (let ((entry (gethash (cdr tag) (vm-function-registry state))))
+             (if (%vm-callable-registry-entry-p entry)
+                 entry
+                 closure)))
           (:anonymous
            closure)))))
 
