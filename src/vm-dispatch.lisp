@@ -120,15 +120,15 @@ Saves and restores call stack around the sub-invocation."
 (defun vm-resolve-function (state value)
   "Resolve VALUE to a closure, generic function, or host bridge function.
 If VALUE is already a closure, return it.
-If VALUE is a hash table with :__methods__, return it (generic function).
+If VALUE is an explicitly marked generic-function table, return it.
 If VALUE is a symbol, look it up in the function registry first, then
 check the host bridge whitelist."
   (or (%resolve-direct-function-designator value)
       (and (symbolp value)
            (%resolve-symbol-function-designator state value))
       ;; A callable JS object (super, Intl/Symbol/Temporal stubs) carries its
-      ;; implementation under the "__call__" key — resolve to that function so
-      ;; `super(args)' and stub(...) calls dispatch to it.
+      ;; implementation under the "__call__" key - resolve to that function so
+      ;; super(args) and stub(...) calls dispatch to it.
       (and (hash-table-p value)
            (let ((callimpl (gethash "__call__" value)))
              (and callimpl (vm-resolve-function state callimpl))))

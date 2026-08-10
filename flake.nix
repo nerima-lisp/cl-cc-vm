@@ -43,6 +43,10 @@
       url = "github:nerima-lisp/cl-process-kit/v3.1.0";
       flake = false;
     };
+    cl-codec-kit = {
+      url = "github:nerima-lisp/cl-codec-kit/v0.5.0";
+      flake = false;
+    };
     cl-json-kit = {
       url = "github:nerima-lisp/cl-json-kit/v1.0.2";
       flake = false;
@@ -107,6 +111,7 @@
       cl-cc-runtime,
       cl-log-kit,
       cl-process-kit,
+      cl-codec-kit,
       cl-json-kit,
       cl-boundary-kit,
       cl-date-kit,
@@ -134,7 +139,7 @@
       forAllSystems = nixpkgs.lib.genAttrs systems;
 
       # CL_SOURCE_REGISTRY for the test, coverage and dev environments.
-      sourceRegistry = "${cl-weave}//:${cl-cc-bootstrap}//:${cl-cc-runtime}//:${cl-log-kit}//:${cl-process-kit}//:${cl-json-kit}//:${cl-boundary-kit}//:${cl-date-kit}//:${cl-concurrent-kit}//:${cl-host-kit}//:${cl-regex-kit}//:${cl-parser-kit}//:${cl-tty-kit}//:${self}//";
+      sourceRegistry = "${cl-weave}//:${cl-cc-bootstrap}//:${cl-cc-runtime}//:${cl-log-kit}//:${cl-process-kit}//:${cl-codec-kit}//:${cl-json-kit}//:${cl-boundary-kit}//:${cl-date-kit}//:${cl-concurrent-kit}//:${cl-host-kit}//:${cl-regex-kit}//:${cl-parser-kit}//:${cl-tty-kit}//:${self}//";
 
       # Single source of truth for the package version: the `:version` form in
       # cl-cc-vm.asd. A release only ever edits the .asd file and every Nix

@@ -313,8 +313,9 @@ Valid indices are 0 through +VM-ARG-SLOT-COUNT+-1."
 (defgeneric execute-instruction (instruction state pc labels))
 
 (defun vm-generic-function-p (value)
-  "Return T if VALUE is a generic function dispatch table (hash table with :__methods__)."
+  "Return T when VALUE is an explicitly marked generic-function dispatch table."
   (and (hash-table-p value)
+       (eq (gethash :__generic__ value) t)
        (nth-value 1 (gethash :__methods__ value))
        t))
 

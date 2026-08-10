@@ -310,7 +310,7 @@ absent."
 (defun ensure-generic-function (name &rest options
                                 &key lambda-list method-class documentation
                                 &allow-other-keys)
-  "Return an existing or new generic-function descriptor for NAME."
+  "Return an explicitly marked generic-function descriptor for NAME."
   (declare (ignore options))
   (let ((gf (if (hash-table-p name)
                 name
@@ -322,6 +322,7 @@ absent."
             (gethash :__eql-index__ gf) (make-hash-table :test #'equal)
             (gethash :__method-combination__ gf) 'standard)
       (setf (gethash name *mop-generic-function-registry*) gf))
+    (setf (gethash :__generic__ gf) t)
     (when lambda-list (setf (gethash :__lambda-list__ gf) lambda-list))
     (when method-class (setf (gethash :__method-class__ gf) method-class))
     (when documentation (setf (gethash :__documentation__ gf) documentation))
