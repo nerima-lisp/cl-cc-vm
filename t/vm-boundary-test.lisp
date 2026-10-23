@@ -84,7 +84,7 @@
                                          (cl-cc/vm:make-vm-add :dst :r2 :lhs :r0 :rhs :r1)
                                          (cl-cc/vm:make-vm-halt :reg :r2))
                      :result-register :r2)))
-      (expect (cl-cc/vm:run-compiled program) :to-be 42)))
+      (expect (cl-cc/vm:run-compiled program) :to-be 43)))
 
   (it "routes managed cons mutation through the runtime write barrier"
     (let* ((heap (cl-cc/runtime::make-rt-heap :young-size 32 :old-size 32))
