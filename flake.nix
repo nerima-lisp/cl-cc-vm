@@ -20,7 +20,7 @@
     # silent drift a bare `github:nerima-lisp/cl-cc-bootstrap` had, where an
     # upstream push changed this build with no change here.
     cl-cc-bootstrap = {
-      url = "github:nerima-lisp/cl-cc-bootstrap/821bc1f853dbdad2a66e852216d651a7deee5ad2";
+      url = "github:nerima-lisp/cl-cc-bootstrap/027f6c9826010c15789454e69abd2930738b50af";
       flake = false;
     };
     # cl-cc-runtime has a v0.1.0 tag, but it predates the stack-segment
@@ -31,7 +31,7 @@
     # until a release includes that work. The SHA keeps the same tree the bare
     # branch reference resolved to, without the silent drift.
     cl-cc-runtime = {
-      url = "github:nerima-lisp/cl-cc-runtime/e47f0917abc759f4798633cfa427f30ad08eb277";
+      url = "github:nerima-lisp/cl-cc-runtime/d23ea44512b162def39ec981426c4c8e1af4df84";
       flake = false;
     };
     # cl-cc-runtime's own dependencies; ASDF resolves them off the same registry.
@@ -124,18 +124,7 @@
       ...
     }:
     let
-      # x86_64-linux is what CI gates; aarch64-darwin is the development
-      # machine. Every per-system output -- packages, checks, apps AND devShells
-      # -- comes from this one list, so leaving aarch64-darwin out takes `nix
-      # build` and `nix develop` off the development machine as well. That trade
-      # was made on 2026-08-01 and reverted on 2026-08-02; aarch64-darwin carries
-      # no CI gate, which PACKAGE_STANDARD.md's "systems" section accepts
-      # explicitly. aarch64-linux and x86_64-darwin are nobody's verification and
-      # are not declared.
-      systems = [
-        "x86_64-linux"
-        "aarch64-darwin"
-      ];
+      systems = [ "x86_64-linux" ];
       forAllSystems = nixpkgs.lib.genAttrs systems;
 
       # CL_SOURCE_REGISTRY for the test, coverage and dev environments.
