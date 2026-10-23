@@ -198,7 +198,7 @@
              (declare (ignore op system))
              (unless
                (funcall
-                 (find-symbol "RUN-ALL-TESTS" (find-package "CL-WEAVE"))
+                 (find-symbol "RUN-ALL" (find-package "CL-WEAVE"))
                  :pass-with-no-tests
                  nil)
                (error "cl-cc-vm test suite failed"))))
