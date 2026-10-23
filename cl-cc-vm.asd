@@ -196,5 +196,9 @@
   ;; FIND-SYMBOL/FIND-PACKAGE/FUNCALL are CL, always present.
   :perform (asdf:test-op (op system)
              (declare (ignore op system))
-             (funcall (find-symbol "RUN-ALL-TESTS" (find-package "CL-WEAVE"))
-                      :pass-with-no-tests nil)))
+             (unless
+               (funcall
+                 (find-symbol "RUN-ALL-TESTS" (find-package "CL-WEAVE"))
+                 :pass-with-no-tests
+                 nil)
+               (error "cl-cc-vm test suite failed"))))
