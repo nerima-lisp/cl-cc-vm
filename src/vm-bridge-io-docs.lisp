@@ -233,21 +233,21 @@ the program could not observe."
      (quote
       (defun cl-cc/bootstrap:rt-plist-put (plist indicator value)
         (labels ((walk (rest return)
-                   (cond
-                     ((null rest) (funcall return (list indicator value)))
-                     ((eq (car rest) indicator)
-                      (funcall return (list* indicator value (cddr rest))))
-                     (t
-                      (walk (cddr rest)
-                            (lambda (tail)
-                              (funcall return
-                                       (list* (car rest) (cadr rest) tail)))))))
+                       (cond
+                        ((null rest) (funcall return (list indicator value)))
+                        ((eq (car rest) indicator)
+                         (funcall return (list* indicator value (cddr rest))))
+                        (t
+                         (walk (cddr rest)
+                               (lambda (tail)
+                                 (funcall return
+                                          (list* (car rest) (cadr rest) tail))))))))
           (walk plist (function identity)))))))
   (unless (fboundp (quote cl-cc/bootstrap:rt-slot-set))
     (eval
      (quote
       (defun cl-cc/bootstrap:rt-slot-set (obj slot-name value)
-        (setf (slot-value obj slot-name) value)))))))
+        (setf (slot-value obj slot-name) value))))))
 
 ;;; Runtime helpers for setf expansion
 ;;; Function bodies are installed on symbols exported by :cl-cc/bootstrap.
