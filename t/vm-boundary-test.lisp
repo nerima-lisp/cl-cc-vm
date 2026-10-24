@@ -432,3 +432,46 @@
             (gethash t methods) (quote fallback))
       (expect (cl-cc/vm::vm-get-all-applicable-methods gf state args)
               :to-equal (list (quote specific))))))
+(progn
+  (defclass bootstrap-helper-slot-holder ()
+    ((value :initform nil :accessor bootstrap-helper-slot-holder-value)))
+  (describe-sequential "bootstrap runtime helpers"
+    (it "adds a new indicator to an empty plist"
+      (expect (cl-cc/bootstrap:rt-plist-put nil :a 1) :to-equal (list :a 1)))
+    (it "replaces an existing indicator value without a duplicate"
+      (expect (cl-cc/bootstrap:rt-plist-put (list :a 1 :b 2) :a 9)
+              :to-equal (list :a 9 :b 2)))
+    (it "leaves the original plist unmodified"
+      (let ((plist (list :a 1)))
+        (cl-cc/bootstrap:rt-plist-put plist :a 2)
+        (expect plist :to-equal (list :a 1))))
+    (it "keeps a key before the one being replaced"
+      (expect (cl-cc/bootstrap:rt-plist-put (list :b 2 :a 1) :a 9)
+              :to-equal (list :b 2 :a 9)))
+    (it "appends a new indicator after unrelated entries"
+      (expect (cl-cc/bootstrap:rt-plist-put (list :b 2) :a 9)
+              :to-equal (list :b 2 :a 9)))
+    (it-property "getf on the result always returns the value just put"
+        ((indicator (gen-member (list :a :b :c)))
+         (value (gen-integer :min -100 :max 100)))
+      (expect (getf (cl-cc/bootstrap:rt-plist-put nil indicator value) indicator)
+              :to-be value))
+    (it "sets a CLOS slot and returns the value set"
+      (let ((holder (make-instance (quote bootstrap-helper-slot-holder))))
+        (expect (cl-cc/bootstrap:rt-slot-set
+                 holder (find-symbol "VALUE" "CL-CC-VM/TEST") 42)
+                :to-be 42)
+        (expect (bootstrap-helper-slot-holder-value holder) :to-be 42)))
+    (it "registers rt-plist-put as a VM host bridge"
+      (let* ((symbol (find-symbol "RT-PLIST-PUT" "CL-CC/BOOTSTRAP"))
+             (callable (cl-cc/vm::vm-bridge-callable symbol)))
+        (expect (functionp callable) :to-be-truthy)
+        (expect (funcall callable nil :a 1) :to-equal (list :a 1))))
+    (it "registers rt-slot-set as a VM host bridge"
+      (let* ((symbol (find-symbol "RT-SLOT-SET" "CL-CC/BOOTSTRAP"))
+             (callable (cl-cc/vm::vm-bridge-callable symbol))
+             (holder (make-instance (quote bootstrap-helper-slot-holder))))
+        (expect (functionp callable) :to-be-truthy)
+        (expect (funcall callable holder
+                         (find-symbol "VALUE" "CL-CC-VM/TEST") 42)
+                :to-be 42)))))
