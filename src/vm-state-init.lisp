@@ -275,8 +275,7 @@ When TAIL-P is true, replace the current leaf frame instead of pushing a new one
 (defun vm-build-list (state values &key stack-allocate-p)
   "Build a native CL list from VALUES for use as a &rest parameter.
 Uses native cons cells (same as vm-cons instruction)."
-  (declare (ignore state)
-           (dynamic-extent values))
+  (declare (ignore state))
   (if stack-allocate-p
       values
       (copy-list values)))
