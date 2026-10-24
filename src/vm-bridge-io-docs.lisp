@@ -227,10 +227,31 @@ the program could not observe."
     (if (and symbol (fboundp symbol))
         (funcall (symbol-function symbol) type1 type2)
         (cl:subtypep type1 type2))))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (unless (fboundp (quote cl-cc/bootstrap:rt-plist-put))
+    (eval
+     (quote
+      (defun cl-cc/bootstrap:rt-plist-put (plist indicator value)
+        (labels ((walk (rest return)
+                   (cond
+                     ((null rest) (funcall return (list indicator value)))
+                     ((eq (car rest) indicator)
+                      (funcall return (list* indicator value (cddr rest))))
+                     (t
+                      (walk (cddr rest)
+                            (lambda (tail)
+                              (funcall return
+                                       (list* (car rest) (cadr rest) tail)))))))
+          (walk plist (function identity)))))))
+  (unless (fboundp (quote cl-cc/bootstrap:rt-slot-set))
+    (eval
+     (quote
+      (defun cl-cc/bootstrap:rt-slot-set (obj slot-name value)
+        (setf (slot-value obj slot-name) value)))))))
 
 ;;; Runtime helpers for setf expansion
-;;; rt-plist-put is defined in :cl-cc/bootstrap (bootstrap/package.lisp)
-;;; and inherited here via (:use :cl-cc/bootstrap) in the defpackage.
+;;; Function bodies are installed on symbols exported by :cl-cc/bootstrap.
+;;; Existing bootstrap definitions are retained when present.
 
 ;; Register self-hosting functions: these take strings/forms, not closures
 ;; CL standard symbols and VM-local symbols are quoted directly.
@@ -366,6 +387,7 @@ the program could not observe."
      symbol
      (lambda (&rest args)
        (apply (%vm-runtime-callable "PHP-CURRENT-CLOSURE") args)))))
+(vm-register-host-bridge (quote cl-cc/bootstrap:rt-slot-set) (function cl-cc/bootstrap:rt-slot-set))
 
 ;; Cross-package cl-cc symbols: resolve via find-symbol so we use the canonical
 ;; symbol from each defining package (avoids interning cl-cc/vm:: duplicates).

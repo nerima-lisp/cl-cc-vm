@@ -12,15 +12,11 @@
     # `flake = false` source tree handed to the runner through an environment
     # variable; it is a normal flake input now, which is what lets ASDF find
     # cl-weave through CL_SOURCE_REGISTRY like any other dependency.
-    # cl-cc-bootstrap does have a v0.1.0 tag now, but this repository has been
-    # building against its default branch, so the pin below freezes the commit
-    # that branch is at rather than moving the build back to v0.1.0. A
-    # 40-character SHA is as immutable as a tag and is what CONFORMANCE.md
-    # prescribes when a tag is not the right target; what it removes is the
-    # silent drift a bare `github:nerima-lisp/cl-cc-bootstrap` had, where an
-    # upstream push changed this build with no change here.
+    # Keep the shared symbol source paired with the VM bridge definitions:
+    # this helper-free bootstrap commit leaves the host function bodies to
+    # cl-cc-vm. The full SHA makes that pairing reproducible.
     cl-cc-bootstrap = {
-      url = "github:nerima-lisp/cl-cc-bootstrap/027f6c9826010c15789454e69abd2930738b50af";
+      url = "github:nerima-lisp/cl-cc-bootstrap/b114065e9a593637af4f09a43f95992e8d565e48";
       flake = false;
     };
     # cl-cc-runtime has a v0.1.0 tag, but it predates the stack-segment
