@@ -262,3 +262,30 @@
       (gethash superclass registry))
         when (and (hash-table-p class-ht) (gethash :__sealed__ class-ht))
           return (or (gethash :__name__ class-ht) superclass)))
+
+(defun %vm-callable-make-instance (class-designator &rest initargs)
+  "Construct an instance through the active VM's CLOS state."
+  (let ((state *vm-current-state*))
+    (unless state
+      (error "MAKE-INSTANCE called outside VM execution"))
+    (unless (evenp (length initargs))
+      (error "MAKE-INSTANCE requires an even number of initarg arguments"))
+    (let ((class-ht (%vm-resolve-class-designator class-designator state)))
+      (unless class-ht
+        (error "MAKE-INSTANCE class ~S is not defined in the VM" class-designator))
+      (let ((initarg-regs nil))
+        (unwind-protect
+             (progn
+               (loop for (initarg value) on initargs by #'cddr
+                     for reg = (gensym "MAKE-INSTANCE-")
+                     do (push (cons initarg reg) initarg-regs)
+                        (vm-reg-set state reg value))
+               (setf initarg-regs (nreverse initarg-regs))
+               (if (or (%vm-class-nonstandard-metaclass-p class-ht state)
+                       (%vm-global-generic-function state 'initialize-instance))
+                   (%vm-call-allocation-protocol class-ht initarg-regs state)
+                   (%vm-raw-allocate-instance class-ht initarg-regs state)))
+          (dolist (entry initarg-regs)
+            (remhash (cdr entry) (vm-state-registers state))))))))
+
+(vm-register-host-bridge 'make-instance #'%vm-callable-make-instance)
