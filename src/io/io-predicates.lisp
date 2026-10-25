@@ -7,7 +7,7 @@
 ;;;; Core stream I/O (open/close/read-char/write-char etc.) are in io-execute.lisp.
 ;;;; Load order: after io-execute.lisp.
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/io)
 
 ;;; Stream Predicate Execution
 ;;;

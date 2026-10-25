@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/io)
 
 ;;; VM Formatted Output and Reader Instructions
 ;;;

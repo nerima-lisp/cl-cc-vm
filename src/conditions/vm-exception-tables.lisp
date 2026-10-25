@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/conditions)
 
 ;;; ─── Zero-Cost Exception Tables ─────────────────────────────────────────────
 ;;;
@@ -119,13 +119,9 @@ this models dynamic propagation without a runtime handler stack."
                        (return (values nil nil nil))))))
       (values nil nil nil)))
 
-(defun build-label-table (instructions)
-  "Build an integer-keyed label table and associate any exception side table."
-  (let ((labels (make-hash-table :test #'eql)))
-    (loop for inst across (coerce instructions 'vector)
-          for pc from 0
-          do (when (typep inst 'vm-label)
-               (vm-label-table-store labels (vm-name inst) pc)))
+(defmethod build-label-table :around ((instructions t))
+  "Associate a registered exception table with the label table."
+  (let ((labels (call-next-method)))
     (let ((exception-table (gethash instructions *vm-instruction-exception-tables*)))
       (when exception-table
         (setf (gethash labels *vm-label-exception-tables*) exception-table)))
@@ -272,7 +268,7 @@ handler stack) would catch CONDITION signalled at PC."
   (or (vm-handler-stack state)
       (%vm-exception-table-for-labels labels)))
 
-(defun vm-execute-instruction-guarded (instruction state pc labels)
+(defmethod vm-execute-instruction-guarded ((instruction t) state pc labels)
   "Execute INSTRUCTION, routing a host-raised CL:ERROR into the guest condition
 system so a compiled HANDLER-CASE/HANDLER-BIND catches it exactly as a guest
 ERROR call would.  When no guest handler is in scope, or none matches, the host
@@ -293,3 +289,5 @@ condition propagates unchanged.  Returns the same values as EXECUTE-INSTRUCTION.
               (%vm-signal-condition state labels pc routed)
               (values next-pc halted value))))
       (execute-instruction instruction state pc labels)))
+(defmethod vm-fatal-error-p ((condition t))
+  (typep condition 'vm-fatal-error))

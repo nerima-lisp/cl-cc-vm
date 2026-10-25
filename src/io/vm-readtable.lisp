@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/io)
 
 ;;; ─── FR-607: Multiple Readtables ─────────────────────────────────────────────
 

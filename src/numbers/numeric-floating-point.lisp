@@ -1,7 +1,7 @@
 ;;;; packages/vm/src/numeric-fp-141.lisp — Phase 141: Numeric/FP Extension
 ;;;; FR-788 FMA, FR-789 Fast-Math, FR-790 BF16, FR-791 Interval Arithmetic
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/numbers)
 
 ;; FR-788: FMA
 (defvar *fuse-fma* t)

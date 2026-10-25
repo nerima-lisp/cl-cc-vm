@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/clos)
 ;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;;; VM — MOP Introspection and Method Dispatch
 ;;;
@@ -88,20 +88,6 @@
   (cond ((hash-table-p slot) (gethash :name slot))
         ((symbolp slot) slot)
         (t nil)))
-
-(defmacro define-slot-definition-accessor (name key &optional default)
-  "Define NAME as a reader of SLOT's KEY metadata, defaulting to DEFAULT
-when SLOT is not a hash-table-backed slot-definition descriptor or KEY is
-absent."
-  `(defun ,name (slot)
-     ,(format nil "Return SLOT's ~(~A~) metadata, defaulting to ~S." key default)
-     (if (hash-table-p slot) (or (gethash ,key slot) ,default) ,default)))
-
-(define-slot-definition-accessor slot-definition-type :type t)
-(define-slot-definition-accessor slot-definition-initform :initform)
-(define-slot-definition-accessor slot-definition-initargs :initargs)
-(define-slot-definition-accessor slot-definition-allocation :allocation :instance)
-(define-slot-definition-accessor slot-definition-location :location)
 
 (defun class-precedence-list (class)
   "Return CLASS's class precedence list."

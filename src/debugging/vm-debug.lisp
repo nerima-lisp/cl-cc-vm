@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/debugging)
 
 ;;; FR-1085 — VM debugger surface: trace/step/break and inspection helpers.
 
@@ -185,4 +185,9 @@
   (vm-register-host-bridge 'inspect #'vm-inspect)
   (vm-register-host-bridge 'room #'vm-room)
   (vm-register-host-bridge 'ed #'vm-ed)
-  (vm-register-host-bridge 'dribble #'vm-dribble))
+  (vm-register-host-bridge 'dribble #'vm-dribble)
+  (setf *vm-debugger-request-hook* #'vm-invoke-debugger))
+
+(defmethod vm-trace-output-symbol () (quote *trace-output*))
+
+(defmethod vm-trace-output-stream () *trace-output*)

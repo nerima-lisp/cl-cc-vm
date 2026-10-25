@@ -1,5 +1,5 @@
 ;;;; packages/vm/src/unicode.lisp — Unicode Character Database (FR-590..FR-593)
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 
 ;;; General Category names.  Keep these as the public category spellings used by
 ;;; lookup helpers; the compact BMP table stores indexes into this vector.

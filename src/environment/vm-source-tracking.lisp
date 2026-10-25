@@ -3,7 +3,7 @@
 ;;; Real implementation: reads source files for context lines,
 ;;; stores object→location mappings in weak hash table.
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/environment)
 
 (defvar *source-location-map* (make-hash-table :test #'eq :weakness :key))
 

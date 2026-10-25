@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 
 ;;; Host package/symbol operations (bootstrap-package-registry, intern,
 ;;; export/import, use-package, shadow, rename/delete-package, and the

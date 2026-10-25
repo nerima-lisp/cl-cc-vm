@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/conditions)
 
 ;;; Condition definition macros (FR-643) — thin wrappers around CL primitives
 (defmacro vm-define-condition (name supers &rest options)
@@ -66,18 +66,6 @@ host Common Lisp restarts are appended for interoperability."
   (or (and vm-state (vm-find-restart vm-state name))
       (find-restart name condition)))
 
-(defun vm-invoke-debugger (condition &optional vm-state labels)
-  "Print a VM backtrace when available, then enter the host debugger."
-  (when (and vm-state
-             (or (not (typep condition 'vm-fatal-error))
-                 (vm-fatal-error-print-backtrace-p condition)))
-    (vm-print-backtrace vm-state :labels labels))
-  (invoke-debugger condition))
-
-(defun vm-break (format-control &rest format-arguments)
-  "Signal a VM break using FORMAT-CONTROL and FORMAT-ARGUMENTS."
-  (apply #'break format-control format-arguments))
-
 (defun %vm-break-on-signals-matches-p (condition)
   "Return true when CL:*BREAK-ON-SIGNALS* requests debugger entry."
   (let ((spec *break-on-signals*))
@@ -88,7 +76,7 @@ host Common Lisp restarts are appended for interoperability."
 (defun %vm-maybe-break-on-signal (condition vm-state labels)
   "Enter the debugger for CONDITION when *BREAK-ON-SIGNALS* matches."
   (when (%vm-break-on-signals-matches-p condition)
-    (vm-invoke-debugger condition vm-state labels)))
+    (vm-request-debugger condition vm-state labels)))
 
 ;;; ─── VM Condition Instructions ───────────────────────────────────────────────
 

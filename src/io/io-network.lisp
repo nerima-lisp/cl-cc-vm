@@ -12,7 +12,7 @@
 ;;;
 ;;; Load order: after io.lisp (core stream bridge, encoding helpers, vm-open).
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/io)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (ignore-errors (require :sb-bsd-sockets))

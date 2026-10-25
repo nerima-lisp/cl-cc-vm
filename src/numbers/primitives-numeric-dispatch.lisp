@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/numbers)
 
 ;;; Numeric contagion (ANSI CL §12.1.4 result-type inference) and the
 ;;; op×tag×tag inline arithmetic dispatch table VM-ARITH-DISPATCH and the

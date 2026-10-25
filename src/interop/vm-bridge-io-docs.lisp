@@ -1,5 +1,5 @@
 ;;;; vm-bridge-io-docs.lisp — I/O utilities, introspection, documentation, and bootstrap registrations
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/interop)
 
 (defun %foreign-funcall (name &rest arguments)
   "Minimal host-backed CFFI FOREIGN-FUNCALL implementation for the VM."
@@ -32,7 +32,7 @@
                    object)))
         nil)
     (error (condition)
-      (format *trace-output* "~&[cl-cc] disassemble unavailable: ~A~%" condition)
+      (format (vm-trace-output-stream) "~&[cl-cc] disassemble unavailable: ~A~%" condition)
       nil)))
 
 (defun %vm-safe-inspect (object)
@@ -42,7 +42,7 @@
         (cl:describe object)
         object)
     (error (condition)
-      (format *trace-output* "~&[cl-cc] inspect unavailable: ~A~%" condition)
+      (format (vm-trace-output-stream) "~&[cl-cc] inspect unavailable: ~A~%" condition)
       nil)))
 
 (defun %normalize-query-answer (answer)

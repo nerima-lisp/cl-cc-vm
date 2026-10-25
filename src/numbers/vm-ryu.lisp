@@ -3,7 +3,7 @@
 ;;; Converts IEEE 754 double-precision floats to shortest decimal string.
 ;;; Real implementation using integer-decode-float decomposition and power-of-5 tables.
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/numbers)
 
 (defparameter %ryu-pow5-table
   (make-array 326 :initial-contents

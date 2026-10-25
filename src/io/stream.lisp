@@ -1,6 +1,6 @@
 ;;;; stream.lisp -- VM instructions for host-backed ANSI streams
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/io)
 
 ;; FR-600: Stream types
 (define-vm-instruction vm-make-broadcast-stream (vm-instruction)

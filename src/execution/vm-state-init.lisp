@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/execution)
 
 ;;; VM State Initialization and Runtime Helpers
 ;;;
@@ -64,8 +64,7 @@
 
 (defun %vm-profile-now-ns ()
   "Return current internal real time converted to nanoseconds."
-  (values (floor (* (get-internal-real-time) 1000000000)
-                 internal-time-units-per-second)))
+  (values (floor (* (cl:get-internal-real-time) 1000000000) cl:internal-time-units-per-second)))
 
 (defun vm-get-profile-samples (state)
   "Return the profile-samples hash table for STATE, handling both vm-state and vm2-state."
@@ -189,45 +188,13 @@ When TAIL-P is true, replace the current leaf frame instead of pushing a new one
 ;;; Thunks (lambdas) are called at init time so each vm-state gets a fresh value.
 (defparameter *vm-initial-globals*
   (list
-   ;; Feature / module flags (FR-1206)
-   '(*features* (:common-lisp :cl-cc))
-   '(*modules* nil)
-   '(*active-restarts* nil)
-   ;; Time (FR-1204) and random state (FR-1205)
-   '(internal-time-units-per-second internal-time-units-per-second)
-   '(*random-state* *random-state*)
-   ;; Standard I/O streams — bound to host streams at init
-   '(*standard-output* *standard-output*)
-   '(*standard-input* *standard-input*)
-   '(*terminal-io* *terminal-io*)
-   '(*error-output* *error-output*)
-   '(*trace-output* *trace-output*)
-   '(*debug-io* *debug-io*)
-   '(*query-io* *query-io*)
-   ;; Print-control variables (ANSI CL defaults)
-   '(*print-base* 10)
-   '(*print-radix* nil)
-   '(*print-circle* nil)
-   '(*print-pretty* nil)
-    '(*print-level* nil)
-    '(*print-length* nil)
-    '(*print-escape* t)
-    '(*print-readably* nil)
-    '(*print-gensym* t)
-    (list '*print-pprint-dispatch*
-          (lambda ()
-            (if (fboundp 'copy-pprint-dispatch)
-                (copy-pprint-dispatch nil)
-                nil)))
-    (list '*readtable* (lambda () (copy-readtable nil)))
-     ;; Package system — bind *package* to host CL-USER
-    (list '*package* (find-package :cl-user))
-   ;; Condition/restart system
-   '(*%condition-handlers* nil)
-   '(*%active-restarts* nil)
+   ;; Module flags (FR-1206)
+   (quote (*modules* nil))
+   ;; Package system — bind *package* to host CL-USER
+   (list (quote *package*) (find-package :cl-user))
    ;; Documentation table (FR-607): (name . type) → docstring
-   '(*documentation-table* nil))
-  "Initial bindings for standard ANSI CL global variables in each vm-state.")
+   (quote (*documentation-table* nil)))
+  "Initial bindings for standard VM globals outside the I/O feature.")
 
 (defparameter *vm-package-initial-globals*
   '(("CL-CC/EXPAND" . "*%CONDITION-HANDLERS*")
@@ -246,7 +213,10 @@ When TAIL-P is true, replace the current leaf frame instead of pushing a new one
 (defmethod initialize-instance :after ((state vm-state) &key &allow-other-keys)
   "Initialize standard ANSI CL global variables in the VM."
   (let ((gv (vm-global-vars state)))
-    (dolist (entry *vm-initial-globals*)
+    (dolist (entry (append *vm-initial-globals*
+        (vm-feature-initial-globals :conditions)
+        (vm-feature-initial-globals :environment)
+        (vm-feature-initial-globals :io)))
       (setf (gethash (car entry) gv)
             (let ((value (second entry)))
               (cond
@@ -306,10 +276,6 @@ Valid indices are 0 through +VM-ARG-SLOT-COUNT+-1."
     (integer object)
     (vm-heap-address (vm-heap-address-value object))
     (null nil)))
-
-;;; ─── Execute-instruction Generic + Utilities ─────────────────────────────────
-
-(defgeneric execute-instruction (instruction state pc labels))
 
 (defun vm-generic-function-p (value)
   "Return T when VALUE is an explicitly marked generic-function dispatch table."

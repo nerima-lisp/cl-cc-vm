@@ -3,76 +3,7 @@
 ;;; Depends on vm.lisp being loaded first (vm-instruction base struct,
 ;;; define-vm-instruction macro, vm-heap-object, vm-closure-object, etc.).
 
-(in-package :cl-cc/vm)
-
-;;; Simple Instruction Method Generator
-
-(defmacro define-simple-instruction (name shape cl-func &key (src 'vm-src) (dst 'vm-dst) (lhs 'vm-lhs) (rhs 'vm-rhs))
-  "Generate a simple execute-instruction method.
-SHAPE is one of:
-  :unary  — (CL-FUNC (vm-reg-get state (SRC inst))) → dst
-  :binary — (CL-FUNC (vm-reg-get state (LHS inst)) (vm-reg-get state (RHS inst))) → dst
-  :pred1  — (if (CL-FUNC (vm-reg-get state (SRC inst))) 1 0) → dst
-  :pred2  — (if (CL-FUNC (vm-reg-get state (LHS inst)) (vm-reg-get state (RHS inst))) 1 0) → dst"
-  (let ((inst (gensym "INST"))
-        (state (gensym "STATE"))
-        (pc (gensym "PC")))
-    (let ((value-form
-            (ecase shape
-              (:unary
-               (list cl-func (list 'vm-reg-get state (list src inst))))
-              (:binary
-               (list cl-func
-                     (list 'vm-reg-get state (list lhs inst))
-                     (list 'vm-reg-get state (list rhs inst))))
-              (:pred1
-               (list 'if
-                     (list cl-func (list 'vm-reg-get state (list src inst)))
-                     1
-                     0))
-              (:pred2
-               (list 'if
-                     (list cl-func
-                           (list 'vm-reg-get state (list lhs inst))
-                           (list 'vm-reg-get state (list rhs inst)))
-                     1
-                     0)))))
-      (list 'defmethod 'execute-instruction
-            (list (list inst name) state pc 'labels)
-            (list 'declare (list 'ignore 'labels))
-            (list 'vm-reg-set state (list dst inst) value-form)
-            (list 'values (list '1+ pc) nil nil)))))
-
-;;; Instruction Structure Shorthand Macros
-
-(defmacro define-vm-unary-instruction (name tag docstring)
-  "Define a VM instruction with a single (dst src) slot pair."
-  `(define-vm-instruction ,name (vm-instruction)
-     ,docstring
-     (dst nil :reader vm-dst)
-     (src nil :reader vm-src)
-     (:sexp-tag ,tag)
-     (:sexp-slots dst src)))
-
-(defmacro define-vm-binary-instruction (name tag docstring)
-  "Define a VM instruction with (dst lhs rhs) slots for binary operations."
-  `(define-vm-instruction ,name (vm-instruction)
-     ,docstring
-     (dst nil :reader vm-dst)
-     (lhs nil :reader vm-lhs)
-     (rhs nil :reader vm-rhs)
-     (:sexp-tag ,tag)
-     (:sexp-slots dst lhs rhs)))
-
-(defmacro define-vm-char-comparison (name tag docstring)
-  "Define a VM instruction with (dst char1 char2) slots for binary char comparisons."
-  `(define-vm-instruction ,name (vm-instruction)
-     ,docstring
-     (dst nil :reader vm-dst)
-     (char1 nil :reader vm-char1)
-     (char2 nil :reader vm-char2)
-     (:sexp-tag ,tag)
-     (:sexp-slots dst char1 char2)))
+(in-package #:cl-cc/vm/execution)
 
 (defstruct vm-program
   (instructions nil :type list)
@@ -86,7 +17,8 @@ SHAPE is one of:
   (load-time-value-cells nil)
   (compilation-tier 0 :type integer))
 
-(defclass vm-state ()
+(progn
+  (defclass vm-state ()
    ((registers :initform (make-hash-table :test #'equal) :reader vm-state-registers)
    (output-stream :initarg :output-stream :reader vm-output-stream)
    (call-stack :initform nil :accessor vm-call-stack
@@ -175,6 +107,16 @@ Used by call-next-method and next-method-p.")
      (clos-shadow-stack :initform nil :accessor vm-clos-shadow-stack
                         :documentation "Shadow stack for CLOS call-next-method/method-combination chains."))
   (:documentation "VM execution state with registers, call stack, and heap."))
+  (defmethod vm-state-symbol-plists ((state vm-state))
+    (vm-symbol-plists state))
+  (defmethod vm-state-system-symbol-plists ((state vm-state))
+    (vm-system-symbol-plists state))
+  (defmethod vm-state-symbol-plist-lock ((state vm-state))
+    (vm-symbol-plist-lock state))
+  (defmethod vm-state-symbol-plist-read-barrier ((state vm-state))
+    (vm-symbol-plist-read-barrier state))
+  (defmethod (setf vm-state-symbol-plist-read-barrier) (value (state vm-state))
+    (setf (vm-symbol-plist-read-barrier state) value)))
 
 ;;; VM state initialization, profiling, heap ops, and execute-instruction generic
 ;;; are in vm-state-init.lisp (loaded immediately after vm.lisp and this file).

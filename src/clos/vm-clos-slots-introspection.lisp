@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/clos)
 
 ;;; Class and generic-function introspection: obj-class-ht/class-slots-of
 ;;; routing, initarg application, metaclass predicates, package-independent

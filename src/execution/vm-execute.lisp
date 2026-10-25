@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/execution)
 
 (defmethod execute-instruction ((inst vm-osr-entry) state pc labels)
   (unless *osr-enabled*
@@ -188,7 +188,7 @@
                    (return entry)))))
            (bridge-callable (candidates)
              (dolist (candidate candidates)
-               (let ((callable (vm-bridge-callable candidate)))
+               (let ((callable (vm-lookup-bridge-callable candidate)))
                  (when callable
                    (return callable))))))
     (let* ((label-str (vm-label-name inst))

@@ -2,7 +2,7 @@
 ;;;;
 ;;;; Load order: after vm-opcodes.lisp (defopcode macro must exist first).
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/execution)
 
 ;;; ── Opcode shape macros ───────────────────────────────────────────────────
 ;;; These macros generate defopcode forms for the four common opcode shapes,
@@ -108,12 +108,14 @@ literal constant for fixed-value loads."
                 (&key (output-stream *standard-output*)
                  &aux (registers (make-array +vm-register-count+ :initial-element nil))
                       (global-vars (let ((ht (make-hash-table)))
-                                     (setf (gethash '*features* ht) '(:common-lisp :cl-cc))
-                                     (setf (gethash '*active-restarts* ht) nil)
+                                     (dolist (entry (vm-feature-initial-globals :environment))
+                                       (setf (gethash (car entry) ht) (second entry)))
+                                     (dolist (entry (vm-feature-initial-globals :conditions))
+                                       (setf (gethash (car entry) ht) (second entry)))
                                      (setf (gethash '*standard-output* ht) *standard-output*)
                                      (setf (gethash '*standard-input* ht) *standard-input*)
                                      (setf (gethash '*error-output* ht) *error-output*)
-                                     (setf (gethash '*trace-output* ht) *trace-output*)
+                                     (setf (gethash (vm-trace-output-symbol) ht) (vm-trace-output-stream))
                                       (setf (gethash '*debug-io* ht) *debug-io*)
                                       (setf (gethash '*query-io* ht) *query-io*)
                                       ht))

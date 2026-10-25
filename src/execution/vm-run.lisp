@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/execution)
 ;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;;; VM — Handler-Case Instructions, Label Table, and CLOS-based Interpreter
 ;;;
@@ -52,7 +52,7 @@ Also enforces *vm-eval-deadline*: when the deadline is set and exceeded,
 signals VM-EVAL-DEADLINE-EXCEEDED. This condition is NOT a subclass of CL:ERROR,
 so user-level (handler-case (error ...) ...) in VM programs cannot swallow it."
   (declare (ignore state))
-  (when (and *vm-eval-deadline* (> (get-internal-real-time) *vm-eval-deadline*))
+  (when (and *vm-eval-deadline* (> (cl:get-internal-real-time) *vm-eval-deadline*))
     (signal (make-condition 'vm-eval-deadline-exceeded :deadline *vm-eval-deadline*)))
   (let ((poll-kind (cond
                      ((typep instruction 'vm-label) :function-entry)
@@ -176,7 +176,7 @@ Used by both vm-signal-error and vm-throw."
                                    saved-call-stack saved-regs saved-method-call-stack
                                    error-value)))
         (progn
-          (unless (typep error-value 'vm-fatal-error)
+          (unless (vm-fatal-error-p error-value)
             (vm-print-backtrace state :labels labels))
           (if (typep error-value 'condition)
               (error error-value)
@@ -237,7 +237,7 @@ Used by both vm-signal-error and vm-throw."
 
 ;;; ── Label table and CLOS-based execution loop ────────────────────────────
 
-(defun build-label-table (instructions)
+(defmethod build-label-table ((instructions t))
   "Build an integer-keyed hash-table mapping label-name buckets → pc.
 
 The outer hash table uses EQL on integer hash keys, while collisions are kept

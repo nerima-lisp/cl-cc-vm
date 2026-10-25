@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/execution)
 
 ;;;; Runtime safety checks: OPTIMIZE-SAFETY-derived bounds/type checking and
 ;;;; stack-protection canaries, plus the execute-instruction methods for the
@@ -18,16 +18,16 @@
 (defun vm-safety-level ()
   (max 0 (min 3 (or *safety-level* 0))))
 
-(defun vm-safety-checks-enabled-p ()
+(defmethod vm-safety-checks-enabled-p ()
   (>= (vm-safety-level) 1))
 
 (defun vm-stack-protection-enabled-p ()
   (or *security-canaries* (>= (vm-safety-level) 3)))
 
 (defun vm-random-canary ()
-  (logxor (random most-positive-fixnum) (get-universal-time)))
+  (vm-environment-canary-value))
 
-(defun vm-check-index (sequence index &optional operation)
+(defmethod vm-check-index (sequence index &optional operation)
   "Check INDEX for SEQUENCE when safety is enabled; signal TYPE-ERROR on failure."
   (declare (ignore operation))
   (when (vm-safety-checks-enabled-p)
@@ -37,7 +37,7 @@
              :expected-type `(integer 0 ,(max 0 (1- (length sequence)))))))
   index)
 
-(defun vm-check-row-major-index (array index)
+(defmethod vm-check-row-major-index (array index)
   (when (vm-safety-checks-enabled-p)
     (unless (and (integerp index) (<= 0 index) (< index (array-total-size array)))
       (error 'type-error

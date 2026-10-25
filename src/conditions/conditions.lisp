@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/conditions)
 
 ;;; VM Condition System — Protocol Layer
 ;;;
@@ -221,3 +221,5 @@ continues to interoperate with Common Lisp's native restart protocol.")
                       (format stream "  ~D: return-pc=~D dst=~A~%" index return-pc dst-reg))))
           (t (format stream "  <empty>~%")))
     (values)))
+
+(defmethod vm-feature-initial-globals ((feature (eql :conditions))) (declare (ignore feature)) (list (quote (*active-restarts* nil)) (quote (*%condition-handlers* nil)) (quote (*%active-restarts* nil))))

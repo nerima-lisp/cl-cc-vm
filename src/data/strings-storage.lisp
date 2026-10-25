@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 
 ;;; VM string storage: copy-on-write string backing, taint tracking
 ;;; (taint-mark/tainted-p/untaint), and small-string-optimization (SSO)

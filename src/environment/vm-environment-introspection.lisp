@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/environment)
 
 ;;; ─── FR-612: Environment Introspection API ──────────────────────────────────
 ;;;

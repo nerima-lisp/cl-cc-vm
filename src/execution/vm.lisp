@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/execution)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (shadow '(lisp-implementation-type lisp-implementation-version
@@ -14,17 +14,10 @@
 Provides a common supertype for heap-allocated VM objects like cons cells,
 closures, and reader states."))
 
-(defun vm-getenv (name)
+(defmethod vm-getenv ((name t))
   "Return environment variable NAME marked as tainted external input."
   (let ((value (host-kit:getenv (string name))))
     (and value (taint-mark value :environment))))
-
-(defvar *vm-self-host-mode* nil
-  "When T, VM operations refuse host CL fallbacks.  Package operations
-(vm-intern-symbol, vm-find-package) must use the runtime package registry
-exclusively; FORMAT must use the native renderer without host SBCL fallback.
-This mode exists to validate ANSI CL self-hosting readiness.
-Set via (setf *vm-self-host-mode* t) or --self-host CLI flag.")
 
 ;;; VM Heap Address Wrapper
 
@@ -104,25 +97,7 @@ Set via (setf *vm-self-host-mode* t) or --self-host CLI flag.")
         :documentation "The cdr (second) element of the cons cell"))
   (:documentation "Heap-allocated cons cell for VM list operations."))
 
-;;; VM Instruction DSL (Phase 8/9)
-
-(defstruct vm-instruction
-  "Base struct for all VM instructions.")
-
-(defvar *instruction-constructors* (make-hash-table :test 'eq)
-  "Hash table mapping sexp tags (keywords) to constructor functions for sexp->instruction.")
-
-(defgeneric instruction->sexp (instruction)
-  (:documentation "Convert a VM instruction to its sexp representation."))
-
-(defgeneric sexp->instruction (sexp)
-  (:documentation "Convert a sexp to a VM instruction."))
-
-(defmethod sexp->instruction ((sexp cons))
-  (let ((constructor (gethash (car sexp) *instruction-constructors*)))
-    (if constructor
-        (funcall constructor sexp)
-        (error "Unknown instruction sexp: ~S" sexp))))
+(defmethod vm-closure-object-p ((object vm-closure-object)) (declare (ignore object)) t)
 
 ;;; FR-140: VM-local helpers for the runtime's immediate-symbol bit patterns.
 ;;; Kept here (rather than depending on cl-cc/runtime) because cl-cc-vm is built
@@ -148,25 +123,23 @@ Set via (setf *vm-self-host-mode* t) or --self-host CLI flag.")
           do (setf (gethash sym table) i))
     table))
 
-(declaim (inline vm-immediate-symbol-p vm-decode-symbol vm-encode-common-symbol))
-
-(defun vm-immediate-symbol-p (value)
+(defmethod vm-immediate-symbol-p ((value t))
   (and (typep value '(unsigned-byte 64))
        (= (logand value +vm-immediate-symbol-mask+) +vm-immediate-symbol-base+)))
 
-(defun vm-decode-symbol (value)
+(defmethod vm-decode-symbol ((value t))
   (if (vm-immediate-symbol-p value)
       (svref *vm-immediate-symbol-table*
              (logand value +vm-immediate-symbol-index-mask+))
       value))
 
-(defun vm-encode-common-symbol (symbol)
+(defmethod vm-encode-common-symbol ((symbol t))
   (or (let ((index (and (symbolp symbol)
                         (gethash symbol *vm-immediate-symbol-indexes*))))
         (and index (logior +vm-immediate-symbol-base+ index)))
       symbol))
 
-(defun vm-immediate-intern-enabled-p ()
+(defmethod vm-immediate-intern-enabled-p ()
   "Avoid immediate symbols while compiling CL-CC's own build-time macro code."
   (let* ((package (or *package* (find-package :cl-user)))
          (name (and package (package-name package))))
@@ -259,119 +232,13 @@ between VM heaps.  Heap addresses are serialized as tagged address descriptors s
 callers do not accidentally dereference addresses from another instance."
   (declare (ignore to-vm))
   (with-vm-instance-lock (from-vm)
-    (let ((*print-readably* t)
-          (*read-eval* nil))
-      (read-from-string
+    (vm-call-with-readable-printing
+  (lambda ()
+    (read-from-string
        (write-to-string
         (typecase value
           (vm-heap-address (list :vm-heap-address (vm-heap-address-value value)))
-          (t value)))))))
-
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defun %vm-instruction-sexp-position-form (position)
-    "Return the SEXP accessor form for the 1-based instruction operand POSITION."
-    (case position
-      (1 '(second sexp))
-      (2 '(third sexp))
-      (3 '(fourth sexp))
-      (4 '(fifth sexp))
-      (5 '(sixth sexp))
-      (6 '(seventh sexp))
-      (t `(nth ,position sexp))))
-
-  (defun %vm-instruction-constructor-args (slot-names &optional (position 1))
-    "Build keyword/value constructor arguments for SLOT-NAMES from an instruction SEXP."
-    (if (null slot-names)
-        nil
-        (append (list (intern (symbol-name (car slot-names)) :keyword)
-                      (%vm-instruction-sexp-position-form position))
-                (%vm-instruction-constructor-args (cdr slot-names) (+ position 1))))))
-
-(defmacro define-vm-instruction (name (parent) &body body)
-  "Define a VM instruction as a defstruct with auto-generated sexp serialization.
-NAME is the struct name. PARENT is the parent struct to :include.
-BODY contains slot definitions, an optional docstring, and options.
-
-Slot definition: (slot-name initform &key reader type)
-Options:
-  (:sexp-tag :keyword) - keyword for instruction->sexp / sexp->instruction
-  (:sexp-slots s1 s2 ...) - slot names in sexp field order (default: all own slots)"
-  (let (docstring slots sexp-tag sexp-slots conc-name-override)
-    (dolist (form body)
-      (cond
-        ((stringp form) (setf docstring form))
-        ((and (consp form) (eq (car form) :sexp-tag))
-         (setf sexp-tag (cadr form)))
-        ((and (consp form) (eq (car form) :sexp-slots))
-         (setf sexp-slots (cdr form)))
-        ((and (consp form) (eq (car form) :conc-name))
-         (setf conc-name-override (cadr form)))
-        ((consp form) (push form slots))
-        (t (error "Invalid form in define-vm-instruction: ~S" form))))
-    (setf slots (nreverse slots))
-     (unless sexp-slots
-       (setf sexp-slots (mapcar #'car slots)))
-     (let ((prefix (if conc-name-override
-                       (string conc-name-override)
-                       (concatenate 'string (symbol-name name) "-"))))
-       (flet ((struct-acc (slot)
-                (intern (format nil "~A~A" prefix (symbol-name slot))))
-              (ctor ()
-                (intern (format nil "MAKE-~A" (symbol-name name)))))
-         (let* ((struct-options (append (list name (list :include parent))
-                                        (when conc-name-override
-                                          (list (list :conc-name conc-name-override)))))
-                (struct-slots
-                  (mapcar (lambda (slot)
-                            (let ((sname (car slot))
-                                  (init (cadr slot))
-                                  (type (getf (cddr slot) :type)))
-                              (if type
-                                  (list sname init :type type)
-                                  (list sname init))))
-                          slots))
-                (struct-form
-                  (append (list 'defstruct struct-options)
-                          (when docstring (list docstring))
-                          struct-slots))
-                (reader-forms
-                  (loop for slot in slots
-                        for sname = (car slot)
-                        for reader = (getf (cddr slot) :reader)
-                        when (and reader (not (eq reader (struct-acc sname))))
-                        collect (list 'eval-when
-                                      '(:compile-toplevel :load-toplevel :execute)
-                                      (list 'unless
-                                            (list 'fboundp (list 'quote reader))
-                                            (list 'defgeneric reader '(inst)))
-                                      (list 'defmethod reader
-                                            (list (list 'inst name))
-                                            (list (struct-acc sname) 'inst)))))
-                 (sexp-forms
-                   (when sexp-tag
-                     (let ((ctor-args
-                             (%vm-instruction-constructor-args sexp-slots)))
-                       (list
-                        (list 'defmethod 'instruction->sexp
-                              (list (list 'inst name))
-                              (cons 'list
-                                    (cons sexp-tag
-                                          (mapcar (lambda (s)
-                                                    (list (struct-acc s) 'inst))
-                                                  sexp-slots))))
-                         (list 'setf
-                               (list 'gethash sexp-tag '*instruction-constructors*)
-                               (append (list 'lambda '(sexp))
-                                       (unless sexp-slots
-                                         (list '(declare (ignore sexp))))
-                                       (list (cons (ctor) ctor-args)))))))))
-            ;; Immediate-symbol :around methods for vm-intern-symbol,
-            ;; vm-symbol-name, vm-keywordp, vm-symbol-p live in symbols.lisp
-            ;; and primitives.lisp where those instructions are defined.
-            (cons 'progn
-                  (append (list struct-form)
-                          reader-forms
-                          sexp-forms)))))))
+          (t value))))))))
 
 ;;; FR-155: Deoptimization / OSR metadata and checkpoint instructions.
 

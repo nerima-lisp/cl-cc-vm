@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/execution)
 
 ;;; FR-155: Deoptimization checkpoints and OSR markers.
 

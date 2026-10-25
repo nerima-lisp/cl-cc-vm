@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 
 ;;; Array/vector storage layer beneath the VM instructions in array.lisp:
 ;;; copy-on-write vector storage/sharing, specialized (element-type-tagged)

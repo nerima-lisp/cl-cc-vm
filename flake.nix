@@ -92,6 +92,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    cl-nix-forge = {
+      url = "github:nerima-lisp/cl-nix-forge/v0.7.4";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.treefmt-nix.follows = "treefmt-nix";
+    };
+
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -103,6 +109,7 @@
       self,
       nixpkgs,
       cl-weave,
+      cl-nix-forge,
       cl-cc-bootstrap,
       cl-cc-runtime,
       cl-log-kit,
@@ -240,57 +247,60 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
+          featureCheckSource = pkgs.lib.fileset.toSource {
+            root = ./.;
+            fileset = pkgs.lib.fileset.unions (
+              [
+                ./src
+                ./t
+                ./docs/src/reference/glossary.md
+                ./cl-cc-vm.asd
+              ]
+              ++ builtins.filter builtins.pathExists [
+                ./nix/feature-dependencies.sexp
+                ./t/export-surface.txt
+                ./t/legacy-internal-refs.sexp
+                ./CHANGELOG.md
+              ]
+            );
+          };
         in
         {
-          orphan-tests =
-            pkgs.runCommand "cl-cc-vm-orphan-tests"
-              {
-                nativeBuildInputs = [ pkgs.sbcl ];
-              }
-              ''
-                export HOME="$TMPDIR/home"
-                mkdir -p "$HOME"
-                cat > check-orphan-tests.lisp <<'LISP'
-                (require :asdf)
-                (asdf:load-asd #p"${self}/cl-cc-vm.asd")
-                (defun component-lisp-pathnames (component)
-                  (append
-                    (when (typep component 'asdf:source-file)
-                      (let ((pathname (asdf:component-pathname component)))
-                        (when (string-equal (pathname-type pathname) "lisp")
-                          (list (truename pathname)))))
-                    (when (typep component 'asdf:module)
-                      (mapcan #'component-lisp-pathnames
-                              (asdf:component-children component)))))
-                (defun lisp-files-under (directory)
-                  (append
-                    (remove-if-not
-                      (lambda (pathname)
-                        (string-equal (pathname-type pathname) "lisp"))
-                      (uiop:directory-files directory))
-                    (mapcan #'lisp-files-under (uiop:subdirectories directory))))
-                (let* ((test-system (asdf:find-system "cl-cc-vm/test"))
-                       (registered
-                         (mapcar #'namestring (component-lisp-pathnames test-system)))
-                       (present
-                         (mapcar #'namestring
-                                 (lisp-files-under
-                                   (asdf:component-pathname test-system))))
-                       (orphans (set-difference present registered :test #'equal))
-                       (missing (set-difference registered present :test #'equal)))
-                  (format t "orphan-tests: ~D Lisp files, ~D orphaned, ~D missing~%"
-                          (length present) (length orphans) (length missing))
-                  (unless (and (null orphans) (null missing))
-                    (format *error-output* "Unregistered test files:~%~{~A~%~}"
-                            orphans)
-                    (format *error-output* "Missing registered files:~%~{~A~%~}"
-                            missing)
-                    (uiop:quit 1)))
-                LISP
-                sbcl --script check-orphan-tests.lisp
-                mkdir -p "$out"
-                touch "$out/passed"
-              '';
+          orphan-tests = cl-nix-forge.lib.${system}.mkOrphanTestCheck {
+            src = self.outPath;
+            testRoots = [
+              "t/protocols"
+              "t/execution"
+              "t/numbers"
+              "t/clos"
+              "t/conditions"
+              "t/data"
+              "t/io"
+              "t/serialization"
+              "t/environment"
+              "t/debugging"
+              "t/interop"
+              "t/facade"
+            ];
+            testSystems = [
+              "cl-cc-vm/test"
+              "cl-cc-vm/facade-test"
+            ];
+          };
+
+          feature-lint = cl-nix-forge.lib.${system}.mkFeatureLintCheck {
+            src = builtins.toString featureCheckSource;
+            featureDefinitions = "nix/feature-dependencies.sexp";
+            glossary = "docs/src/reference/glossary.md";
+            glossaryHeadingPrefix = "## ";
+            exportSurface = "t/export-surface.txt";
+            mode = "transition";
+            legacyInternalRefs = "t/legacy-internal-refs.sexp";
+            forbiddenNames = [ "misc" "utils" "helpers" ];
+            numberedPrefixes = [ "fr-" "phase-" "phases-" ];
+            packagePrefix = "cl-cc/vm/";
+            infraSuffix = "/infra";
+          };
 
           default =
             pkgs.runCommand "cl-cc-vm-tests"

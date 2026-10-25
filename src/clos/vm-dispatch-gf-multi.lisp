@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/clos)
 ;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;;; VM — Qualified-Method Returns and Multi-Dispatch Resolution
 ;;;
@@ -45,7 +45,7 @@ METHOD may be a method descriptor hash-table; extracts :function."
     (vm-bind-closure-args method-closure state arg-values)
     (values (vm-label-table-lookup labels (vm-closure-entry-label method-closure)) nil nil)))
 
-(defun %vm-ret-qualified-dispatch (state result labels method-entry)
+(defmethod %vm-ret-qualified-dispatch ((state t) result labels method-entry)
   "Handle return from a qualified method using standard method combination:
 :around → :before → primary → :after. Around methods wrap everything; their return
 value is the final result. call-next-method from an around triggers before/primary/after."
@@ -164,7 +164,7 @@ still use the single-dispatch path."
         (vm-resolve-multi-dispatch methods-ht state arg-classes)
         (gethash (make-list (length arg-classes) :initial-element t) methods-ht))))
 
-(defun vm-resolve-gf-method (gf-ht state first-arg &optional all-args)
+(defmethod vm-resolve-gf-method ((gf-ht t) state first-arg &optional all-args)
   "Resolve the applicable method closure for GF-HT.
 Dispatches via composite keys when ALL-ARGS is provided and the table uses
 list keys; otherwise falls back to single dispatch on FIRST-ARG."

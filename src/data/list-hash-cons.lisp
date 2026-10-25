@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 
 ;;; Hash-consing: interns structurally-equal cons trees to a canonical
 ;;; shared instance, weakly keyed so unreferenced trees can still be GC'd.

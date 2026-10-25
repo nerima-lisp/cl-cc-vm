@@ -3,7 +3,7 @@
 ;;; Full ANSI CL dynamic-wind: before/after thunks, non-local exit safety,
 ;;; and continuation re-entry tracking.
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/conditions)
 
 (defvar *dynamic-wind-stack* nil)
 

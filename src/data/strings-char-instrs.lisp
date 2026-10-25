@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 
 ;;; VM Character Instructions
 ;;;
@@ -95,11 +95,3 @@
   (char nil :reader vm-char)
   (:sexp-tag :make-string)
   (:sexp-slots dst src char))
-
-(defmethod execute-instruction ((inst vm-make-string) state pc labels)
-  (declare (ignore labels))
-  (let* ((size      (vm-reg-get state (vm-src inst)))
-         (char-reg  (vm-char inst))
-         (init-char (if char-reg (vm-reg-get state char-reg) #\Space)))
-    (vm-reg-set state (vm-dst inst) (make-string size :initial-element init-char))
-    (values (1+ pc) nil nil)))

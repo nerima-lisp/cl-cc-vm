@@ -3,7 +3,7 @@
 ;;; Compact bytecode format with real opcodes and threaded dispatch interpreter.
 ;;; Opcodes: CONST LOAD STORE CALL TCALL RET JMP JNIL CLOSURE MAKE-ENV
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/execution)
 
 (defvar *bytecode-threshold* 100)
 
@@ -69,7 +69,7 @@
       (make-vm-bytecode-function :name name
         :opcode-bytes (coerce bytes '(simple-array (unsigned-byte 8) (*)))
         :constant-pool (coerce pool 'simple-vector)
-        :env-size next-slot :source-path *load-pathname*))))
+        :env-size next-slot :source-path (vm-load-pathname)))))
 
 ;; ── Real bytecode interpreter ───────────────────────────────────────────────
 

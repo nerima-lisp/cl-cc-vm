@@ -2,7 +2,7 @@
 ;;;
 ;;; make-load-form, FASL serialization, and print-unreadable-object.
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/serialization)
 
 (defun vm-make-load-form (object &optional environment)
   (handler-case

@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/environment)
 
 ;;; --- Symbol Table (freeze/thaw, lookup, weak symbols) ---
 ;;; --- FR-622 / FR-896: Package Locks ---

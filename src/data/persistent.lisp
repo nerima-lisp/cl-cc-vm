@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 
 ;;; FR-748 / FR-749: simple persistent map/vector facades.
 ;;; These intentionally copy on write at the public boundary; FR-824 transients

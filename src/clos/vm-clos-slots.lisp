@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/clos)
 
 ;;; Effective slot computation (across a class precedence list) and the
 ;;; allocate-instance protocol: raw slot read/write/boundp/makunbound and

@@ -1,5 +1,5 @@
 ;;;; packages/vm/src/atomics.lisp — VM Atomic Operations (FR-345, FR-346)
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/execution)
 
 (define-vm-instruction vm-atomic-cas (vm-instruction)
   (dst nil :reader vm-dst) (addr-reg nil :reader vm-acas-addr)

@@ -2,7 +2,7 @@
 ;;;; Structured crash reports with VM state, registers, stack, heap stats.
 ;;;; macOS CrashReporter / Sentry crash reporting equivalent.
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/debugging)
 
 ;;; ──── Crash dump format ────
 (defstruct (crash-report (:conc-name cr-))

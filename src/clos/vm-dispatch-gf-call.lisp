@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/clos)
 ;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;;; VM — Generic Function Call Dispatch
 ;;;
@@ -133,7 +133,7 @@ preserving existing closure semantics."
           (:anonymous
            closure)))))
 
-(defun %vm-dispatch-call (func state pc labels arg-regs dst-reg tail-p &optional live-regs)
+(defmethod %vm-dispatch-call ((func t) state pc labels arg-regs dst-reg tail-p &optional live-regs)
   "Shared call dispatch for vm-call and vm-tail-call.
    TAIL-P suppresses frame push for TCO: the current frame's return address
    is reused, keeping the call stack O(1) for tail-recursive functions."

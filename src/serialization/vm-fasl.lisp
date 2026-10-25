@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/serialization)
 
 ;;; ─── FR-899/FR-902: FASL paging hooks and PGO persistence ────────────────
 ;;;

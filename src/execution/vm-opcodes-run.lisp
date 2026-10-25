@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/execution)
 ;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;;; VM — Flat-Vector Interpreter and State Access Layer
 ;;;
@@ -82,8 +82,8 @@
 ;;; ── Canonical VM state access surface ─────────────────────────────────────
 
 (defun make-vm-state (&key (output-stream *standard-output*))
-  "Create a vm-io-state as the canonical public VM execution state." 
-  (make-instance 'vm-io-state :output-stream output-stream))
+  "Create the canonical public VM execution state."
+  (vm-create-io-state output-stream))
 
 (defmethod vm-state-registers ((state vm2-state))
   (vm2-state-registers state))
@@ -93,12 +93,6 @@
 
 (defmethod vm-global-vars ((state vm2-state))
   (vm2-state-global-vars state))
-
-(defgeneric vm-reg-get (state reg)
-  (:documentation "Read register REG from STATE."))
-
-(defgeneric vm-reg-set (state reg value)
-  (:documentation "Write VALUE into register REG of STATE and return VALUE."))
 
 (defmethod vm-reg-get ((state vm2-state) reg)
   (svref (vm2-state-registers state) reg))

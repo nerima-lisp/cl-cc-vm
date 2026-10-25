@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/io)
 
 ;;; FR-820 Print-circle support.
 ;;;

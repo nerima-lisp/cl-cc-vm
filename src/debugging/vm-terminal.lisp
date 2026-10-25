@@ -6,7 +6,7 @@
 ;;; than shelling out to stty, which is what this file did before adopting
 ;;; cl-tty-kit.
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/debugging)
 
 (defun vm-isatty (stream)
   "Return T if STREAM is connected to a terminal."

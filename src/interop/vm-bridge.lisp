@@ -1,65 +1,13 @@
-(in-package :cl-cc/vm)
-;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-;;; VM — Host Function Bridge and CLOS Slot Metadata
-;;;
-;;; Contains: *vm-host-bridge-functions*, vm-register-host-bridge,
-;;; hash-table-values, %class-slot-initargs-for-slot, %class-slot-metadata,
-;;; %class-slot-definitions, slot-definition-name, slot-definition-location,
-;;; slot-definition-initargs,
-;;; slot-definition-initform, slot-definition-allocation,
-;;; slot-definition-type (and any other slot-def helpers),
-;;; and the bootstrap vm-register-host-bridge calls for whitelisted symbols.
-;;;
-;;; Load order: after vm.lisp (vm-state, vm-generic-function-p).
-;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-;;; Host Function Bridge — whitelist of host CL functions callable from VM
-;;;
-;;; Only functions explicitly registered here can be resolved via fboundp.
-;;; This prevents the VM from accidentally routing calls like `funcall` or
-;;; `mapcar` to host CL (which would receive vm-closure-objects it can't handle).
-
-(defvar *vm-host-bridge-functions*
-  (make-hash-table :test #'eq :synchronized t)
-  "Map of bridgeable symbols to their callable implementation.
-All entries must store an explicit function object.
-Synchronized: parallel test workers populate this concurrently.")
-
-(defvar *vm-runtime-callables*
-  (make-hash-table :test #'equal :synchronized t)
-  "Runtime callable registry keyed by exported runtime helper name string.
-Synchronized: parallel test workers populate this concurrently.")
+(in-package #:cl-cc/vm/interop)
 
 (defvar *vm-current-state* nil
   "Dynamically bound to the VM state while invoking host bridge callables.")
-
-(defvar *vm-current-pc* nil
-  "Dynamically bound to the continuation PC while invoking host bridge callables.")
-
-(defvar *vm-current-dst-reg* nil
-  "Dynamically bound to the destination register while invoking host bridge callables.")
-
-(defvar *vm-current-labels* nil
-  "Dynamically bound to the current VM label table while invoking host bridge callables.")
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (let ((package (or (find-package :cffi)
                      (make-package :cffi :use '(:cl)))))
     (dolist (name '("FOREIGN-FUNCALL" "DEFINE-FOREIGN-LIBRARY" "USE-FOREIGN-LIBRARY"))
       (export (intern name package) package))))
-
-(defun vm-register-host-bridge (sym &optional callable)
-  "Register SYM as a bridgeable function for the VM.
-CALLABLE must be an explicit function object."
-  (unless callable
-    (error "Cannot register host bridge symbol without explicit callable: ~S" sym))
-  (setf (gethash sym *vm-host-bridge-functions*) callable))
-
-(defun vm-register-runtime-callable (name callable)
-  "Register a runtime helper CALLABLE under NAME for VM bridge use."
-  (unless callable
-    (error "Cannot register runtime callable without a function: ~S" name))
-  (setf (gethash name *vm-runtime-callables*) callable))
 
 (defun %vm-bridge-symbol-aliases (sym)
   "Return same-name symbols that may have been imported through facade packages."
@@ -100,26 +48,6 @@ CALLABLE must be an explicit function object."
                 (push v result))
               table)
     (nreverse result)))
-
-(defparameter *hash-test-function-alist*
-  '((eq     . eq)
-    (eql    . eql)
-    (equal  . equal)
-    (equalp . equalp))
-  "(designator-symbol . canonical-designator) pairs for VM hash-table tests.")
-
-(defun hash-test-symbol (test-val)
-  "Convert TEST-VAL to a canonical hash-test symbol without probing function cells."
-  (if (assoc test-val *hash-test-function-alist* :test #'eq)
-      test-val
-      'eql))
-
-(defun resolve-hash-test (test-symbol)
-  "Convert TEST-SYMBOL to a canonical hash-test designator."
-  (or (and (null test-symbol) 'eql)
-      (let ((entry (assoc test-symbol *hash-test-function-alist* :test #'eq)))
-        (and entry (cdr entry)))
-      (error "Unknown hash table test: ~S" test-symbol)))
 
 (defun %make-hash-table-with-test (test-designator)
   "Construct a native CL hash table honoring TEST-DESIGNATOR when supported.
@@ -178,15 +106,6 @@ Accepts symbols/functions for EQ/EQL/EQUAL/EQUALP and falls back to EQL."
   "Return public slot-definition objects for CLASS using metadata list KEY."
   (%class-slot-definitions-from-key class key))
 
-(defun slot-definition-name (slot)
-  "Return the slot-definition name for SLOT.
-Current lightweight CLOS metadata may represent slots as symbols; future
-representations may use hash tables with structured metadata."
-  (cond
-    ((symbolp slot) slot)
-    ((hash-table-p slot) (gethash :name slot))
-    (t nil)))
-
 (defun slot-definition-location (slot)
   "Return the zero-based effective slot location for SLOT when available."
   (if (hash-table-p slot)
@@ -241,21 +160,6 @@ representations may use hash tables with structured metadata."
     (when (hash-table-p class-ht)
       (setf (gethash :__obsolete__ class-ht) t))
     class-ht))
-
-(defun generic-function-methods (gf)
-  "Return the registered method objects for GF."
-  (let ((methods-ht (and (hash-table-p gf)
-                         (nth-value 1 (gethash :__methods__ gf))
-                         (gethash :__methods__ gf))))
-    (when methods-ht
-      (loop for value in (hash-table-values methods-ht)
-            append (%vm-method-value->list value)))))
-
-(defun generic-function-method-combination (gf)
-  "Return the method-combination metadata for GF, defaulting to STANDARD."
-  (if (and (hash-table-p gf) (nth-value 1 (gethash :__method-combination__ gf)))
-      (gethash :__method-combination__ gf)
-      'standard))
 
 (defun %normalize-text-encoding (encoding external-format)
   "Normalize ENCODING / EXTERNAL-FORMAT into the host designator we support."
@@ -339,3 +243,17 @@ For VM integer handles we ignore STREAM and compute the UTF-8 byte width."
          (push (car items) arg-types)
          (push (cadr items) arg-values)
          (setf items (cddr items)))))))
+
+(defmethod vm-lookup-bridge-callable ((symbol t)) (vm-bridge-callable symbol))
+
+;;; Instruction Execution - Hash Table Operations
+;;; are in hash-execute.lisp (loaded after this file).
+
+(defun resolve-hash-test (test-symbol)
+  "Convert TEST-SYMBOL to a canonical hash-test designator."
+  (or (and (null test-symbol) 'eql)
+      (let ((entry (assoc test-symbol *hash-test-function-alist* :test #'eq)))
+        (and entry (cdr entry)))
+      (error "Unknown hash table test: ~S" test-symbol)))
+
+(defmethod vm-resolve-hash-test ((test-symbol t)) (resolve-hash-test test-symbol))

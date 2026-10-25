@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 
 ;;; FR-136: ASCII character classification: the bitmask lookup table and the
 ;;; inlined alpha/digit/upper/lower/alphanumeric/graphic/standard/both-case

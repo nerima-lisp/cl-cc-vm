@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/io)
 
 ;;; VM I/O state and stream handles, built on io-external-format.lisp
 ;;; (loads before): vm-open, with-standard-io-syntax, the vm-io-state CLOS
@@ -78,6 +78,36 @@
                    :reader vm-string-streams
                    :documentation "Hash table for in-memory string streams"))
   (:documentation "Extended VM state with file I/O capabilities."))
+(defun %vm-io-initial-globals ()
+  "Default guest global bindings supplied by the VM I/O feature."
+  (list
+   ;; Standard I/O streams — bound to host streams at init
+   '(*standard-output* *standard-output*)
+   '(*standard-input* *standard-input*)
+   '(*terminal-io* *terminal-io*)
+   '(*error-output* *error-output*)
+   (list (vm-trace-output-symbol) (lambda () (vm-trace-output-stream)))
+   '(*debug-io* *debug-io*)
+   '(*query-io* *query-io*)
+   ;; Print-control variables (ANSI CL defaults)
+   '(*print-base* 10)
+   '(*print-radix* nil)
+   '(*print-circle* nil)
+   '(*print-pretty* nil)
+   '(*print-level* nil)
+   '(*print-length* nil)
+   '(*print-escape* t)
+   '(*print-readably* nil)
+   '(*print-gensym* t)
+   (list '*print-pprint-dispatch*
+         (lambda ()
+           (if (fboundp 'copy-pprint-dispatch)
+               (copy-pprint-dispatch nil)
+               nil)))
+   (list '*readtable* (lambda () (copy-readtable nil)))))
+(defmethod vm-feature-initial-globals ((feature (eql :io))) (declare (ignore feature)) (%vm-io-initial-globals))
+(defmethod vm-create-io-state (output-stream)
+  (make-instance 'vm-io-state :output-stream output-stream))
 
 ;;; ─── VM State Clone ──────────────────────────────────────────────────────────
 
@@ -439,3 +469,5 @@ or :NONE."
     (vm-register-host-bridge (car entry) (cdr entry))))
 
 ;;; I/O instruction class declarations are in io-instructions.lisp (loads next).
+
+(defmethod vm-call-with-readable-printing ((thunk function)) (let ((*print-readably* t) (cl:*read-eval* nil)) (funcall thunk)))

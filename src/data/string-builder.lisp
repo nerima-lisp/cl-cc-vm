@@ -2,7 +2,7 @@
 ;;; FR-787: String Builder with O(1) amortized append
 ;;; FR-788: Rope data structure with O(log n) concat/split
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 
 ;; ── FR-787 String Builder ─────────────────────────────────────────────
 

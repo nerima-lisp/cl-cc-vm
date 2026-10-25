@@ -2,7 +2,7 @@
 ;;;; FR-740 Hidden Classes/Object Shapes, FR-741 Inline Method Dispatch Tables,
 ;;;; FR-742 Object Header Layout, FR-743 Value Types/Inline Structs
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/interop)
 
 ;;; ──── FR-740: Hidden Classes / Object Shapes ────
 (defstruct object-shape

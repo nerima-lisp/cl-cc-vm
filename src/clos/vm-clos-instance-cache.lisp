@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/clos)
 
 ;;; ── FR-888/FR-889 allocation caches ──────────────────────────────────────
 

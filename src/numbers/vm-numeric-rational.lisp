@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/numbers)
 
 ;;; Native VM rational value: the vm-ratio struct, additive/multiplicative
 ;;; ops, VM-RATIONAL/VM-RATIONALIZE/VM-FLOOR, and print-object. Depends on

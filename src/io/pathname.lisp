@@ -1,6 +1,6 @@
 ;;;; pathname.lisp -- VM instructions for host-backed ANSI pathnames
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/io)
 
 ;; FR-595: Pathname system
 (define-vm-instruction vm-pathname (vm-instruction)

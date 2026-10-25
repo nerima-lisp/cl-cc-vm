@@ -10,7 +10,7 @@
 ;;;   define-simple-instruction, %define-nullary-env-query, execute-instruction).
 ;;; Load order: immediately after vm-numeric.lisp.
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/numbers)
 
 ;;; FR-301: Float rounding functions (ffloor, fceiling, ftruncate, fround)
 

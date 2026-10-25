@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 
 ;;; VM string/character instruction macros (comparisons, case conversion,
 ;;; trim, search, access) and their execute-instruction methods, built on
@@ -10,7 +10,6 @@
 
 (eval-when (:load-toplevel :execute)
   (when (fboundp 'vm-register-host-bridge)
-    (vm-register-host-bridge 'getenv #'vm-getenv)
     (vm-register-host-bridge 'taint-mark #'taint-mark)
     (vm-register-host-bridge 'tainted-p #'tainted-p)
     (vm-register-host-bridge 'untaint #'untaint)
@@ -66,14 +65,6 @@
 (define-vm-string-comparison vm-string-not-lessp  :string-not-lessp "Case-insensitive string >=. Returns 1 if STR1 >= STR2 (ignoring case), 0 otherwise.")
 
 (define-vm-unary-instruction vm-string-length :string-length "String length. DST = length of SRC string.")
-
-(define-vm-instruction vm-char (vm-instruction)
-  "Character at position. DST = STRING[INDEX]."
-  (dst nil :reader vm-dst)
-  (string nil :reader vm-string-reg)
-  (index nil :reader vm-index)
-  (:sexp-tag :char)
-  (:sexp-slots dst string index))
 
 (define-vm-unary-instruction vm-char-code :char-code "Character code. DST = ASCII/Unicode code of SRC character.")
 (define-vm-unary-instruction vm-code-char :code-char "Character from code. DST = character with code SRC.")
@@ -150,64 +141,11 @@
 (define-vm-sso-string-comparison-executor vm-string-not-greaterp string-not-greaterp)
 (define-vm-sso-string-comparison-executor vm-string-not-lessp string-not-lessp)
 
-;;; Instruction Execution - String Access and Query
-
-(defmethod execute-instruction ((inst vm-string-length) state pc labels)
-  (declare (ignore labels))
-  (vm-reg-set state (vm-dst inst)
-              (%vm-string-length (vm-reg-get state (vm-src inst))))
-  (values (1+ pc) nil nil))
-
-(defmethod execute-instruction ((inst vm-char) state pc labels)
-  (declare (ignore labels))
-  (let* ((string (vm-reg-get state (vm-string-reg inst)))
-          (index (vm-reg-get state (vm-index inst)))
-          (result (%vm-string-char string index)))
-    (vm-reg-set state (vm-dst inst) result)
-    (values (1+ pc) nil nil)))
-
 (define-simple-instruction vm-char-code :unary char-code)
 (define-simple-instruction vm-code-char :unary code-char)
 
 (define-simple-instruction vm-char= :pred2 char= :lhs vm-char1 :rhs vm-char2)
 (define-simple-instruction vm-char< :pred2 char< :lhs vm-char1 :rhs vm-char2)
-
-;;; Instruction Execution - String Manipulation
-
-(defmethod execute-instruction ((inst vm-subseq) state pc labels)
-  (declare (ignore labels))
-  ;; SUBSEQ is a sequence operation: it must work on lists and vectors, not only
-  ;; strings.  The previous version coerced the input to a string, so (subseq
-  ;; '(1 2 3) 0 2) and (subseq #(1 2 3) 0 2) — and butlast/last, which expand to
-  ;; subseq — raised a type error.
-  (let* ((seq   (vm-reg-get state (vm-string-reg inst)))
-         (start (vm-reg-get state (vm-start inst)))
-         ;; nil end-slot means no upper bound (= end of sequence)
-         (end   (if (vm-end inst) (vm-reg-get state (vm-end inst)) nil))
-         (result
-           (cond
-             ((listp seq)
-              (subseq seq start (or end (length seq))))
-             ((or (stringp seq) (%vm-sso-string-p seq))
-              (%vm-maybe-sso-string
-               (vm-string-materialize (vm-string-subseq (%vm-host-string seq) start end))))
-             (t
-              (let ((v (%vm-cow-vector-materialize seq)))
-                (subseq v start (or end (length v))))))))
-    (vm-reg-set state (vm-dst inst) result)
-    (values (1+ pc) nil nil)))
-
-(defmethod execute-instruction ((inst vm-concatenate) state pc labels)
-  (declare (ignore labels))
-  (let* ((parts (or (vm-parts inst)
-                     (list (vm-str1 inst) (vm-str2 inst))))
-          (result (%vm-maybe-sso-string
-                   (apply #'concatenate 'string
-                          (mapcar (lambda (reg)
-                                    (%vm-host-string (vm-reg-get state reg)))
-                                  parts)))))
-     (vm-reg-set state (vm-dst inst) result)
-     (values (1+ pc) nil nil)))
 
 (define-vm-sso-string-unary-executor vm-string-upcase string-upcase)
 (define-vm-sso-string-unary-executor vm-string-downcase string-downcase)
@@ -229,17 +167,6 @@
 (define-vm-string-trim-executor vm-string-left-trim  string-left-trim)
 (define-vm-string-trim-executor vm-string-right-trim string-right-trim)
 
-;;; Instruction Execution - String Search
-
-(defmethod execute-instruction ((inst vm-search-string) state pc labels)
-  (declare (ignore labels))
-  (let* ((pattern (%vm-host-string (vm-reg-get state (vm-pattern inst))))
-         (string (%vm-host-string (vm-reg-get state (vm-string-reg inst))))
-         (start (vm-reg-get state (vm-start inst)))
-         (result (or (search pattern string :start2 start) -1)))
-    (vm-reg-set state (vm-dst inst) result)
-    (values (1+ pc) nil nil)))
-
 ;;; String character mutation (FR-614) — (setf (char s i) v) → (rt-string-set s i v)
 
 (define-vm-instruction vm-string-set (vm-instruction)
@@ -250,11 +177,3 @@
   (val nil :reader vm-val-reg)
   (:sexp-tag :string-set)
   (:sexp-slots dst str idx val))
-
-(defmethod execute-instruction ((inst vm-string-set) state pc labels)
-  (declare (ignore labels))
-  (let ((v (vm-reg-get state (vm-val-reg inst))))
-    (vm-string-set-char (vm-reg-get state (vm-str-reg inst))
-                        (vm-reg-get state (vm-idx inst)) v)
-    (vm-reg-set state (vm-dst inst) v)
-    (values (1+ pc) nil nil)))

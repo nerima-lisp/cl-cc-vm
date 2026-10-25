@@ -6,7 +6,7 @@
 ;;;; versions.  Cache hits bypass full method resolution.  Cache invalidation
 ;;;; clears registered generic-call site caches when methods are registered.
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/clos)
 
 ;;; ---------------------------------------------------------------------------
 ;;; IC Infrastructure
@@ -187,7 +187,7 @@ call-next-method context."
     (format stream "   (~S . ~D)~%" (car row) (cdr row)))
   (format stream " ))~%"))
 
-(defun vm-maybe-dump-type-profile (state)
+(defmethod vm-maybe-dump-type-profile ((state t))
   "Dump type feedback after execution when *COLLECT-PROFILE* requests it."
   (when (and *collect-profile* *profile-output*)
     (etypecase *profile-output*

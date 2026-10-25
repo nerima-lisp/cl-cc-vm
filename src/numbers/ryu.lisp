@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/numbers)
 
 ;;; FR-1088 — pure-Lisp float-to-string backend with Ryu-compatible contract.
 

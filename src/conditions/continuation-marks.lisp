@@ -14,7 +14,7 @@
 ;;;; Typically loaded after vm-instructions.lisp (which defines vm-call/vm-ret)
 ;;;; and vm-dispatch.lisp (which defines vm-push-call-frame).
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/conditions)
 
 ;;; ── Frame mark accessors ─────────────────────────────────────────────────
 

@@ -9,7 +9,7 @@
 ;;;;
 ;;;; Load order: after vm-numeric.lisp, before vm-numeric-ext.lisp.
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/environment)
 
 (export '(lisp-implementation-type
           lisp-implementation-version
@@ -61,7 +61,7 @@
   (declare (ignore labels))
   (let* ((sym (vm-reg-get state (vm-src inst)))
          (result (or (gethash sym (vm-function-registry state))
-                     (vm-bridge-callable sym))))
+                     (vm-lookup-bridge-callable sym))))
     (vm-reg-set state (vm-dst inst) (if result t nil))
     (values (1+ pc) nil nil)))
 

@@ -1,6 +1,6 @@
 ;;;; packages/vm/src/vm-tier.lisp — tiering, value profiling, TLS dispatch
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/execution)
 
 (defvar *vm-state* nil
   "Thread-local dynamically bound VM state used by lock-free dispatch helpers.")

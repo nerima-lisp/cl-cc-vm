@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/io)
 
 ;;; Native FORMAT directive primitives: the %vm-format-context arg cursor,
 ;;; output/padding/param helpers, integer digit-grouping, English/Roman

@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/numbers)
 
 ;;; Native VM complex value: the vm-complex struct, its arithmetic and
 ;;; transcendental operations, and PRINT-OBJECT / externalization. Distinct

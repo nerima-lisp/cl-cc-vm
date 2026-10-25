@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/serialization)
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defpackage :json

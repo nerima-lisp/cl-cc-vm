@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/numbers)
 
 ;;; VM instructions built on the native number tower: rounding, float
 ;;; introspection (precision/radix/sign/digits), scale-float, decode-float,

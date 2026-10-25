@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/execution)
 ;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;;; VM — Dispatch Protocol and Call-frame Helpers
 ;;;
@@ -103,8 +103,8 @@ Saves and restores call stack around the sub-invocation."
   (let* ((registry (ignore-errors (vm-function-registry state)))
          (entry (and registry (gethash value registry))))
     (cond
-      ((vm-bridge-callable value)
-       (vm-bridge-callable value))
+      ((vm-lookup-bridge-callable value)
+       (vm-lookup-bridge-callable value))
       ((vm-forward-reference-cell-p entry)
        (or (vm-forward-reference-cell-ref entry)
            (error "Unresolved forward reference: ~S" value)))

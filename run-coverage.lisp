@@ -20,23 +20,37 @@
 (let* ((root (script-directory))
        (report-stream *standard-output*))
   (asdf:initialize-source-registry
-    `(:source-registry (:tree ,root) :inherit-configuration))
-  ;; sb-cover only instruments code compiled under this policy, so it must
-  ;; be proclaimed -- and the system force-recompiled under it -- before
-  ;; RUN-ALL's :coverage t has anything to report. Mirrors cl-weave's own
-  ;; --coverage CLI flag (see cl-weave's PREPARE-COVERAGE-COMPILATION).
+   `(:source-registry (:tree ,root) :inherit-configuration))
+  ;; sb-cover instruments source files compiled after this proclamation.
   (require :sb-cover)
-  (proclaim `(optimize (,(find-symbol "STORE-COVERAGE-DATA" "SB-COVER") 3)))
+  (proclaim
+   `(optimize (,(find-symbol "STORE-COVERAGE-DATA" "SB-COVER") 3)))
+  ;; Force-recompile the VM and test sources under the coverage policy.
+  (asdf:load-system "cl-cc-vm" :force t)
   (asdf:load-system "cl-cc-vm/test" :force t)
-  (let ((passed-p
-          (uiop:symbol-call
-            :cl-weave :run-all
-            :stream report-stream
-            :pass-with-no-tests nil
-            :coverage t
-            :coverage-output (merge-pathnames "coverage.data" root)
-            :coverage-report-directory (merge-pathnames "coverage-report/" root)
-            :coverage-include-pathnames (list (merge-pathnames "src/" root)))))
-    (format report-stream "~&cl-cc-vm: coverage report written to coverage-report/~%")
+  (asdf:load-system "cl-cc-vm/facade-test")
+  (let* ((test-count
+           (length
+            (uiop:symbol-call
+             :cl-weave :list-tests
+             :stream (make-broadcast-stream)))))
+    (format report-stream
+            "~&cl-cc-vm: running ~D test~:P with coverage~%"
+            test-count)
     (finish-output report-stream)
-    (uiop:quit (if passed-p 0 1))))
+    (let ((passed-p
+            (uiop:symbol-call
+             :cl-weave :run-all
+             :stream report-stream
+             :pass-with-no-tests nil
+             :coverage t
+             :coverage-output
+             (merge-pathnames "coverage.data" root)
+             :coverage-report-directory
+             (merge-pathnames "coverage-report/" root)
+             :coverage-include-pathnames
+             (list (merge-pathnames "src/" root)))))
+      (format report-stream
+              "~&cl-cc-vm: coverage report written to coverage-report/~%")
+      (finish-output report-stream)
+      (uiop:quit (if passed-p 0 1)))))

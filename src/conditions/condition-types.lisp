@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/conditions)
 
 ;;; The VM condition type hierarchy (mirroring ANSI CL's condition types)
 ;;; and its PRINT-OBJECT report formatting. The handler/restart stack

@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/io)
 
 ;;; Native FORMAT control-string parser and top-level driver
 ;;; (%vm-format-render / %vm-format-render-to-string / %vm-format-native),

@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 
 ;;; VM Hash Table Operations
 ;;;
@@ -448,5 +448,15 @@ must handle both representations transparently."
     (vm-hash-table-object (vm-hash-table-internal table-obj))
     (hash-table table-obj)))
 
-;;; Instruction Execution - Hash Table Operations
-;;; are in hash-execute.lisp (loaded after this file).
+(defun hash-test-symbol (test-val)
+  "Convert TEST-VAL to a canonical hash-test symbol without probing function cells."
+  (if (assoc test-val *hash-test-function-alist* :test #'eq)
+      test-val
+      'eql))
+
+(defparameter *hash-test-function-alist*
+  '((eq     . eq)
+    (eql    . eql)
+    (equal  . equal)
+    (equalp . equalp))
+  "(designator-symbol . canonical-designator) pairs for VM hash-table tests.")

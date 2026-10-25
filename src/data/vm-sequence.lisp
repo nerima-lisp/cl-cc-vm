@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 ;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;;; VM — Extensible Sequence Protocol (FR-821/838)
 ;;;
@@ -129,33 +129,6 @@
 (defmethod sequence-protocol-p ((object t))
   nil)
 
-(defun copy-instance (instance)
-  "Return a shallow copy of a CLOS/VM instance, preserving all slot contents."
-  (cond
-    ((hash-table-p instance)
-     (let ((class (gethash :__class__ instance))
-           (copy (make-hash-table :test (hash-table-test instance))))
-       (unless class
-         (error "copy-instance: ~S is not a VM CLOS instance" instance))
-       (maphash (lambda (key value)
-                  (setf (gethash key copy) value))
-                instance)
-       copy))
-    ((and (vectorp instance)
-          (> (cl:length instance) 0)
-          (hash-table-p (cl:aref instance 0)))
-     (copy-seq instance))
-    ((typep instance 'standard-object)
-     (let* ((class (class-of instance))
-            (copy (allocate-instance class)))
-       (dolist (slot (sb-mop:class-slots class) copy)
-         (let ((slot-name (sb-mop:slot-definition-name slot)))
-           (when (slot-boundp instance slot-name)
-             (setf (slot-value copy slot-name)
-                   (slot-value instance slot-name)))))))
-    (t
-     (error "copy-instance: ~S is not a CLOS instance" instance))))
-
 (defun copy-structure (structure)
   "Return an ANSI shallow copy of STRUCTURE."
   (cond
@@ -163,13 +136,13 @@
          (and (vectorp structure)
               (> (cl:length structure) 0)
               (hash-table-p (cl:aref structure 0))))
-     (copy-instance structure))
+     (vm-copy-instance structure))
     ((or (listp structure) (vectorp structure) (stringp structure))
      (copy-seq structure))
     ((typep structure 'structure-object)
      (cl:copy-structure structure))
     ((typep structure 'standard-object)
-     (copy-instance structure))
+     (vm-copy-instance structure))
     (t
      (error "copy-structure: unsupported object ~S" structure))))
 

@@ -10,7 +10,7 @@
 ;;;; reconstructed at this boundary, matching what callers of REGEX-SCAN et
 ;;;; al already expect.
 
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/interop)
 
 (defun regex-scan (pattern string &key (start 0) end)
   (let ((result (cl-regex-kit:scan (cl-regex-kit:compile-regex pattern) string

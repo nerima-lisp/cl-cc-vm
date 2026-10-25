@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 
 ;;; FR-157: Managed cons allocation
 ;;;
@@ -51,8 +51,7 @@
 
 (defun %vm-managed-cons-heap-table (state)
   "Return STATE's VM metadata heap table, or NIL for states without one."
-  (when (typep state 'vm-state)
-    (vm-state-heap state)))
+  (vm-state-heap state))
 
 (defun %vm-managed-cons-heap (state)
   "Return STATE's lazily-created runtime heap for managed VM cons cells."

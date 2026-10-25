@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/environment)
 
 (export '(get-universal-time
           get-internal-real-time
@@ -57,7 +57,7 @@ Returns exactly the values produced by FORM."
        (let ((,values (multiple-value-list ,form)))
           (let ((,elapsed (/ (- (get-internal-real-time) ,start)
                              (float internal-time-units-per-second))))
-            (format *trace-output* "~&; Evaluation took ~,6F seconds.~%" ,elapsed))
+            (format (vm-trace-output-stream) "~&; Evaluation took ~,6F seconds.~%" ,elapsed))
           (values-list ,values)))))
 
 (defmacro with-timeout ((seconds &optional timeout-result) &body body)
@@ -65,3 +65,16 @@ Returns exactly the values produced by FORM."
 On timeout, return TIMEOUT-RESULT."
   `(sb-ext:with-timeout (,seconds ,timeout-result)
      ,@body))
+
+;;; ─── Sleep (FR-681) ─────────────────────────────────────────────────────────
+
+(define-vm-unary-instruction vm-sleep-inst :sleep "Suspend execution for N seconds.")
+
+(define-simple-instruction vm-sleep-inst :unary sleep)
+
+(defmethod vm-feature-initial-globals ((feature (eql :environment)))
+  (declare (ignore feature))
+  (list
+   (quote (*features* (:common-lisp :cl-cc)))
+   (quote (internal-time-units-per-second internal-time-units-per-second))
+   (quote (*random-state* *random-state*))))

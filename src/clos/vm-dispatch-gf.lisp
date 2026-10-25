@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/clos)
 ;;; ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ;;; VM — Generic Function Dispatch
 ;;;
@@ -210,7 +210,7 @@ Only single-argument eql specializers are indexed for fast lookup."
     ((functionp value) (list value))
     (t (list value))))
 
-(defun %vm-method-function (method)
+(defmethod %vm-method-function ((method t))
   "Extract the callable closure from METHOD (which may be a descriptor hash-table)."
   (if (hash-table-p method)
       (or (gethash :function method)

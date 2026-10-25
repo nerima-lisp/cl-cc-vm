@@ -1,4 +1,4 @@
-(in-package :cl-cc/vm)
+(in-package #:cl-cc/vm/data)
 
 ;;; Sequence protocol methods and the cons/list VM instruction macros
 ;;; (VM-CONS, VM-CAR/CDR, VM-LENGTH, VM-NTH, VM-REVERSE, and friends) built
@@ -106,46 +106,6 @@
 (define-vm-unary-instruction vm-car :car "Extract the car of the cons cell in SRC, store in DST.")
 (define-vm-unary-instruction vm-cdr :cdr "Extract the cdr of the cons cell in SRC, store in DST.")
 
-(defmethod execute-instruction :around ((inst vm-cons) state pc labels)
-  (declare (ignore labels))
-  (if *vm-managed-cons-allocation-enabled*
-      (let ((car-val (vm-reg-get state (vm-car-reg inst)))
-            (cdr-val (vm-reg-get state (vm-cdr-reg inst))))
-        (vm-reg-set state (vm-dst inst)
-                    (%vm-managed-cons-alloc state (vm-dst inst) car-val cdr-val))
-        (values (1+ pc) nil nil))
-      (let ((car-val (vm-reg-get state (vm-car-reg inst)))
-            (cdr-val (vm-reg-get state (vm-cdr-reg inst))))
-        (vm-reg-set state (vm-dst inst) (cons car-val cdr-val))
-        (values (1+ pc) nil nil))))
-
-(defmethod execute-instruction :around ((inst vm-car) state pc labels)
-  (declare (ignore labels))
-  (let ((value (vm-reg-get state (vm-src inst))))
-    (if (%vm-managed-cons-pointer-p value)
-        (progn
-          (vm-reg-set state (vm-dst inst) (%vm-managed-cons-slot state value 1))
-          (values (1+ pc) nil nil))
-        (call-next-method))))
-
-(defmethod execute-instruction :around ((inst vm-cdr) state pc labels)
-  (declare (ignore labels))
-  (let ((value (vm-reg-get state (vm-src inst))))
-    (if (%vm-managed-cons-pointer-p value)
-        (progn
-          (vm-reg-set state (vm-dst inst) (%vm-managed-cons-slot state value 2))
-          (values (1+ pc) nil nil))
-        (call-next-method))))
-
-(defmethod execute-instruction :around ((inst vm-cons-p) state pc labels)
-  (declare (ignore labels))
-  (let ((value (vm-reg-get state (vm-src inst))))
-    (if (%vm-managed-cons-pointer-p value)
-        (progn
-          (vm-reg-set state (vm-dst inst) 1)
-          (values (1+ pc) nil nil))
-        (call-next-method))))
-
 ;;; List Construction Instructions
 
 (define-vm-instruction vm-make-list (vm-instruction)
@@ -230,28 +190,6 @@
   (val nil :reader vm-val-reg)
   (:sexp-tag :rplacd)
   (:sexp-slots cons val))
-
-(defmethod execute-instruction :around ((inst vm-rplaca) state pc labels)
-  (declare (ignore labels))
-  (let ((cons-val (vm-reg-get state (vm-cons-reg inst))))
-    (if (%vm-managed-cons-pointer-p cons-val)
-        (progn
-          (%vm-managed-cons-set-slot state cons-val 1
-                                     (vm-reg-get state (vm-val-reg inst)))
-          (vm-reg-set state (vm-cons-reg inst) cons-val)
-          (values (1+ pc) nil nil))
-        (call-next-method))))
-
-(defmethod execute-instruction :around ((inst vm-rplacd) state pc labels)
-  (declare (ignore labels))
-  (let ((cons-val (vm-reg-get state (vm-cons-reg inst))))
-    (if (%vm-managed-cons-pointer-p cons-val)
-        (progn
-          (%vm-managed-cons-set-slot state cons-val 2
-                                     (vm-reg-get state (vm-val-reg inst)))
-          (vm-reg-set state (vm-cons-reg inst) cons-val)
-          (values (1+ pc) nil nil))
-        (call-next-method))))
 
 ;;; Extended List Operations
 
