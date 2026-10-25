@@ -269,7 +269,11 @@
     (cond
       ;; Host CL function — apply directly, no frame push
       ((functionp func)
-       (let ((all-values (multiple-value-list (apply func spread-args))))
+       (let* ((*vm-current-state* state)
+              (*vm-current-pc* (1+ pc))
+              (*vm-current-dst-reg* dst-reg)
+              (*vm-current-labels* labels)
+              (all-values (multiple-value-list (apply func spread-args))))
          (setf (vm-values-list state) all-values)
          (vm-reg-set state dst-reg (if all-values (first all-values) nil)))
        (values (1+ pc) nil nil))

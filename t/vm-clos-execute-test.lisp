@@ -24,4 +24,23 @@
                                                          :slot-name 'x)
                             (cl-cc/vm:make-vm-halt :reg :r3))
                       :result-register :r3)))
+      (expect (cl-cc/vm:run-compiled program) :to-be 42)))
+  (it "calls the MAKE-INSTANCE function through APPLY with dynamic initargs"
+    (let* ((program
+             (cl-cc/vm:make-vm-program
+              :instructions
+              (list (cl-cc/vm:make-vm-class-def
+                     :dst :r0 :class-name 'test-callable-make-instance :superclasses nil
+                     :slot-names '(value) :slot-initargs '((:value . value))
+                     :slot-initform-regs nil :slot-types nil :default-initarg-regs nil
+                     :class-slots nil :metaclass-reg nil :sealed nil)
+                    (cl-cc/vm:make-vm-const :dst :r1 :value 'make-instance)
+                    (cl-cc/vm:make-vm-const :dst :r2
+                                             :value '(test-callable-make-instance :value 42))
+                    (cl-cc/vm:make-vm-apply :dst :r3 :func :r1 :args '(:r2)
+                                            :tail-p nil)
+                    (cl-cc/vm:make-vm-slot-read :dst :r4 :obj-reg :r3
+                                                 :slot-name 'value)
+                    (cl-cc/vm:make-vm-halt :reg :r4))
+              :result-register :r4)))
       (expect (cl-cc/vm:run-compiled program) :to-be 42))))
