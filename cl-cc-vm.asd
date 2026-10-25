@@ -187,6 +187,7 @@
                (:file "vm-terminal-test")
                (:file "vm-list-execute-test")
                (:file "vm-array-execute-test")
+               (:file "vm-package-designator-test")
                (:file "vm-hash-execute-test")
                (:file "vm-string-execute-test")
                (:file "vm-clos-execute-test"))

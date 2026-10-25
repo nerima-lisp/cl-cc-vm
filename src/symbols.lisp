@@ -125,25 +125,41 @@
 
 (defmethod execute-instruction ((inst vm-intern-symbol) state pc labels)
   (declare (ignore labels))
-  (let* ((name (%vm-host-string (vm-reg-get state (vm-src inst))))
-          (pkg-designator (when (vm-intern-pkg inst)
-                             (%vm-host-string (vm-reg-get state (vm-intern-pkg inst)))))
+  (let* ((name (string (%vm-host-string (vm-reg-get state (vm-src inst)))))
+         (package-supplied-p (vm-intern-pkg inst))
+         (package-designator
+           (when package-supplied-p
+             (vm-reg-get state (vm-intern-pkg inst))))
          (result
-           ;; Try runtime package intern first (self-hosting path via *runtime-intern-fn*)
            (cond
-             ((and cl-cc/bootstrap:*runtime-intern-fn* pkg-designator)
-              (funcall cl-cc/bootstrap:*runtime-intern-fn* name pkg-designator))
-             (cl-cc/bootstrap:*runtime-intern-fn*
-              (funcall cl-cc/bootstrap:*runtime-intern-fn* name))
-             ;; In self-host mode, refuse host CL fallback
-             (*vm-self-host-mode*
-              (error "Package self-hosting required: cannot intern ~S without runtime package registry"
-                     name))
-             (pkg-designator
-              (intern name (or (%vm-find-package-local-nickname pkg-designator)
-                               (find-package pkg-designator))))
+             ((not package-supplied-p)
+              (cond
+                (cl-cc/bootstrap:*runtime-intern-fn*
+                 (funcall cl-cc/bootstrap:*runtime-intern-fn* name))
+                (*vm-self-host-mode*
+                 (error "Package self-hosting required: cannot intern ~S without runtime package registry"
+                        name))
+                (t
+                 (intern name))))
              (t
-              (intern name)))))
+              (multiple-value-bind (runtime-package host-designator)
+                  (%vm-resolve-package-designator package-designator)
+                (cond
+                  (runtime-package
+                   (cond
+                     (cl-cc/bootstrap:*runtime-intern-fn*
+                      (funcall cl-cc/bootstrap:*runtime-intern-fn*
+                               name runtime-package))
+                     (*vm-self-host-mode*
+                      (error "Package self-hosting required: cannot intern ~S without runtime package registry"
+                             name))
+                     (t
+                      (cl-cc/runtime:rt-intern name runtime-package))))
+                  (*vm-self-host-mode*
+                   (error "Package self-hosting required: cannot intern ~S without runtime package registry"
+                          name))
+                  (t
+                   (intern name (find-package host-designator)))))))))
     (vm-reg-set state (vm-dst inst) result)
     (values (1+ pc) nil nil)))
 
@@ -152,71 +168,74 @@
   (let* ((pkg-designator (vm-reg-get state (vm-local-nickname-pkg inst)))
          (nickname (vm-reg-get state (vm-local-nickname-nick inst)))
          (target (vm-reg-get state (vm-local-nickname-target inst)))
-         (fn (%vm-host-package-local-nickname-function "ADD-PACKAGE-LOCAL-NICKNAME"))
-         (result (funcall fn nickname
-                          (%vm-host-package-designator target)
-                          (%vm-host-package-designator pkg-designator))))
-    (vm-reg-set state (vm-dst inst) result)
-    (values (1+ pc) nil nil)))
+         (fn (%vm-host-package-local-nickname-function
+              "ADD-PACKAGE-LOCAL-NICKNAME")))
+    (multiple-value-bind (runtime-target host-target)
+        (%vm-resolve-package-designator target)
+      (declare (ignore runtime-target))
+      (multiple-value-bind (runtime-package host-package)
+          (%vm-resolve-package-designator pkg-designator)
+        (declare (ignore runtime-package))
+        (let ((result (funcall fn nickname host-target host-package)))
+          (vm-reg-set state (vm-dst inst) result)
+          (values (1+ pc) nil nil))))))
 
-(defmethod execute-instruction ((inst vm-remove-package-local-nickname) state pc labels)
+(defmethod execute-instruction ((inst vm-remove-package-local-nickname)
+                                  state pc labels)
   (declare (ignore labels))
   (let* ((pkg-designator (vm-reg-get state (vm-local-nickname-pkg inst)))
          (nickname (vm-reg-get state (vm-local-nickname-nick inst)))
-         (fn (%vm-host-package-local-nickname-function "REMOVE-PACKAGE-LOCAL-NICKNAME"))
-         (result (funcall fn nickname (%vm-host-package-designator pkg-designator))))
-    (vm-reg-set state (vm-dst inst) result)
-    (values (1+ pc) nil nil)))
+         (fn (%vm-host-package-local-nickname-function
+              "REMOVE-PACKAGE-LOCAL-NICKNAME")))
+    (multiple-value-bind (runtime-package host-package)
+        (%vm-resolve-package-designator pkg-designator)
+      (declare (ignore runtime-package))
+      (let ((result (funcall fn nickname host-package)))
+        (vm-reg-set state (vm-dst inst) result)
+        (values (1+ pc) nil nil)))))
 
 (defmethod execute-instruction ((inst vm-find-package) state pc labels)
   (declare (ignore labels))
-  (let* ((name (vm-reg-get state (vm-src inst)))
-         (result (or
-                  ;; Package-local nicknames first (ANSI CL semantics)
-                  (%vm-find-package-local-nickname name)
-                  ;; Runtime package registry (self-hosting path — PRIMARY)
-                  (and cl-cc/bootstrap:*runtime-find-package-fn*
-                       (funcall cl-cc/bootstrap:*runtime-find-package-fn* name))
-                  ;; In self-host mode, refuse host CL fallback
-                  (and *vm-self-host-mode*
-                       (error "Package self-hosting required: package ~S not found in runtime registry"
-                              name))
-                  ;; Host CL fallback (bootstrap phase only)
-                  (find-package name))))
-    (vm-reg-set state (vm-dst inst) result)
-    (values (1+ pc) nil nil)))
+  (multiple-value-bind (runtime-package host-designator)
+      (%vm-resolve-package-designator (vm-reg-get state (vm-src inst)))
+    (let ((result
+            (or runtime-package
+                (and *vm-self-host-mode*
+                     (not (packagep host-designator))
+                     (error "Package self-hosting required: package ~S not found in runtime registry"
+                            (vm-reg-get state (vm-src inst))))
+                (find-package host-designator))))
+      (vm-reg-set state (vm-dst inst) result)
+      (values (1+ pc) nil nil))))
 
 (defmethod execute-instruction ((inst vm-find-symbol) state pc labels)
   (declare (ignore labels))
-  (let* ((name (string (vm-reg-get state (vm-src inst))))
-         (pkg-designator (when (vm-find-symbol-pkg inst)
-                           (vm-reg-get state (vm-find-symbol-pkg inst))))
-         (runtime-pkg (if (hash-table-p pkg-designator)
-                          pkg-designator
-                          (and cl-cc/bootstrap:*runtime-find-package-fn*
-                               pkg-designator
-                               (funcall cl-cc/bootstrap:*runtime-find-package-fn* pkg-designator))))
-          (host-pkg-designator (if (hash-table-p pkg-designator)
-                                   (or (gethash :name pkg-designator)
-                                       (gethash :host-package pkg-designator))
-                                   (or (and pkg-designator
-                                            (%vm-find-package-local-nickname pkg-designator))
-                                       pkg-designator))))
-    (multiple-value-bind (sym status)
-        (if (hash-table-p runtime-pkg)
-            (let* ((table (gethash :symbols runtime-pkg))
-                   (exports (gethash :exports runtime-pkg))
-                   (found (and table (gethash name table))))
-              (if found
-                  (values found (if (member found exports :test #'eq) :external :internal))
-                  ;; Not found in runtime table — fall back to host CL lookup.
-                  ;; The runtime package may mirror a host package via :host-package.
-                  (find-symbol name host-pkg-designator)))
-            (if host-pkg-designator
-                (find-symbol name host-pkg-designator)
-                (find-symbol name)))
-      (vm-reg-set state (vm-dst inst) sym)
-      (setf (vm-values-list state) (list sym status))
+  (let* ((name (string (%vm-host-string (vm-reg-get state (vm-src inst)))))
+         (package-supplied-p (vm-find-symbol-pkg inst))
+         (package-designator
+           (when package-supplied-p
+             (vm-reg-get state (vm-find-symbol-pkg inst)))))
+    (multiple-value-bind (symbol status)
+        (if package-supplied-p
+            (multiple-value-bind (runtime-package host-designator)
+                (%vm-resolve-package-designator package-designator)
+              (if runtime-package
+                  (let* ((table (gethash :symbols runtime-package))
+                         (exports (gethash :exports runtime-package)))
+                    (multiple-value-bind (found present-p)
+                        (if table (gethash name table) (values nil nil))
+                      (if present-p
+                          (values found
+                                  (if (member found exports :test (function eq))
+                                      :external
+                                      :internal))
+                          (if (packagep host-designator)
+                              (find-symbol name host-designator)
+                              (values nil nil)))))
+                  (find-symbol name host-designator)))
+            (find-symbol name))
+      (vm-reg-set state (vm-dst inst) symbol)
+      (setf (vm-values-list state) (list symbol status))
       (values (1+ pc) nil nil))))
 
 (defmethod execute-instruction ((inst vm-gensym-inst) state pc labels)
@@ -240,10 +259,11 @@
   (declare (ignore labels))
   (let* ((symbols (vm-reg-get state (vm-export-symbols inst)))
          (pkg (vm-reg-get state (vm-export-pkg inst)))
-         (result (%vm-package-operation-result pkg
-                                               #'cl-cc/runtime::rt-export
-                                               #'export
-                                               symbols pkg)))
+         (result (%vm-package-operation-result
+                  pkg
+                  (function cl-cc/runtime::rt-export)
+                  (function export)
+                  (list symbols pkg))))
     (vm-reg-set state (vm-dst inst) result)
     (values (1+ pc) nil nil)))
 
@@ -259,10 +279,11 @@
   (declare (ignore labels))
   (let* ((symbols (vm-reg-get state (vm-import-symbols inst)))
          (pkg (vm-reg-get state (vm-import-pkg inst)))
-         (result (%vm-package-operation-result pkg
-                                               #'cl-cc/runtime::rt-import
-                                               #'import
-                                               symbols pkg)))
+         (result (%vm-package-operation-result
+                  pkg
+                  (function cl-cc/runtime::rt-import)
+                  (function import)
+                  (list symbols pkg))))
     (vm-reg-set state (vm-dst inst) result)
     (values (1+ pc) nil nil)))
 
@@ -278,10 +299,12 @@
   (declare (ignore labels))
   (let* ((pkgs (vm-reg-get state (vm-use-packages inst)))
          (pkg (vm-reg-get state (vm-use-pkg inst)))
-         (result (%vm-package-operation-result pkg
-                                               #'cl-cc/runtime::rt-use-package
-                                               #'use-package
-                                               pkgs pkg)))
+         (result (%vm-package-operation-result
+                  pkg
+                  (function cl-cc/runtime::rt-use-package)
+                  (function use-package)
+                  (list pkgs pkg)
+                  0)))
     (vm-reg-set state (vm-dst inst) result)
     (values (1+ pc) nil nil)))
 
@@ -297,10 +320,12 @@
   (declare (ignore labels))
   (let* ((pkgs (vm-reg-get state (vm-unuse-packages inst)))
          (pkg (vm-reg-get state (vm-unuse-pkg inst)))
-         (result (%vm-package-operation-result pkg
-                                               #'cl-cc/runtime::rt-unuse-package
-                                               #'unuse-package
-                                               pkgs pkg)))
+         (result (%vm-package-operation-result
+                  pkg
+                  (function cl-cc/runtime::rt-unuse-package)
+                  (function unuse-package)
+                  (list pkgs pkg)
+                  0)))
     (vm-reg-set state (vm-dst inst) result)
     (values (1+ pc) nil nil)))
 
@@ -316,10 +341,11 @@
   (declare (ignore labels))
   (let* ((names (vm-reg-get state (vm-shadow-names inst)))
          (pkg (vm-reg-get state (vm-shadow-pkg inst)))
-         (result (%vm-package-operation-result pkg
-                                               #'cl-cc/runtime::rt-shadow
-                                               #'shadow
-                                               names pkg)))
+         (result (%vm-package-operation-result
+                  pkg
+                  (function cl-cc/runtime::rt-shadow)
+                  (function shadow)
+                  (list names pkg))))
     (vm-reg-set state (vm-dst inst) result)
     (values (1+ pc) nil nil)))
 
@@ -335,10 +361,11 @@
   (declare (ignore labels))
   (let* ((sym (vm-reg-get state (vm-unintern-symbol inst)))
          (pkg (vm-reg-get state (vm-unintern-pkg inst)))
-         (result (%vm-package-operation-result pkg
-                                               #'cl-cc/runtime::rt-unintern
-                                               #'unintern
-                                               sym pkg)))
+         (result (%vm-package-operation-result
+                  pkg
+                  (function cl-cc/runtime::rt-unintern)
+                  (function unintern)
+                  (list sym pkg))))
     (vm-reg-set state (vm-dst inst) result)
     (values (1+ pc) nil nil)))
 
