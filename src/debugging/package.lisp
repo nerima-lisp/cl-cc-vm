@@ -1,0 +1,110 @@
+(defpackage #:cl-cc/vm/debugging
+  (:use #:cl)
+  (:shadow
+   #:*TRACE-OUTPUT*
+   #:BREAK
+   #:DESCRIBE
+   #:DRIBBLE
+   #:ED
+   #:INSPECT
+   #:INVOKE-DEBUGGER
+   #:STEP
+   #:TRACE
+   #:UNTRACE
+  )
+    (:import-from #:cl-cc/vm/protocols #:vm-register-host-bridge #:vm-trace-output-stream #:vm-trace-output-symbol #:*vm-debugger-request-hook*)
+  (:import-from #:cl-cc/vm/conditions #:make-vm-simple-error
+   #:vm-invoke-restart-interactively
+   #:vm-show-restart-menu #:vm-fatal-error #:vm-fatal-error-print-backtrace-p)
+  (:import-from #:cl-cc/vm/io
+   #:+eof-value+
+  )
+  (:shadowing-import-from #:cl-cc/vm/io
+   #:open
+  )
+  (:import-from #:cl-cc/vm/environment
+   #:source-location
+  )
+  (:shadowing-import-from #:cl-cc/vm/environment
+   #:apropos
+   #:apropos-list
+   #:decode-universal-time
+   #:get-universal-time
+   #:room
+  )
+  (:import-from #:cl-cc/vm/execution
+   #:vm-print-backtrace
+   #:vm-state
+  )
+(:export
+   #:*REPL-JOURNAL*
+   #:*REPL-SYNTAX-COLORS*
+   #:*TRACE-OUTPUT*
+   #:ANALYZE-ASSERTION-DENSITY
+   #:BISECT-REGRESSION
+   #:BREAK
+   #:DESCRIBE
+   #:DRIBBLE
+   #:ED
+   #:EXTRACT-DOCSTRINGS
+   #:GENERATE-API-DOCS
+   #:INSPECT
+   #:INVOKE-DEBUGGER
+   #:MACROSTEP
+   #:OBJDUMP
+   #:PROFILE-VALUES
+   #:READ-PMU-COUNTERS
+   #:REPL-COMPLETE
+   #:REPL-UNDO
+   #:REPORT-STACK-OVERFLOW
+   #:RUN-DOCTESTS
+   #:SHOW-TYPES
+   #:START-CPU-PROFILE
+   #:STEP
+   #:TRACE
+   #:UNTRACE
+   #:VM-ANSI-COLOR
+   #:VM-ANSI-RESET
+   #:VM-APROPOS
+   #:VM-APROPOS-LIST
+   #:VM-BREAK
+   #:VM-DESCRIBE
+   #:VM-DRIBBLE
+   #:VM-ED
+   #:VM-INSPECT
+   #:VM-INVOKE-DEBUGGER
+   #:VM-ISATTY
+   #:VM-READ-KEY
+   #:VM-READLINE
+   #:VM-ROOM
+   #:VM-STEP
+   #:VM-STEP-PROMPT
+   #:VM-TERMINAL-SIZE
+   #:VM-TRACE
+   #:VM-TRACED-P
+   #:VM-UNTRACE
+   #:VM-WITH-RAW-TERMINAL
+   #:VM-WITH-TRACE
+  )
+  (:intern
+   #:%INSTALL-SIGNAL-HANDLER
+   #:%SIGNAL-NUMBER
+   #:%TRACE-KEY
+   #:*CRASH-HANDLER-INSTALLED*
+   #:*DRIBBLE-STREAM*
+   #:*VM-STEP-MODE*
+   #:*VM-TRACE-DEPTH*
+   #:*VM-TRACED-FUNCTIONS*
+   #:BUILD-CRASH-REPORT
+   #:CAPTURE-BACKTRACE
+   #:CAPTURE-HEAP-STATS
+   #:CAPTURE-REGISTERS
+   #:CAPTURE-THREAD-CONTEXT
+   #:CRASH-REPORT
+   #:FORMAT-TIMESTAMP
+   #:SAVE-CRASH-DUMP
+   #:VM-FORMAT-TRACE-CALL
+   #:VM-FORMAT-TRACE-RETURN
+   #:WRITE-CRASH-REPORT
+  )
+)

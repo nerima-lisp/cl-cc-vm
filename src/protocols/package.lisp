@@ -1,0 +1,60 @@
+(defpackage #:cl-cc/vm/protocols
+  (:use #:cl)
+  (:export
+   #:*instruction-constructors*
+   #:*vm-compile-string-hook*
+   #:*vm-eval-hook*
+   #:*vm-host-bridge-functions*
+   #:*vm-macroexpand-1-hook*
+   #:*vm-macroexpand-hook*
+   #:*vm-parse-forms-hook*
+   #:build-label-table
+   #:define-simple-instruction
+   #:define-vm-binary-instruction
+   #:define-vm-char-comparison
+   #:define-vm-instruction
+   #:define-vm-unary-instruction
+   #:execute-instruction
+   #:instruction->sexp
+   #:make-vm-instruction
+   #:sexp->instruction
+   #:vm-char1
+   #:vm-char2
+   #:vm-dst
+   #:vm-instruction
+   #:vm-lhs
+   #:vm-maybe-dump-type-profile
+   #:vm-reg-get
+   #:vm-reg-set
+   #:vm-register-host-bridge
+   #:vm-resolve-gf-method
+   #:vm-rhs
+   #:vm-src
+   #:vm-state-heap
+   #:vm-typep-check
+   #:vm-values-list   #:vm-resolve-hash-test
+)
+  (:intern #:vm-decode-symbol #:vm-encode-common-symbol #:vm-immediate-symbol-p #:vm-trace-output-symbol #:vm-trace-output-stream #:vm-register-runtime-callable #:vm-check-row-major-index #:vm-safety-checks-enabled-p #:vm-immediate-intern-enabled-p #:vm-io-initial-globals
+   #:%vm-dispatch-call
+   #:%vm-method-function
+   #:%vm-ret-qualified-dispatch
+   #:%vm-typep-call-predicate
+   #:%vm-typep-range-check
+   #:*vm-debugger-request-hook*
+   #:*vm-runtime-callables*
+   #:*vm-self-host-mode*
+   #:vm-call-with-readable-printing
+   #:vm-check-index
+   #:vm-closure-object-p
+   #:vm-copy-instance
+   #:vm-create-io-state
+   #:vm-environment-canary-value
+   #:vm-execute-instruction-guarded
+   #:vm-fatal-error-p
+   #:vm-feature-initial-globals
+   #:vm-getenv
+   #:vm-load-pathname
+   #:vm-lookup-bridge-callable
+   #:vm-random-integer
+   #:vm-request-debugger #:vm-state-symbol-plists #:vm-state-system-symbol-plists #:vm-state-symbol-plist-lock #:vm-state-symbol-plist-read-barrier)
+)

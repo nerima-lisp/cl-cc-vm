@@ -1,0 +1,120 @@
+(defpackage #:cl-cc/vm/interop
+  (:use #:cl)
+    (:import-from #:cl-cc/vm/protocols #:*vm-compile-string-hook* #:*vm-eval-hook* #:*vm-host-bridge-functions* #:*vm-macroexpand-1-hook* #:*vm-macroexpand-hook* #:*vm-parse-forms-hook* #:vm-register-host-bridge #:vm-register-runtime-callable #:vm-resolve-hash-test #:*vm-runtime-callables* #:vm-trace-output-stream #:vm-lookup-bridge-callable)
+    (:import-from #:cl-cc/bootstrap #:rt-plist-put)
+  (:import-from #:cl-cc/vm/clos
+   #:class-slots
+   #:generic-function-method-combination
+   #:generic-function-methods
+   #:slot-definition-name
+  )
+  (:shadowing-import-from #:cl-cc/vm/debugging
+   #:inspect
+  )
+  (:import-from #:cl-cc/vm/data
+   #:*hash-test-function-alist*
+   #:hash-test-symbol
+  )
+  (:import-from #:cl-cc/vm/io
+   #:%vm-bridge-symbol-stream-value
+  )
+  (:import-from #:cl-cc/vm/execution
+   #:*vm-current-state*
+     #:*documentation-table*
+   #:vm-global-vars
+)
+(:export
+   #:%ALL-SYMBOLS
+   #:%CLASS-SLOT-DEFINITIONS
+   #:%CLASS-SLOT-INITARGS-FOR-SLOT
+   #:%CLASS-SLOT-METADATA
+   #:%MAKE-INSTANCES-OBSOLETE
+   #:%PACKAGE-EXTERNAL-SYMBOLS
+   #:%PACKAGE-SYMBOLS
+   #:*CODE-SIGN-IDENTITY*
+   #:*SANDBOX-ENABLED*
+   #:*SECCOMP-FILTER-RULES*
+   #:*SHAPE-REGISTRY*
+   #:*VALUE-TYPES*
+   #:+IMT-SIZE+
+   #:AES-ENCRYPT
+   #:CLASS-METACLASS
+   #:COMPUTE-EFFECTIVE-SLOT-DEFINITION
+   #:DEFVALUE-TYPE
+   #:EMIT-HEADER
+   #:EXPORT-C-API
+   #:FIND-OR-CREATE-SHAPE
+   #:FOREIGN-CALL-VARARGS
+   #:HASH-TABLE-VALUES
+   #:IMT-ENTRY
+   #:IMT-INSERT
+   #:IMT-LOOKUP
+   #:INITIALIZE-SANDBOX
+   #:INLINE-METHOD-TABLE
+   #:MAKE-CALLBACK
+   #:MAKE-IMT-ENTRY
+   #:MAKE-INLINE-METHOD-TABLE
+   #:MAKE-MARK-WORD
+   #:MAKE-OBJECT-SHAPE
+   #:MARK-WORD-GC-COLOR
+   #:OBJECT-SHAPE
+   #:OCTETS-TO-STRING
+   #:REGEX-ALL-MATCHES
+   #:REGEX-REPLACE
+   #:REGEX-REPLACE-ALL
+   #:REGEX-SCAN
+   #:REGEX-SPLIT
+   #:REGISTER-GC-ROOT
+   #:RESOLVE-HASH-TEST
+   #:SHA256-ROUNDS
+   #:SHAPE-SLOT-OFFSET
+   #:SIGN-BINARY
+   #:SLOT-DEFINITION-ALLOCATION
+   #:SLOT-DEFINITION-INITARGS
+   #:SLOT-DEFINITION-INITFORM
+   #:SLOT-DEFINITION-INITFUNCTION
+   #:SLOT-DEFINITION-LOCATION
+   #:SLOT-DEFINITION-TYPE
+   #:STRING-TO-OCTETS
+   #:VALUE-TYPE-DEF
+   #:WITH-PINNED-OBJECT
+   #:WITH-PLATFORM
+  )
+  (:intern
+   #:%CLASS-SLOT-DEFINITIONS-FROM-KEY
+   #:%CLASS-SLOT-LOCATION
+   #:%COERCE-OCTETS-VECTOR
+   #:%DOCUMENTATION-SYMBOL-CANDIDATES
+   #:%DOCUMENTATION-TABLES
+   #:%ENSURE-VM-DOCUMENTATION-TABLE
+   #:%FOREIGN-ALIEN-TYPE-FORM
+   #:%FOREIGN-FUNCALL
+   #:%GET-DOCUMENTATION
+   #:%MAKE-HASH-TABLE-WITH-TEST
+   #:%NORMALIZE-QUERY-ANSWER
+   #:%NORMALIZE-TEXT-ENCODING
+   #:%PARSE-FOREIGN-FUNCALL-ARGUMENTS
+   #:%REGISTER-DOCUMENTATION
+   #:%UTF-8-BYTE-LENGTH
+   #:%VM-BRIDGE-SYMBOL-ALIASES
+   #:%VM-FILE-STRING-LENGTH
+   #:%VM-QUERY-ANSWER
+   #:%VM-QUERY-IO-STREAM
+   #:%VM-RUNTIME-CALLABLE
+   #:%VM-RUNTIME-PACKAGE-REGISTRY
+   #:%VM-SAFE-DISASSEMBLE
+   #:%VM-SAFE-INSPECT
+   #:%VM-SUBTYPEP
+   #:%VM-Y-OR-N-P
+   #:%VM-YES-OR-NO-P
+   #:+MARK-WORD-GC-COLOR-BITS+
+   #:+MARK-WORD-HASH-BITS+
+   #:+MARK-WORD-KIND-BITS+
+   #:REGISTER-PIN
+   #:UNREGISTER-PIN
+   #:VM-BRIDGE-CALLABLE
+   #:VM-INSTALL-EVAL-HOOKS
+   #:VM-INSTALL-MACROEXPAND-HOOKS
+   #:VM-INSTALL-PARSE-FORMS-HOOK
+  )
+)

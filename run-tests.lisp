@@ -30,20 +30,11 @@
 (progn
   (defun configure-local-source-registry (root)
     (asdf:initialize-source-registry
-      `(:source-registry (:tree ,root) :inherit-configuration)))
+     `(:source-registry (:tree ,root) :inherit-configuration)))
   (let* ((root (script-directory))
          (report-stream *standard-output*))
     (configure-local-source-registry root)
-    (asdf:load-system "cl-cc-vm/test")
-    (let* ((plan (uiop:symbol-call :cl-weave :list-tests :stream (make-broadcast-stream)))
-           (test-count (length plan)))
-      (format report-stream "~&cl-cc-vm: running ~D test~:P~%" test-count)
-      (finish-output report-stream)
-      (progn
-        (asdf:test-system "cl-cc-vm/test")
-        (format
-          report-stream
-          "~&cl-cc-vm: PASSED (~D test~:P)~%"
-          test-count)
-        (finish-output report-stream)
-        (uiop:quit 0)))))
+    (asdf:test-system "cl-cc-vm")
+    (format report-stream "~&cl-cc-vm: all test systems passed~%")
+    (finish-output report-stream)
+    (uiop:quit 0)))

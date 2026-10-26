@@ -1,0 +1,141 @@
+;;;; vm-opcodes-shapes.lisp — Opcode shape macros and vm2-state struct
+;;;;
+;;;; Load order: after vm-opcodes.lisp (defopcode macro must exist first).
+
+(in-package #:cl-cc/vm/execution)
+
+;;; ── Opcode shape macros ───────────────────────────────────────────────────
+;;; These macros generate defopcode forms for the four common opcode shapes,
+;;; eliminating ~40 near-identical lambda bodies while keeping all opcode
+;;; numbering and table registration intact via the inner defopcode call.
+
+(defmacro defopcode-unary-fn (name fn)
+  "Opcode: dst ← fn(src)."
+  (list 'defopcode name
+        (list 'lambda '(state code pc regs)
+              (list 'declare '(ignore state))
+              (list 'let (list (list 'dst '(svref code (+ pc 1)))
+                               (list 'src '(svref code (+ pc 2))))
+                    (list 'setf '(svref regs dst) (list fn '(svref regs src))))
+              '(+ pc 4))))
+
+(defmacro defopcode-unary-type-pred (name type)
+  "Opcode: dst ← (if (typep src 'type) 1 0).
+Used for predicates that lack a simple CL function form (e.g. fixnump)."
+  (list 'defopcode name
+        (list 'lambda '(state code pc regs)
+              (list 'declare '(ignore state))
+              (list 'let (list (list 'dst '(svref code (+ pc 1)))
+                               (list 'src '(svref code (+ pc 2))))
+                    (list 'setf '(svref regs dst)
+                          (list 'if (list 'typep '(svref regs src) (list 'quote type)) 1 0)))
+              '(+ pc 4))))
+
+(defmacro defopcode-unary-pred (name pred)
+  "Opcode: dst ← (if pred(src) 1 0)."
+  (list 'defopcode name
+        (list 'lambda '(state code pc regs)
+              (list 'declare '(ignore state))
+              (list 'let (list (list 'dst '(svref code (+ pc 1)))
+                               (list 'src '(svref code (+ pc 2))))
+                    (list 'setf '(svref regs dst)
+                          (list 'if (list pred '(svref regs src)) 1 0)))
+              '(+ pc 4))))
+
+(defmacro defopcode-load-literal (name value-form)
+  "Opcode: dst ← VALUE-FORM.
+VALUE-FORM may reference CODE/PC/REGS for immediate-bearing loads, or be a
+literal constant for fixed-value loads."
+  (list 'defopcode name
+        (list 'lambda '(state code pc regs)
+              (list 'declare '(ignore state))
+              (list 'let (list (list 'dst '(svref code (+ pc 1))))
+                    (list 'setf '(svref regs dst) value-form))
+              '(+ pc 4))))
+
+(defmacro defopcode-binary-fn (name fn)
+  "Opcode: dst ← fn(src1, src2)."
+  (list 'defopcode name
+        (list 'lambda '(state code pc regs)
+              (list 'declare '(ignore state))
+              (list 'let (list (list 'dst '(svref code (+ pc 1)))
+                               (list 'src1 '(svref code (+ pc 2)))
+                               (list 'src2 '(svref code (+ pc 3))))
+                    (list 'setf '(svref regs dst) (list fn '(svref regs src1) '(svref regs src2))))
+              '(+ pc 4))))
+
+(defmacro defopcode-binary-pred (name pred)
+  "Opcode: dst ← (if pred(src1, src2) 1 0)."
+  (list 'defopcode name
+        (list 'lambda '(state code pc regs)
+              (list 'declare '(ignore state))
+              (list 'let (list (list 'dst '(svref code (+ pc 1)))
+                               (list 'src1 '(svref code (+ pc 2)))
+                               (list 'src2 '(svref code (+ pc 3))))
+                    (list 'setf '(svref regs dst)
+                          (list 'if (list pred '(svref regs src1) '(svref regs src2)) 1 0)))
+              '(+ pc 4))))
+
+(defmacro defopcode-binary-fn-imm (name fn)
+  "Opcode: dst ← fn(src, immediate)."
+  (list 'defopcode name
+        (list 'lambda '(state code pc regs)
+              (list 'declare '(ignore state))
+              (list 'let (list (list 'dst '(svref code (+ pc 1)))
+                               (list 'src '(svref code (+ pc 2)))
+                               (list 'imm '(svref code (+ pc 3))))
+                    (list 'setf '(svref regs dst) (list fn '(svref regs src) 'imm)))
+              '(+ pc 4))))
+
+(defmacro defopcode-binary-pred-imm (name pred)
+  "Opcode: dst ← (if pred(src, immediate) 1 0)."
+  (list 'defopcode name
+        (list 'lambda '(state code pc regs)
+              (list 'declare '(ignore state))
+              (list 'let (list (list 'dst '(svref code (+ pc 1)))
+                               (list 'src '(svref code (+ pc 2)))
+                               (list 'imm '(svref code (+ pc 3))))
+                    (list 'setf '(svref regs dst) (list 'if (list pred '(svref regs src) 'imm) 1 0)))
+              '(+ pc 4))))
+
+;;; ── vm2-state ──────────────────────────────────────────────────────────────
+
+(defconstant +vm-register-count+ 256
+  "Number of integer-indexed registers in the vm2-state register file.")
+
+(defstruct (vm2-state
+             (:constructor make-vm2-state
+                (&key (output-stream *standard-output*)
+                 &aux (registers (make-array +vm-register-count+ :initial-element nil))
+                      (global-vars
+                       (let ((ht (make-hash-table)))
+                         (dolist (entry (vm-feature-initial-globals :environment))
+                           (when (string= (symbol-name (car entry)) "*FEATURES*")
+                             (setf (gethash (car entry) ht) (second entry))))
+                         (dolist (entry (vm-feature-initial-globals :conditions))
+                           (when (string= (symbol-name (car entry)) "*ACTIVE-RESTARTS*")
+                             (setf (gethash (car entry) ht) (second entry))))
+                         (setf (gethash (quote *standard-output*) ht) *standard-output*)
+                         (setf (gethash (quote *standard-input*) ht) *standard-input*)
+                         (setf (gethash (quote *error-output*) ht) *error-output*)
+                         (setf (gethash (vm-trace-output-symbol) ht)
+                               (vm-trace-output-stream))
+                         (setf (gethash (quote *debug-io*) ht) *debug-io*)
+                         (setf (gethash (quote *query-io*) ht) *query-io*)
+                         ht))
+                      (values-buffer nil)
+                      (profile-enabled-p nil)
+                      (profile-call-stack nil)
+                      (profile-samples (make-hash-table :test (function equal))))))
+  "VM2 state for the flat-vector run-vm interpreter.
+REGISTERS: simple-vector of 256 integer-indexed slots (fast svref access).
+GLOBAL-VARS: hash table for global variable bindings.
+OUTPUT-STREAM: stream for I/O."
+  (registers nil :type simple-vector)
+  (global-vars nil :type hash-table)
+  (values-buffer nil)
+  (profile-enabled-p nil)
+  (profile-call-stack nil)
+  (profile-samples nil :type hash-table)
+  (output-stream *standard-output*))
+

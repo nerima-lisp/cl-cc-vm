@@ -1,0 +1,317 @@
+(in-package #:cl-cc/vm/execution)
+
+;;; VM Instructions
+
+(define-vm-instruction vm-const (vm-instruction)
+  (dst nil :reader vm-dst)
+  (value nil :reader vm-value)
+  (:sexp-tag :const))
+
+(define-vm-instruction vm-move (vm-instruction)
+  (dst nil :reader vm-dst)
+  (src nil :reader vm-src)
+  (:sexp-tag :move))
+
+(define-vm-instruction vm-prefetch (vm-instruction)
+  "Backend-neutral cache prefetch hint.  BASE-REG plus optional INDEX-REG*SCALE
+and OFFSET denotes the address to prefetch; LOCALITY is :T0/:NTA on x86-64 and
+:KEEP/:STRM on AArch64.  The VM interpreter treats this as a no-op."
+  (base-reg nil :reader vm-prefetch-base-reg)
+  (index-reg nil :reader vm-prefetch-index-reg)
+  (scale 1 :reader vm-prefetch-scale)
+  (offset 0 :reader vm-prefetch-offset)
+  (locality :t0 :reader vm-prefetch-locality)
+  (kind :generic :reader vm-prefetch-kind)
+  (:sexp-tag :prefetch)
+  (:sexp-slots base-reg index-reg scale offset locality kind))
+
+(define-vm-instruction vm-label (vm-instruction)
+  (name nil :reader vm-name)
+  (:sexp-tag :label)
+  (:conc-name vm-lbl-))
+
+(define-vm-instruction vm-jump (vm-instruction)
+  (label nil :reader vm-label-name)
+  (:sexp-tag :jump))
+
+(define-vm-instruction vm-jump-zero (vm-instruction)
+  (reg nil :reader vm-reg)
+  (label nil :reader vm-label-name)
+  (:sexp-tag :jump-zero))
+
+(define-vm-instruction vm-select (vm-instruction)
+  "Select one of two values based on COND. DST = THEN if COND is non-NIL, else ELSE."
+  (dst nil :reader vm-dst)
+  (cond-reg nil :reader vm-select-cond-reg)
+  (then-reg nil :reader vm-select-then-reg)
+  (else-reg nil :reader vm-select-else-reg)
+  (:sexp-tag :select)
+  (:sexp-slots dst cond-reg then-reg else-reg))
+
+(define-vm-instruction vm-print (vm-instruction)
+  (reg nil :reader vm-reg)
+  (:sexp-tag :print))
+
+(define-vm-instruction vm-halt (vm-instruction)
+  (reg nil :reader vm-reg)
+  (:sexp-tag :halt))
+
+;;; Function support instructions
+(define-vm-instruction vm-closure (vm-instruction)
+  (dst nil :reader vm-dst)
+  (label nil :reader vm-label-name)
+  (params nil :reader vm-closure-params)
+  (optional-params nil :reader vm-closure-optional-params)
+  (rest-param nil :reader vm-closure-rest-param)
+  (key-params nil :reader vm-closure-key-params)
+  (rest-stack-alloc-p nil :reader vm-closure-rest-stack-alloc-p)
+  (inline-policy nil :reader vm-closure-inline-policy)
+  (dispatch-tag nil :reader vm-closure-inst-dispatch-tag)
+  (captured nil :reader vm-captured-vars)
+  (:sexp-tag :closure)
+  (:sexp-slots dst label params optional-params rest-param key-params rest-stack-alloc-p inline-policy dispatch-tag captured)
+  (:conc-name vm-closure-inst-))
+
+;; vm-make-closure uses list* for instruction->sexp (custom sexp handling)
+(define-vm-instruction vm-make-closure (vm-instruction)
+  "Create a closure from LABEL with PARAMS, capturing ENV-REGS values on heap."
+  (dst nil :reader vm-dst)
+  (label nil :reader vm-label-name)
+  (params nil :reader vm-make-closure-params)
+  (env-regs nil :reader vm-env-regs))
+
+(defmethod instruction->sexp ((inst vm-make-closure))
+  (list* :make-closure (vm-make-closure-dst inst) (vm-make-closure-label inst)
+         (vm-make-closure-params inst) (vm-make-closure-env-regs inst)))
+
+(setf (gethash :make-closure *instruction-constructors*)
+      (lambda (sexp)
+        (make-vm-make-closure :dst (second sexp) :label (third sexp)
+                              :params (fourth sexp) :env-regs (nthcdr 4 sexp))))
+
+(define-vm-instruction vm-closure-ref-idx (vm-instruction)
+  "Access captured value at INDEX from closure in CLOSURE register."
+  (dst nil :reader vm-dst)
+  (closure nil :reader vm-closure-reg)
+  (index nil :reader vm-closure-index)
+  (:sexp-tag :closure-ref-idx))
+
+(define-vm-instruction vm-call (vm-instruction)
+  (dst nil :reader vm-dst)
+  (func nil :reader vm-func-reg)
+  (args nil :reader vm-args)
+  (live-regs nil :reader vm-call-live-regs)
+  (:sexp-tag :call)
+  (:sexp-slots dst func args))
+
+(define-vm-instruction vm-tail-call (vm-instruction)
+  "Tail call: reuses current call frame instead of pushing a new one."
+  (dst nil :reader vm-dst)
+  (func nil :reader vm-func-reg)
+  (args nil :reader vm-args)
+  (live-regs nil :reader vm-tail-call-live-regs)
+  (:sexp-tag :tail-call)
+  (:sexp-slots dst func args))
+
+(define-vm-instruction vm-call/cc (vm-instruction)
+  "Capture the current continuation and call FUNC with it."
+  (dst nil :reader vm-dst)
+  (func nil :reader vm-func-reg)
+  (:sexp-tag :call/cc)
+  (:sexp-slots dst func))
+
+(define-vm-instruction vm-call-with-prompt (vm-instruction)
+  "Install PROMPT-NAME while calling FUNC with no arguments."
+  (dst nil :reader vm-dst)
+  (func nil :reader vm-func-reg)
+  (prompt nil :reader vm-prompt-reg)
+  (:sexp-tag :call-with-prompt)
+  (:sexp-slots dst func prompt))
+
+(define-vm-instruction vm-abort-to-prompt (vm-instruction)
+  "Abort to PROMPT-NAME with VALUE."
+  (prompt nil :reader vm-prompt-reg)
+  (value nil :reader vm-value-reg)
+  (:sexp-tag :abort-to-prompt)
+  (:sexp-slots prompt value))
+
+(define-vm-instruction vm-trampoline (vm-instruction)
+  "Create a zero-argument thunk for an external trampoline loop to execute."
+  (dst nil :reader vm-dst)
+  (func nil :reader vm-func-reg)
+  (args nil :reader vm-args)
+  (:sexp-tag :trampoline))
+
+(define-vm-instruction vm-recompile (vm-instruction)
+  "Request runtime recompilation/tier upgrade for FUNC to TIER."
+  (func nil :reader vm-func-reg)
+  (tier 1 :reader vm-recompile-tier)
+  (:sexp-tag :recompile)
+  (:sexp-slots func tier))
+
+(define-vm-instruction vm-ret (vm-instruction)
+  (reg nil :reader vm-reg)
+  (:sexp-tag :ret))
+
+(define-vm-instruction vm-func-ref (vm-instruction)
+  (dst nil :reader vm-dst)
+  (label nil :reader vm-label-name)
+  (params nil :reader vm-closure-params)
+  (optional-params nil :reader vm-closure-optional-params)
+  (rest-param nil :reader vm-closure-rest-param)
+  (key-params nil :reader vm-closure-key-params)
+  (rest-stack-alloc-p nil :reader vm-closure-rest-stack-alloc-p)
+  (inline-policy nil :reader vm-closure-inline-policy)
+  (dispatch-tag nil :reader vm-func-ref-dispatch-tag)
+  (:sexp-tag :func-ref)
+  (:sexp-slots dst label params optional-params rest-param key-params rest-stack-alloc-p inline-policy dispatch-tag))
+
+;;; Multiple values and apply instructions
+(define-vm-instruction vm-values (vm-instruction)
+  "Multiple values. DST gets primary value, values-list stores all."
+  (dst nil :reader vm-dst)
+  (src-regs nil :reader vm-src-regs)
+  (:sexp-tag :values))
+
+(define-vm-instruction vm-values-typep (vm-instruction)
+  "Check current multiple values against a VALUES type specifier."
+  (dst nil :reader vm-dst)
+  (src nil :reader vm-src)
+  (type-name nil :reader vm-type-name)
+  (:sexp-tag :values-typep)
+  (:sexp-slots dst src type-name))
+
+(define-vm-instruction vm-mv-bind (vm-instruction)
+  "Bind multiple values from values-list to registers."
+  (dst-regs nil :reader vm-dst-regs)
+  (:sexp-tag :mv-bind))
+
+(define-vm-instruction vm-values-to-list (vm-instruction)
+  "Convert vm-values-list to a list in DST register."
+  (dst nil :reader vm-dst)
+  (:sexp-tag :values-to-list))
+
+(define-vm-instruction vm-nth-value (vm-instruction)
+  "Read INDEX from the current MV buffer into DST in O(1)."
+  (dst nil :reader vm-dst)
+  (index nil :reader vm-index)
+  (:sexp-tag :nth-value)
+  (:sexp-slots dst index))
+
+(define-vm-instruction vm-load-time-value (vm-instruction)
+  "Load resolved load-time-value cell CELL-ID into DST."
+  (dst nil :reader vm-dst)
+  (cell-id nil :reader vm-load-time-value-inst-cell-id)
+  (:conc-name vm-load-time-value-inst-)
+  (:sexp-tag :load-time-value)
+  (:sexp-slots dst cell-id))
+
+(define-vm-instruction vm-spread-values (vm-instruction)
+  "Spread a list from SRC register as multiple values. DST gets primary value."
+  (dst nil :reader vm-dst)
+  (src nil :reader vm-src)
+  (:sexp-tag :spread-values))
+
+(define-vm-instruction vm-clear-values (vm-instruction)
+  "Clear vm-values-list to nil (reset multiple-values buffer before a form)."
+  (:sexp-tag :clear-values))
+
+;;; FR-073: Multiple Values via Registers (≤3 values)
+(define-vm-instruction vm-values-regs (vm-instruction)
+  "Return up to 3 values via physical registers (RAX, RDX, RCX) instead of
+   allocating a heap list.  This avoids the list allocation and GC overhead
+   for the common small-values case in native code.
+
+   Only used when the compiler statically knows the arity and the values
+   fit in ≤3 registers.  Falls back to vm-values-list for >3 values."
+  (reg0 nil :reader vm-vr0)   ; value 1 → RAX
+  (reg1 nil :reader vm-vr1)   ; value 2 → RDX (optional)
+  (reg2 nil :reader vm-vr2)   ; value 3 → RCX (optional)
+  (count 0 :reader vm-vr-count)
+  (:sexp-tag :values-regs)
+  (:sexp-slots reg0 reg1 reg2 count))
+
+(define-vm-instruction vm-mv-bind-regs (vm-instruction)
+  "Bind statically known ≤3 returned values from physical return registers.
+   Native x86-64 reads RAX/RDX/RCX; the interpreter mirrors this via
+   vm-values-list for compatibility with the existing VM protocol."
+  (dst-regs nil :reader vm-dst-regs)
+  (count 0 :reader vm-mv-bind-regs-count)
+  (:sexp-tag :mv-bind-regs)
+  (:sexp-slots dst-regs count))
+
+(define-vm-instruction vm-ensure-values (vm-instruction)
+  "If vm-values-list is nil, set it to (list (reg-get SRC)).
+   Used after compiling a form for multiple-value-call to normalise
+   plain expressions that do not emit vm-values."
+  (src nil :reader vm-src)
+  (:sexp-tag :ensure-values))
+
+(define-vm-instruction vm-call-next-method (vm-instruction)
+  "Call the next applicable method from the current method dispatch context.
+   ARGS-REG holds the args list (nil means use original args).
+   DST receives the return value."
+  (dst nil :reader vm-dst)
+  (args-reg nil :reader vm-cnm-args-reg)
+  (:sexp-tag :call-next-method))
+
+(define-vm-instruction vm-next-method-p (vm-instruction)
+  "Return T if there is a next applicable method in the current dispatch context."
+  (dst nil :reader vm-dst)
+  (:sexp-tag :next-method-p))
+
+(define-vm-instruction vm-apply (vm-instruction)
+  "Apply function with spread arguments. Last arg is a list to spread."
+  (dst nil :reader vm-dst)
+  (func nil :reader vm-func-reg)
+  (args nil :reader vm-args)
+  (tail-p nil :reader vm-tail-p)
+  (:sexp-tag :apply)
+  (:sexp-slots dst func args tail-p))
+
+(define-vm-instruction vm-register-function (vm-instruction)
+  "Register a closure in the global function registry by name."
+  (name nil :reader vm-func-name)
+  (src nil :reader vm-src)
+  (:sexp-tag :register-function))
+
+(define-vm-instruction vm-declare-forward-reference (vm-instruction)
+  "Declare NAME as a forward-referenced function and allocate its cell."
+  (name nil :reader vm-forward-reference-name)
+  (:sexp-tag :declare-forward-reference)
+  (:sexp-slots name))
+
+(define-vm-instruction vm-set-global (vm-instruction)
+  "Store a value in the global variable store."
+  (name nil :reader vm-global-name)
+  (src nil :reader vm-src)
+  (:sexp-tag :set-global))
+
+(define-vm-instruction vm-get-global (vm-instruction)
+  "Load a value from the global variable store into a register."
+  (dst nil :reader vm-dst)
+  (name nil :reader vm-global-name)
+  (:sexp-tag :get-global))
+
+(define-vm-instruction vm-char (vm-instruction)
+  "Character at position. DST = STRING[INDEX]."
+  (dst nil :reader vm-dst)
+  (string nil :reader vm-string-reg)
+  (index nil :reader vm-index)
+  (:sexp-tag :char)
+  (:sexp-slots dst string index))
+
+(define-vm-instruction vm-acons (vm-instruction)
+  "Prepend (KEY . VALUE) to ALIST."
+  (dst nil :reader vm-dst)
+  (key nil :reader vm-key)
+  (value nil :reader vm-value)
+  (alist nil :reader vm-alist)
+  (:sexp-tag :acons)
+  (:sexp-slots dst key value alist))
+
+(define-vm-instruction vm-symbol-set (vm-instruction)
+  "Set property INDICATOR on symbol SYM's plist to VALUE."
+  (dst nil :reader vm-dst) (sym nil :reader vm-sym)
+  (indicator nil :reader vm-indicator) (value nil :reader vm-value)
+  (:sexp-tag :symbol-set) (:sexp-slots dst sym indicator value))

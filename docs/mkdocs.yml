@@ -124,6 +124,7 @@ nav:
   - Getting Started: getting-started.md
   - Reference:
       - API: reference/api.md
+      - Glossary: reference/glossary.md
 
 not_in_nav: |
   notes/
