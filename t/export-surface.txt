@@ -1,4 +1,4 @@
-(:symbol :keep "cl-cc/vm" "cl-cc/vm/interop" "cl-cc/vm/interop" "%ALL-SYMBOLS")
+((:symbol :keep "cl-cc/vm" "cl-cc/vm/interop" "cl-cc/vm/interop" "%ALL-SYMBOLS")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/interop" "cl-cc/vm/interop" "%CLASS-SLOT-DEFINITIONS")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/interop" "cl-cc/vm/interop" "%CLASS-SLOT-INITARGS-FOR-SLOT")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/interop" "cl-cc/vm/interop" "%CLASS-SLOT-METADATA")
@@ -2051,4 +2051,4 @@
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/environment" "cl-cc/vm/environment" "WITH-TIMEOUT")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/execution" "cl-cc/vm/execution" "WITH-VM-INSTANCE-LOCK")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/execution" "cl-cc/vm/execution" "WITH-VM-STATE-DISPATCH")
-(:symbol :keep "cl-cc/vm" "cl-cc/vm/numbers" "cl-cc/vm/numbers" "WRAP")
+(:symbol :keep "cl-cc/vm" "cl-cc/vm/numbers" "cl-cc/vm/numbers" "WRAP"))

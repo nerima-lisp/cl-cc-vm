@@ -6,9 +6,7 @@
            (rows
              (with-open-file (stream snapshot-path)
                (let ((*read-eval* nil))
-                 (loop for row = (read stream nil :eof)
-                       until (eq row :eof)
-                       collect row))))
+                 (read stream nil :eof))))
            (facade (find-package "CL-CC/VM"))
            (expected-names (make-hash-table :test (function equal)))
            (mismatches nil)
