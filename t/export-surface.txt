@@ -262,6 +262,7 @@
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/execution" "cl-cc/vm/execution" "DEC")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/io" "cl-cc/vm/io" "DECODE-EXTERNAL-FORMAT")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/environment" "cl-cc/vm/environment" "DECODE-UNIVERSAL-TIME")
+(:symbol :keep "cl-cc/vm" "cl-cc/vm/clos" "cl-cc/vm/clos" "DEEP-COPY")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/execution" "cl-cc/vm/execution" "DEFCODATA")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/execution" "cl-cc/vm/execution" "DEFGENERATOR")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/protocols" "cl-cc/vm/protocols" "DEFINE-SIMPLE-INSTRUCTION")

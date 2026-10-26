@@ -123,7 +123,7 @@
    #:VM-TRY-DISPATCH-SUB
    #:VM-TYPE-PROFILE-ALIST
    #:WITH-SATIATING-GFS
-  )
+   #:deep-copy)
   (:intern
    #:%C3-MERGE
    #:%CIA-WALK

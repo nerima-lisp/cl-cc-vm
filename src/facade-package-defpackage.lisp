@@ -118,7 +118,7 @@
   )
   (:import-from #:cl-cc/vm/clos
     #:%eql-specializer-matches-p #:%eql-specializer-p #:%resolve-combination-operator #:%vm-extract-eql-specializer-keys #:%vm-gf-eql-methods #:%vm-gf-uses-composite-keys-p #:%vm-resolve-single-dispatch #:*collect-profile* #:*method-combination-operators* #:*profile-output*
-    #:collect-inherited-initargs #:collect-inherited-slots #:compute-class-precedence-list #:generic-function-method-combination #:generic-function-methods #:make-vm-class-def #:make-vm-class-name-fn #:make-vm-class-of-fn #:make-vm-compute-effective-slot-definition #:make-vm-find-class
+    #:collect-inherited-initargs #:collect-inherited-slots #:compute-class-precedence-list #:deep-copy #:generic-function-method-combination #:generic-function-methods #:make-vm-class-def #:make-vm-class-name-fn #:make-vm-class-of-fn #:make-vm-compute-effective-slot-definition #:make-vm-find-class
     #:make-vm-generic-call #:make-vm-make-obj #:make-vm-register-method #:make-vm-slot-boundp #:make-vm-slot-exists-p #:make-vm-slot-makunbound #:make-vm-slot-read #:make-vm-slot-write #:satiate-generic-function #:satiating-gfs-p
     #:slot-definition-name #:vm-class-def #:vm-class-name-fn #:vm-class-name-sym #:vm-class-of-fn #:vm-class-reg #:vm-class-slots #:vm-classify-arg #:vm-compute-effective-slot-definition #:vm-dump-type-profile
     #:vm-find-class #:vm-generic-call #:vm-generic-call-metadata #:vm-gf-reg #:vm-ic-type-counters #:vm-initarg-regs #:vm-make-obj #:vm-method-qualifier #:vm-method-reg #:vm-method-specializer
@@ -294,7 +294,7 @@
     #:check-stack-overflow-prologue #:check-type #:cl-cc-do #:clamp #:class-metaclass #:clone-vm-state #:cmpxchg128 #:collect-inherited-initargs #:collect-inherited-slots #:compile-time-test
     #:compile-to-bytecode #:compute-class-precedence-list #:compute-effective-slot-definition #:compute-restarts #:condition #:conj #:conj! #:const #:const-halt2 #:continue
     #:control-error #:copy-pprint-dispatch #:copy-readtable #:copy-vm-program #:coroutine #:coroutine-resume #:coroutine-yield #:crypto-random #:dd* #:dd+
-    #:dd-to-string #:dec #:decode-external-format #:decode-universal-time #:defcodata #:defgenerator #:define-simple-instruction #:define-syntax #:define-vm-binary-instruction #:define-vm-char-comparison
+    #:dd-to-string #:dec #:decode-external-format #:decode-universal-time #:deep-copy #:defcodata #:defgenerator #:define-simple-instruction #:define-syntax #:define-vm-binary-instruction #:define-vm-char-comparison
     #:define-vm-instruction #:define-vm-unary-instruction #:defmodule #:defopaque-type #:defsession #:deftype-rec #:defvalue-type #:defvar-tls #:dequeue-jit-compilation #:describe
     #:describe-restart #:detect-fusion-pairs #:detect-rc-cycles #:dissoc #:dissoc! #:div #:division-by-zero #:dns-async-result #:dns-async-result-done-p #:dns-async-result-error
     #:dns-async-result-p #:dns-async-result-result #:dns-resolve #:dns-resolve-async #:dns-reverse-resolve #:double-double #:double-double-hi #:double-double-lo #:double-double-p #:dribble
