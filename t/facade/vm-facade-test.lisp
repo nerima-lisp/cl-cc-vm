@@ -41,10 +41,10 @@
         (incf actual-count)
         (unless (gethash (symbol-name symbol) expected-names)
           (push (symbol-name symbol) extra-names)))
-      (expect (length rows) :to-be 2054)
-      (expect (hash-table-count expected-names) :to-be 2054)
+      (expect (length rows) :to-be 2055)
+      (expect (hash-table-count expected-names) :to-be 2055)
       (expect mismatches :to-be nil)
-      (expect actual-count :to-be 2054)
+      (expect actual-count :to-be 2055)
       (expect extra-names :to-be nil)))
   (it "preserves legacy VM2 initial bindings through the facade API"
     (let* ((state (cl-cc/vm:make-vm2-state))

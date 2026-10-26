@@ -740,6 +740,7 @@
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/io" "cl-cc/vm/io" "MAKE-VM-OUTPUT-STREAM-P")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/data" "cl-cc/vm/data" "MAKE-VM-PACKAGE-NAME-INST")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/execution" "cl-cc/vm/execution" "MAKE-VM-PARENT-ENVIRONMENT")
+(:symbol :keep "cl-cc/vm" "cl-cc/vm/data" "cl-cc/vm/data" "MAKE-VM-PARSE-FLOAT")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/data" "cl-cc/vm/data" "MAKE-VM-PARSE-INTEGER")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/io" "cl-cc/vm/io" "MAKE-VM-PATHNAME")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/io" "cl-cc/vm/io" "MAKE-VM-PATHNAME-NAME")

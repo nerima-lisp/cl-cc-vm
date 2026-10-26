@@ -155,7 +155,7 @@
     #:make-vm-hash-cons #:make-vm-hash-table-count #:make-vm-hash-table-keys #:make-vm-hash-table-p #:make-vm-hash-table-rehash-size #:make-vm-hash-table-rehash-threshold #:make-vm-hash-table-size #:make-vm-hash-table-test #:make-vm-hash-table-values #:make-vm-identity
     #:make-vm-import-inst #:make-vm-intern-symbol #:make-vm-keywordp #:make-vm-last #:make-vm-length #:make-vm-list-all-packages-inst #:make-vm-list-length #:make-vm-listp #:make-vm-lower-case-p #:make-vm-make-array
     #:make-vm-make-hash-table #:make-vm-make-list #:make-vm-make-string #:make-vm-make-symbol #:make-vm-member #:make-vm-name-char #:make-vm-nbutlast #:make-vm-nconc #:make-vm-ninth #:make-vm-nreconc
-    #:make-vm-nreverse #:make-vm-nstring-capitalize #:make-vm-nstring-downcase #:make-vm-nstring-upcase #:make-vm-nth #:make-vm-nthcdr #:make-vm-null #:make-vm-package-name-inst #:make-vm-parse-integer #:make-vm-pop
+    #:make-vm-nreverse #:make-vm-nstring-capitalize #:make-vm-nstring-downcase #:make-vm-nstring-upcase #:make-vm-nth #:make-vm-nthcdr #:make-vm-null #:make-vm-package-name-inst #:make-vm-parse-float #:make-vm-parse-integer #:make-vm-pop
     #:make-vm-push #:make-vm-remhash #:make-vm-remove-package-local-nickname #:make-vm-remprop #:make-vm-rest #:make-vm-reverse #:make-vm-row-major-aref #:make-vm-rplaca #:make-vm-rplacd #:make-vm-sbit
     #:make-vm-search-string #:make-vm-second #:make-vm-set-fill-pointer #:make-vm-set-symbol-plist #:make-vm-sethash #:make-vm-seventh #:make-vm-shadow-inst #:make-vm-simple-vector-p #:make-vm-sixth #:make-vm-standard-char-p
     #:make-vm-string #:make-vm-string-capitalize #:make-vm-string-coerce #:make-vm-string-downcase #:make-vm-string-equal #:make-vm-string-greaterp #:make-vm-string-left-trim #:make-vm-string-length #:make-vm-string-lessp #:make-vm-string-not-equal
@@ -342,7 +342,8 @@
     #:make-vm-mul-checked #:make-vm-mv-bind #:make-vm-mv-bind-regs #:make-vm-name-char #:make-vm-namestring #:make-vm-nbutlast #:make-vm-nconc #:make-vm-neg #:make-vm-next-method-p #:make-vm-ninth
     #:make-vm-not #:make-vm-nreconc #:make-vm-nreverse #:make-vm-nstring-capitalize #:make-vm-nstring-downcase #:make-vm-nstring-upcase #:make-vm-nth #:make-vm-nth-value #:make-vm-nthcdr #:make-vm-null
     #:make-vm-null-p #:make-vm-num-eq #:make-vm-number-p #:make-vm-numerator #:make-vm-oddp #:make-vm-open-file #:make-vm-open-stream-p #:make-vm-or #:make-vm-osr-entry #:make-vm-output-stream-p
-    #:make-vm-package-name-inst #:make-vm-parent-environment #:make-vm-parse-integer #:make-vm-pathname #:make-vm-pathname-name #:make-vm-pathname-type #:make-vm-pathnamep #:make-vm-peek-char #:make-vm-phase #:make-vm-pop
+    #:make-vm-package-name-inst
+    #:make-vm-parent-environment #:make-vm-parse-float #:make-vm-parse-integer #:make-vm-pathname #:make-vm-pathname-name #:make-vm-pathname-type #:make-vm-pathnamep #:make-vm-peek-char #:make-vm-phase #:make-vm-pop
     #:make-vm-prefetch #:make-vm-prin1 #:make-vm-prin1-sexp #:make-vm-princ #:make-vm-princ-sexp #:make-vm-princ-to-string-inst #:make-vm-print #:make-vm-print-inst #:make-vm-print-sexp #:make-vm-program
     #:make-vm-progv-enter #:make-vm-progv-exit #:make-vm-push #:make-vm-quire #:make-vm-random #:make-vm-rational #:make-vm-rationalize #:make-vm-rationalp #:make-vm-read-byte #:make-vm-read-char
     #:make-vm-read-from-string-inst #:make-vm-read-from-string-rp #:make-vm-read-line #:make-vm-read-sexp #:make-vm-read-sexp-inst #:make-vm-reader-advance-rp #:make-vm-reader-peek-rp #:make-vm-reader-read #:make-vm-realp #:make-vm-realpart

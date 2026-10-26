@@ -27,7 +27,7 @@
     #:make-vm-hash-cons #:make-vm-hash-table-count #:make-vm-hash-table-keys #:make-vm-hash-table-p #:make-vm-hash-table-rehash-size #:make-vm-hash-table-rehash-threshold #:make-vm-hash-table-size #:make-vm-hash-table-test #:make-vm-hash-table-values #:make-vm-identity
     #:make-vm-import-inst #:make-vm-intern-symbol #:make-vm-keywordp #:make-vm-last #:make-vm-length #:make-vm-list-all-packages-inst #:make-vm-list-length #:make-vm-listp #:make-vm-lower-case-p #:make-vm-make-array
     #:make-vm-make-hash-table #:make-vm-make-list #:make-vm-make-string #:make-vm-make-symbol #:make-vm-member #:make-vm-name-char #:make-vm-nbutlast #:make-vm-nconc #:make-vm-ninth #:make-vm-nreconc
-    #:make-vm-nreverse #:make-vm-nstring-capitalize #:make-vm-nstring-downcase #:make-vm-nstring-upcase #:make-vm-nth #:make-vm-nthcdr #:make-vm-null #:make-vm-package-name-inst #:make-vm-parse-integer #:make-vm-pop
+    #:make-vm-nreverse #:make-vm-nstring-capitalize #:make-vm-nstring-downcase #:make-vm-nstring-upcase #:make-vm-nth #:make-vm-nthcdr #:make-vm-null #:make-vm-package-name-inst #:make-vm-parse-float #:make-vm-parse-integer #:make-vm-pop
     #:make-vm-push #:make-vm-remhash #:make-vm-remove-package-local-nickname #:make-vm-remprop #:make-vm-rest #:make-vm-reverse #:make-vm-row-major-aref #:make-vm-rplaca #:make-vm-rplacd #:make-vm-sbit
     #:make-vm-search-string #:make-vm-second #:make-vm-set-fill-pointer #:make-vm-set-symbol-plist #:make-vm-sethash #:make-vm-seventh #:make-vm-shadow-inst #:make-vm-simple-vector-p #:make-vm-sixth #:make-vm-standard-char-p
     #:make-vm-string #:make-vm-string-capitalize #:make-vm-string-coerce #:make-vm-string-downcase #:make-vm-string-equal #:make-vm-string-greaterp #:make-vm-string-left-trim #:make-vm-string-length #:make-vm-string-lessp #:make-vm-string-not-equal
@@ -88,7 +88,7 @@
     #:vm-copy-list #:vm-copy-tree #:vm-cow-list #:vm-cow-storage #:vm-cow-string #:vm-cow-vector #:vm-cow-vector-backing #:vm-digit-char #:vm-digit-char-p-value #:vm-ephemeron
     #:vm-equal #:vm-export #:vm-export-inst #:vm-fill-pointer-inst #:vm-find-package #:vm-find-symbol #:vm-gensym-inst #:vm-graphic-char-p-value #:vm-hash-ensure-writable #:vm-hash-htm-eligible-p
     #:vm-hash-table-get-internal #:vm-hash-with-lock-fallback #:vm-import #:vm-import-inst #:vm-intern-symbol #:vm-keywordp #:vm-list-all-packages #:vm-list-all-packages-inst #:vm-lower-case-p-value #:vm-make-host-hash-table
-    #:vm-make-symbol #:vm-name-char #:vm-name-char-value #:vm-nconc #:vm-nreverse #:vm-package-name #:vm-package-name-inst #:vm-parse-integer #:vm-record-weak-hash-entry #:vm-remprop
+    #:vm-make-symbol #:vm-name-char #:vm-name-char-value #:vm-nconc #:vm-nreverse #:vm-package-name #:vm-package-name-inst #:vm-parse-float #:vm-parse-integer #:vm-record-weak-hash-entry #:vm-remprop
     #:vm-row-major-aref #:vm-sbit #:vm-set-fill-pointer #:vm-set-symbol-plist #:vm-shadow #:vm-shadow-inst #:vm-standard-char-p-value #:vm-string-copy #:vm-string-materialize #:vm-string-set-char
     #:vm-string-subseq #:vm-subst #:vm-svset #:vm-sweep-weak-hash-table #:vm-symbol-get #:vm-symbol-name #:vm-symbol-plist #:vm-symbol-plist-read-snapshot #:vm-symbol-property-hash-store #:vm-symbol-set
     #:vm-unintern #:vm-unintern-inst #:vm-unuse-package #:vm-unuse-package-inst #:vm-upper-case-p-value #:vm-use-package #:vm-use-package-inst #:vm-valid-hash-weakness-p #:vm-vector-pop #:vm-vector-push
