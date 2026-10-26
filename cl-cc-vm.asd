@@ -115,6 +115,8 @@
    (:file "compiler-assertions")
    (:file "coroutines")
    (:file "data-instruction-methods")
+   (:file "data-instruction-methods-2")
+   (:file "data-instruction-methods-3")
    (:file "do-notation")
    (:file "evaluation-instructions")
    (:file "function-specialization")
