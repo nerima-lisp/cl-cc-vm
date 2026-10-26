@@ -45,4 +45,34 @@
       (expect (hash-table-count expected-names) :to-be 2054)
       (expect mismatches :to-be nil)
       (expect actual-count :to-be 2054)
-      (expect extra-names :to-be nil))))
+      (expect extra-names :to-be nil)))
+  (it "preserves legacy VM2 initial bindings through the facade API"
+    (let* ((state (cl-cc/vm:make-vm2-state))
+           (globals (cl-cc/vm:vm2-state-global-vars state))
+           (expected
+             (list
+              (cons (quote cl-cc/vm:*features*) (quote (:common-lisp :cl-cc)))
+              (cons (quote cl-cc/vm:*active-restarts*) nil)
+              (cons (quote cl:*standard-output*) cl:*standard-output*)
+              (cons (quote cl:*standard-input*) cl:*standard-input*)
+              (cons (quote cl:*error-output*) cl:*error-output*)
+              (cons (quote cl-cc/vm:*trace-output*)
+                    (symbol-value (quote cl-cc/vm:*trace-output*)))
+              (cons (quote cl:*debug-io*) cl:*debug-io*)
+              (cons (quote cl:*query-io*) cl:*query-io*))))
+      (expect (hash-table-count globals) :to-be 8)
+      (expect
+       (and
+        (eq (symbol-package (quote cl-cc/vm:*features*))
+            (find-package "CL-CC/VM/ENVIRONMENT"))
+        (eq (symbol-package (quote cl-cc/vm:*active-restarts*))
+            (find-package "CL-CC/VM/CONDITIONS"))
+        (eq (symbol-package (quote cl-cc/vm:*trace-output*))
+            (find-package "CL-CC/VM/DEBUGGING")))
+       :to-be t)
+      (expect
+       (every (lambda (entry)
+                (equal (gethash (car entry) globals :missing)
+                       (cdr entry)))
+              expected)
+       :to-be t))))
