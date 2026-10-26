@@ -1,12 +1,11 @@
 (in-package #:cl-cc-vm/test)
 (describe-sequential "execution feature API"
-  (it "exposes the VM register vector on an execution state"
-    (let ((state (cl-cc/vm/execution:make-vm-state)))
-      (expect
-       (length (cl-cc/vm/execution:vm-state-registers state))
-       :to-be cl-cc/vm/execution:+vm-register-count+)
-      (setf (svref (cl-cc/vm/execution:vm-state-registers state) 7)
+  (it "exposes register storage through an execution state"
+    (let* ((state (cl-cc/vm/execution:make-vm-state))
+           (registers (cl-cc/vm/execution:vm-state-registers state)))
+      (expect (hash-table-p registers) :to-be t)
+      (setf (gethash :feature-test-register registers)
             :feature-test-value)
       (expect
-       (svref (cl-cc/vm/execution:vm-state-registers state) 7)
+       (gethash :feature-test-register registers)
        :to-be :feature-test-value))))
