@@ -296,8 +296,16 @@
             exportSurface = "t/export-surface.txt";
             mode = "transition";
             legacyInternalRefs = "t/legacy-internal-refs.sexp";
-            forbiddenNames = [ "misc" "utils" "helpers" ];
-            numberedPrefixes = [ "fr-" "phase-" "phases-" ];
+            forbiddenNames = [
+              "misc"
+              "utils"
+              "helpers"
+            ];
+            numberedPrefixes = [
+              "fr-"
+              "phase-"
+              "phases-"
+            ];
             packagePrefix = "cl-cc/vm/";
             infraSuffix = "/infra";
           };
