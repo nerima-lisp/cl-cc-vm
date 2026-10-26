@@ -185,7 +185,7 @@
    (:file "vm-fixnum")
    (:file "vm-numeric-extensions")
    (:file "vm-runtime-aliases")
-   (:file "vm-runtime-helpers")
+   (:file "vm-runtime-support")
    (:file "vm-swar")
    (:file "vm-vector-permutation")))
  (:module "io" :pathname "io" :serial t :components
@@ -273,7 +273,51 @@
                (:file "vm-package-designator-test")
                (:file "vm-hash-execute-test")
                (:file "vm-string-execute-test")
-               (:file "vm-clos-execute-test"))
+               (:file "vm-clos-execute-test")
+               (:module "protocols"
+                        :pathname "protocols"
+                        :serial t
+                        :components ((:file "feature-api-test")))
+               (:module "execution"
+                        :pathname "execution"
+                        :serial t
+                        :components ((:file "feature-api-test")))
+               (:module "data"
+                        :pathname "data"
+                        :serial t
+                        :components ((:file "feature-api-test")))
+               (:module "numbers"
+                        :pathname "numbers"
+                        :serial t
+                        :components ((:file "feature-api-test")))
+               (:module "environment"
+                        :pathname "environment"
+                        :serial t
+                        :components ((:file "feature-api-test")))
+               (:module "conditions"
+                        :pathname "conditions"
+                        :serial t
+                        :components ((:file "feature-api-test")))
+               (:module "clos"
+                        :pathname "clos"
+                        :serial t
+                        :components ((:file "feature-api-test")))
+               (:module "io"
+                        :pathname "io"
+                        :serial t
+                        :components ((:file "feature-api-test")))
+               (:module "serialization"
+                        :pathname "serialization"
+                        :serial t
+                        :components ((:file "feature-api-test")))
+               (:module "debugging"
+                        :pathname "debugging"
+                        :serial t
+                        :components ((:file "feature-api-test")))
+               (:module "interop"
+                        :pathname "interop"
+                        :serial t
+                        :components ((:file "feature-api-test"))))
   ;; Not HOST-KIT:SYMBOL-CALL: a .asd is read before :depends-on is ever
   ;; consulted, so a CL-HOST-KIT-prefixed token here would be a read-time
   ;; PACKAGE-DOES-NOT-EXIST error regardless of what the system depends on.

@@ -6,7 +6,11 @@
            (rows
              (with-open-file (stream snapshot-path)
                (let ((*read-eval* nil))
-                 (read stream nil :eof))))
+                 (let* ((sentinel (gensym "EOF"))
+                       (rows (read stream nil sentinel)))
+                  (unless (eq (read stream nil sentinel) sentinel)
+                    (error "Export surface contains trailing S-expressions: ~S" snapshot-path))
+                  rows))))
            (facade (find-package "CL-CC/VM"))
            (expected-names (make-hash-table :test (function equal)))
            (mismatches nil)
