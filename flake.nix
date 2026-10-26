@@ -268,20 +268,7 @@
         {
           orphan-tests = cl-nix-forge.lib.${system}.mkOrphanTestCheck {
             src = self.outPath;
-            testRoots = [
-              "t/protocols"
-              "t/execution"
-              "t/numbers"
-              "t/clos"
-              "t/conditions"
-              "t/data"
-              "t/io"
-              "t/serialization"
-              "t/environment"
-              "t/debugging"
-              "t/interop"
-              "t/facade"
-            ];
+            testRoots = [ "t" ];
             testSystems = [
               "cl-cc-vm/test"
               "cl-cc-vm/facade-test"
