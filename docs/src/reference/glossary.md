@@ -29,7 +29,7 @@
 - Definition: VM integration with the Common Lisp object system, generic functions, methods, and slot access.
 - Package: `cl-cc/vm/clos`
 - Key types: `vm-find-class`, `vm-generic-call`, `vm-register-method`
-- Key functions: `vm-classify-arg`, `vm-get-all-applicable-methods`
+- Key functions: `collect-inherited-slots`, `compute-class-precedence-list`, `vm-classify-arg`
 - Other contexts: The host CLOS defines generic functions and methods; this feature implements their VM behavior.
 
 ## conditions
@@ -45,7 +45,7 @@
 - Definition: VM collection and value representations for arrays, lists, hashes, strings, symbols, and sequences.
 - Package: `cl-cc/vm/data`
 - Key types: `vm-hash-table-object`, `vm-make-array`, `vm-make-hash-table`, `vm-specialized-array`, `vm-string-length`
-- Key functions: `vm-array-dimension-value`, `vm-array-dimensions-value`, `vm-make-host-hash-table`
+- Key functions: `vm-make-specialized-array`, `vm-sequence-elt`, `vm-sequence-length`
 - Other contexts: None.
 
 ## io
