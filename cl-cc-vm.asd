@@ -31,7 +31,7 @@
   :homepage "https://github.com/nerima-lisp/cl-cc-vm"
   :bug-tracker "https://github.com/nerima-lisp/cl-cc-vm/issues"
   :source-control (:git "https://github.com/nerima-lisp/cl-cc-vm.git")
-  :depends-on (:cl-cc-bootstrap :cl-cc-runtime :cl-regex-kit :cl-tty-kit :cl-host-kit)
+  :depends-on (:cl-cc-bootstrap :cl-cc-runtime :cl-regex-kit :cl-json-kit :cl-tty-kit :cl-host-kit)
   :pathname "src"
   :serial t
   :components
@@ -236,7 +236,7 @@
    (:file "stack-overflow")
    (:file "vm-value-profiling")))
  (:module "interop" :pathname "interop" :serial t :components
-  ((:file "vm-bridge") (:file "vm-bridge-io-docs") (:file "v8-objects-133") (:file "regex") (:file "c-ffi-support") (:file "code-signing") (:file "sandbox") (:file "vm-hardware-cryptography") (:file "vm-pinned-objects")))
+  ((:file "vm-bridge") (:file "vm-bridge-io-docs") (:file "regex") (:file "c-ffi-support") (:file "code-signing") (:file "sandbox") (:file "vm-hardware-cryptography") (:file "vm-pinned-objects")))
  (:file "exports-instructions")
  (:file "exports-instructions-constructors-core")
  (:file "exports-instructions-constructors-io")
@@ -309,7 +309,8 @@
                (:module "serialization"
                         :pathname "serialization"
                         :serial t
-                        :components ((:file "feature-api-test")))
+                        :components ((:file "feature-api-test")
+                                     (:file "json-test")))
                (:module "debugging"
                         :pathname "debugging"
                         :serial t
