@@ -184,3 +184,11 @@
   "Set the entire property list of SYM to PLIST."
   (dst nil :reader vm-dst) (sym nil :reader vm-sym) (plist-reg nil :reader vm-plist-reg)
   (:sexp-tag :set-symbol-plist) (:sexp-slots dst sym plist-reg))
+
+(in-package #:cl-cc/vm/data)
+
+(define-vm-instruction vm-symbol-set (vm-instruction)
+  "Set property INDICATOR on symbol SYM's plist to VALUE."
+  (dst nil :reader vm-dst) (sym nil :reader vm-sym)
+  (indicator nil :reader vm-indicator) (value nil :reader vm-value)
+  (:sexp-tag :symbol-set) (:sexp-slots dst sym indicator value))

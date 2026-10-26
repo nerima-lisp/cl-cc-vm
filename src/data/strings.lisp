@@ -177,3 +177,13 @@
   (val nil :reader vm-val-reg)
   (:sexp-tag :string-set)
   (:sexp-slots dst str idx val))
+
+(in-package #:cl-cc/vm/data)
+
+(define-vm-instruction vm-char (vm-instruction)
+  "Character at position. DST = STRING[INDEX]."
+  (dst nil :reader vm-dst)
+  (string nil :reader vm-string-reg)
+  (index nil :reader vm-index)
+  (:sexp-tag :char)
+  (:sexp-slots dst string index))

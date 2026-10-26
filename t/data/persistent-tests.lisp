@@ -1,4 +1,4 @@
-(in-package :cl-cc/test)
+(in-package #:cl-cc/vm/data/test)
 
 
 
@@ -7,6 +7,7 @@
     (expect found-p :to-be-truthy)
     (expect (funcall test expected value) :to-be-truthy)))
 
+(defun register-persistent-tests ()
 (it-sequential "persistent-map-assoc-get-and-dissoc"
   (let* ((m0 (cl-cc/vm:persistent-map))
          (m1 (cl-cc/vm:pmap-assoc m0 'a 1))
@@ -28,7 +29,6 @@
       (expect found-p :to-be-falsy))
     (expect (cl-cc/vm:persistent-map-count m4) :to-equal 1)
     (assert-pmap-entry m2 'b 2)))
-
 (it-sequential "persistent-map-supports-equal-keys-and-bitmap-branching"
   (let ((map (cl-cc/vm:persistent-map :test 'equal)))
     (dotimes (i 80)
@@ -42,13 +42,11 @@
       (multiple-value-bind (value found-p) (cl-cc/vm:pmap-get smaller "k-21" :missing)
         (expect value :to-equal :missing)
         (expect found-p :to-be-falsy)))))
-
 (it-sequential "persistent-map-api-rejects-host-collection-fallbacks"
   (signals error (cl-cc/vm:persistent-map :a 1 :b))
   (signals error (cl-cc/vm:pmap-assoc 'a '((a . 1)) 0))
   (signals error (cl-cc/vm:pmap-get '(a 1) 'a))
   (signals error (cl-cc/vm:dissoc '(a 1) 'a)))
-
 (it-sequential "persistent-vector-get-assoc-conj"
   (let* ((v0 (cl-cc/vm:pvec 1 2 3))
          (v1 (cl-cc/vm:pvec-assoc v0 1 20))
@@ -60,7 +58,6 @@
     (expect (cl-cc/vm:pvec-count v2) :to-equal 4)
     (expect (cl-cc/vm:pvec-get v2 3) :to-equal 40)
     (expect (cl-cc/vm:pvec-get v2 99 :missing) :to-equal :missing)))
-
 (it-sequential "transient-map-assoc-dissoc-and-persistent-freeze"
   (let* ((m0 (cl-cc/vm:persistent-map :test 'equal "a" 1 "b" 2))
          (tm (cl-cc/vm:transient m0)))
@@ -73,7 +70,6 @@
       (multiple-value-bind (value found-p) (cl-cc/vm:pmap-get m1 "b" :missing)
         (expect value :to-equal :missing)
         (expect found-p :to-be-falsy)))))
-
 (it-sequential "transient-vector-conj-and-persistent-freeze"
   (let* ((v0 (cl-cc/vm:pvec 1 2))
          (tv (cl-cc/vm:transient! v0)))
@@ -83,7 +79,6 @@
       (expect (cl-cc/vm:pvec-count v0) :to-equal 2)
       (expect (cl-cc/vm:pvec-count v1) :to-equal 4)
       (expect (cl-cc/vm:pvec-get v1 3) :to-equal 4))))
-
 (it-sequential "lazy-seq-force-take-map-filter-iterate"
   (let ((forced 0))
     (let ((seq (cl-cc/vm:lazy-seq
@@ -102,7 +97,6 @@
          (evens (cl-cc/vm:lazy-filter #'evenp naturals))
          (doubled (cl-cc/vm:lazy-map (lambda (x) (* x 2)) evens)))
     (expect (cl-cc/vm:lazy-take-seq 5 doubled) :to-equal '(0 4 8 12 16))))
-
 (it-sequential "lazy-seq-preserves-nil-elements-and-descending-ranges"
   (let ((seq (cl-cc/vm:lazy-seq
                (cons nil
@@ -113,3 +107,5 @@
                  5
                  (cl-cc/vm:lazy-range :start 3 :end 0 :step -1)) :to-equal '(3 2 1))
   (signals error (cl-cc/vm:lazy-range :step 0)))
+)
+

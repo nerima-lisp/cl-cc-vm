@@ -91,11 +91,7 @@
    (string (%vm-host-string name))
    (vm-find-package (or package "CL-USER"))))
 
-(defun vm-find-symbol (name &optional package)
-  "Find NAME in PACKAGE using the runtime package registry."
-  (cl-cc/runtime::rt-find-symbol
-   (string (%vm-host-string name))
-   (vm-find-package (or package "CL-USER"))))
+(defun vm-find-symbol (name &optional package) "Find NAME in PACKAGE using the runtime package registry." (let* ((key (string (%vm-host-string name))) (designator (or package "CL-USER"))) (multiple-value-bind (runtime-package host-designator) (%vm-resolve-package-designator designator) (if runtime-package (let ((host-package (gethash :host-package runtime-package))) (multiple-value-bind (symbol status) (cl-cc/runtime::rt-find-symbol key runtime-package) (multiple-value-bind (host-symbol host-status) (if host-package (find-symbol key host-package) (values nil nil)) (cond ((and status host-status (eq host-symbol symbol)) (values symbol host-status)) ((or symbol status) (values symbol status)) (host-status (values host-symbol host-status)) (t (values nil status)))))) (find-symbol key host-designator)))))
 
 (defun vm-export (symbols &optional package)
   "Export SYMBOLS from PACKAGE in the runtime package registry."

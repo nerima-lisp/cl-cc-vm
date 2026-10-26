@@ -1,0 +1,16 @@
+(in-package #:cl-cc/vm/execution/test)
+
+(describe-concurrent "execution feature tests"
+  (register-feature-api-tests)
+  (register-package-tests)
+  (register-primitives-typep-tests)
+  (register-runtime-stdlib-2-vm-tests)
+  (register-vm-call-tests)
+  (register-vm-dispatch-tests)
+  (register-vm-execute-tests)
+  (register-vm-instructions-tests)
+  (register-vm-opcodes-defs-tests)
+  (register-vm-opcodes-tests)
+  (register-vm-run-fusion-tests)
+  (register-vm-run-tests)
+  (register-vm-tests))

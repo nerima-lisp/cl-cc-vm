@@ -36,7 +36,7 @@
 
 (defun vm-ansi-reset (stream)
   "Reset all ANSI attributes on STREAM."
-  (write-string (cl-tty-kit:ansi-sgr) stream))
+  (write-string (cl-tty-kit:ansi-sgr 0) stream))
 
 (defun vm-with-raw-terminal (thunk)
   "Execute THUNK with terminal in raw mode (no line buffering, no echo).
