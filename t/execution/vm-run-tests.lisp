@@ -117,3 +117,275 @@
   ))
 ;;; ─── VM2 defopcode / run-vm tests ───────────────────────────────────────────
 
+(it-sequential "run-vm-basic-ops nop"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-nop+
+                      0
+                      nil
+                      nil
+                      cl-cc/vm:+op2-const+
+                      0
+                      42
+                      nil
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       42)
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+(it-sequential "run-vm-basic-ops load-const"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-load-const+
+                      0
+                      '(1 2 3)
+                      nil
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       '(1 2 3))
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+(it-sequential "run-vm-basic-ops const-load"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-const+
+                      0
+                      42
+                      nil
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       42)
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+(it-sequential "run-vm-basic-ops load-nil"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-load-nil+
+                      0
+                      nil
+                      nil
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       nil)
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+(it-sequential "run-vm-basic-ops load-true"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-load-true+
+                      0
+                      nil
+                      nil
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       t)
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+(it-sequential "run-vm-basic-ops load-fixnum"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-load-fixnum+
+                      0
+                      123
+                      nil
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       123)
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+(it-sequential "run-vm-basic-ops move"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-const+
+                      1
+                      7
+                      nil
+                      cl-cc/vm:+op2-move+
+                      0
+                      1
+                      nil
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       7)
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+(it-sequential "run-vm-basic-ops neg"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-const+
+                      1
+                      7
+                      nil
+                      cl-cc/vm:+op2-neg+
+                      0
+                      1
+                      nil
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       -7)
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+(it-sequential "run-vm-basic-ops inc"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-const+
+                      1
+                      7
+                      nil
+                      cl-cc/vm:+op2-inc+
+                      0
+                      1
+                      nil
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       8)
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+(it-sequential "run-vm-basic-ops dec"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-const+
+                      1
+                      7
+                      nil
+                      cl-cc/vm:+op2-dec+
+                      0
+                      1
+                      nil
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       6)
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+(it-sequential "run-vm-basic-ops add"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-const+
+                      1
+                      3
+                      nil
+                      cl-cc/vm:+op2-const+
+                      2
+                      4
+                      nil
+                      cl-cc/vm:+op2-add2+
+                      0
+                      1
+                      2
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       7)
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+(it-sequential "run-vm-basic-ops sub"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-const+
+                      1
+                      10
+                      nil
+                      cl-cc/vm:+op2-const+
+                      2
+                      3
+                      nil
+                      cl-cc/vm:+op2-sub2+
+                      0
+                      1
+                      2
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       7)
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+(it-sequential "run-vm-basic-ops mul"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-const+
+                      1
+                      6
+                      nil
+                      cl-cc/vm:+op2-const+
+                      2
+                      7
+                      nil
+                      cl-cc/vm:+op2-mul2+
+                      0
+                      1
+                      2
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       42)
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+(it-sequential "run-vm-basic-ops div"
+  (destructuring-bind (bytecode expected)
+      (list
+       (make-bytecode cl-cc/vm:+op2-const+
+                      1
+                      21
+                      nil
+                      cl-cc/vm:+op2-const+
+                      2
+                      3
+                      nil
+                      cl-cc/vm:+op2-div+
+                      0
+                      1
+                      2
+                      cl-cc/vm:+op2-halt2+
+                      0
+                      nil
+                      nil)
+       7)
+    (let ((s (cl-cc/vm:make-vm2-state)))
+      (expect (cl-cc/vm/execution::%run-vm-core bytecode s) :to-equal expected))))
+
+;;; ─── make-vm-state ──────────────────────────────────────────────────────────
+
+;;; ─── vm-state-registers / vm-output-stream / vm-global-vars (generics) ─────
+
+;;; ─── vm-reg-get / vm-reg-set on public VM state ─────────────────────────────
+
+;;; ─── vm2 low-level constructor remains available explicitly ────────────────
+
+;;; ─── run-vm-with-opcode-bigrams ─────────────────────────────────────────────
+
