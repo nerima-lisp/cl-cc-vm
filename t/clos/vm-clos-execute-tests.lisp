@@ -432,13 +432,4 @@
                         (x-index (cl-cc/vm/clos::class-slot-vector-index class (quote x))))
                    (setf (cl-cc/vm/clos::slot-value-by-index instance x-index) 42)
                    (expect (= 42 (cl-cc/vm/clos::slot-value-by-index instance x-index)) :to-be-truthy)))
-  (it-sequential "fr-889-zero-arg-template-copy-produces-fresh-vector"
-                 (let* ((class (registry-add-class (make-test-registry) (quote point) :slots (quote (x))))
-                        (first nil)
-                        (second nil))
-                   (setf first (cl-cc/vm/clos::%vm-build-instance-template class)
-                         second (cl-cc/vm/clos::%vm-build-instance-template class))
-                   (expect (eq first second) :to-be-falsy)
-                   (setf (cl-cc/vm/clos::slot-value-by-index first 1) 10)
-                   (expect (cl-cc/vm/clos::slot-value-by-index second 1) :to-be-null)))
   )

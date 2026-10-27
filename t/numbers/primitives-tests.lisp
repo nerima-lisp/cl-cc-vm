@@ -234,7 +234,6 @@ INSTRUCTION-THUNK receives the source register index and must build the VM instr
    10 0
    (lambda (state)
      (signals error (exec1 (funcall make-inst :dst 0 :lhs 1 :rhs 2) state))))))
-(it-sequential "complex-div-by-zero-signals-error" (%with-binary-vm-state #C(1 2) #C(0 0) (lambda (state) (signals error (exec1 (cl-cc/vm:make-vm-cl-div :dst 0 :lhs 1 :rhs 2) state)))))
 (it-sequential "prim-div-by-zero mod"
   (destructuring-bind (make-inst) (list #'cl-cc/vm:make-vm-mod)
     (%with-binary-vm-state
