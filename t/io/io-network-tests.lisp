@@ -23,7 +23,7 @@
                (expect (equalp #(65 90 67) bytes) :to-be-truthy))))
       (when (probe-file path) (delete-file path))))) (it-sequential "io-fr853-tls-context-and-unsupported-condition"
   (let ((context (cl-cc/vm:make-tls-context :verify-peer t)))
-    (expect (cl-cc/vm::tls-context-p context) :to-be-truthy)
+    (expect (cl-cc/vm/io::tls-context-p context) :to-be-truthy)
     (unless (find-package :cl+ssl)
       (let ((socket (cl-cc/vm:make-tcp-socket)))
         (unwind-protect
@@ -32,11 +32,11 @@
   (sb-ext:with-timeout 5
     (let ((addresses (cl-cc/vm:dns-resolve "localhost" :ttl 60)))
       (expect (member "127.0.0.1" addresses :test #'string=) :to-be-truthy)
-      (expect (plusp (length (cl-cc/vm:getaddrinfo "localhost" :service 80))) :to-be-truthy)
+      (expect (plusp (cl-cc/vm/data:length (cl-cc/vm:getaddrinfo "localhost" :service 80))) :to-be-truthy)
       (let* ((timeout 5)
              (join-timeout (gensym "JOIN-TIMEOUT"))
              (async (cl-cc/vm:dns-resolve-async "localhost"))
-             (thread (cl-cc/vm::dns-async-result-thread async)))
+             (thread (cl-cc/vm/io::dns-async-result-thread async)))
         (unwind-protect
              (progn
                (expect (eq (sb-thread:join-thread thread :timeout timeout :default join-timeout)

@@ -29,9 +29,9 @@
 
 (defmethod vm-copy-instance ((instance t)) (copy-instance instance))
 
-(defun deep-copy (object)
-  "Return a recursive copy of mutable objects, preserving graph identity and cycles."
-  (let ((seen (make-hash-table :test #'eq)))
+(defun %deep-copy (object &optional seen)
+  "Return a recursive copy, using SEEN to preserve graph identity and cycles."
+  (let ((seen (or seen (make-hash-table :test #'eq))))
     (labels ((copy-object (object)
                (cond
                  ((or (null object)
@@ -118,3 +118,6 @@
                              copy))
                           (t object))))))))
       (copy-object object))))
+(defun deep-copy (object)
+  "Return a recursive copy, preserving shared references and cycles."
+  (%deep-copy object (make-hash-table :test #'eq)))

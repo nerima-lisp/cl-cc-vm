@@ -307,6 +307,8 @@
   (:file "vm-opcodes-tests")
   (:file "vm-run-fusion-tests")
   (:file "vm-run-tests")
+  (:file "vm-boundary-tests")
+  (:file "vm-symbol-representation-tests")
   (:file "vm-tests")
   (:file "suite")))
  (:module "data"

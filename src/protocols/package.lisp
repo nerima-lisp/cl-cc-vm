@@ -4,6 +4,7 @@
    #:*instruction-constructors*
    #:*vm-compile-string-hook*
    #:*vm-eval-hook*
+   #:*vm-self-host-mode*
    #:*vm-host-bridge-functions*
    #:*vm-macroexpand-1-hook*
    #:*vm-macroexpand-hook*
@@ -27,14 +28,15 @@
    #:vm-reg-get
    #:vm-reg-set
    #:vm-register-host-bridge
+   #:vm-register-runtime-callable
    #:vm-resolve-gf-method
    #:vm-rhs
    #:vm-src
    #:vm-state-heap
    #:vm-typep-check
-   #:vm-values-list   #:vm-resolve-hash-test
+   #:vm-values-list   #:vm-resolve-hash-test #:vm-lookup-bridge-callable
 )
-  (:intern #:vm-decode-symbol #:vm-encode-common-symbol #:vm-immediate-symbol-p #:vm-trace-output-symbol #:vm-trace-output-stream #:vm-register-runtime-callable #:vm-check-row-major-index #:vm-safety-checks-enabled-p #:vm-immediate-intern-enabled-p #:vm-io-initial-globals
+  (:intern #:vm-decode-symbol #:vm-encode-common-symbol #:vm-immediate-symbol-p #:vm-trace-output-symbol #:vm-trace-output-stream #:vm-check-row-major-index #:vm-safety-checks-enabled-p #:vm-immediate-intern-enabled-p #:vm-io-initial-globals
    #:%vm-dispatch-call
    #:%vm-method-function
    #:%vm-ret-qualified-dispatch
@@ -42,7 +44,6 @@
    #:%vm-typep-range-check
    #:*vm-debugger-request-hook*
    #:*vm-runtime-callables*
-   #:*vm-self-host-mode*
    #:vm-call-with-readable-printing
    #:vm-check-index
    #:vm-closure-object-p
@@ -54,7 +55,6 @@
    #:vm-feature-initial-globals
    #:vm-getenv
    #:vm-load-pathname
-   #:vm-lookup-bridge-callable
    #:vm-random-integer
    #:vm-request-debugger #:vm-state-symbol-plists #:vm-state-system-symbol-plists #:vm-state-symbol-plist-lock #:vm-state-symbol-plist-read-barrier)
 )

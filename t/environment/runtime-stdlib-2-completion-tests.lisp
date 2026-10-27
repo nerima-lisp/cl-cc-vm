@@ -16,7 +16,7 @@
 
 ;; ── FR-920: Forward References ─────────────────────────────────────────
 (it-sequential "runtime-stdlib-2-forward-reference-surface"
-  (expect (fboundp 'cl-cc/vm::vm-declare-forward-reference) :to-be-truthy)
-  (expect (fboundp 'cl-cc/vm::vm-resolve-forward-references) :to-be-truthy))
+  (expect (fboundp 'cl-cc/vm/execution:vm-declare-forward-reference) :to-be-truthy)
+  (expect (fboundp 'cl-cc/vm/execution:vm-resolve-forward-references) :to-be-truthy))
 
 ;; ── FR-820: Print-Circle ───────────────────────────────────────────────

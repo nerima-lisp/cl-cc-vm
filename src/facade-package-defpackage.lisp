@@ -22,10 +22,8 @@
     #:*instruction-constructors* #:*vm-compile-string-hook* #:*vm-eval-hook* #:*vm-host-bridge-functions* #:*vm-macroexpand-1-hook* #:*vm-macroexpand-hook* #:*vm-parse-forms-hook* #:build-label-table #:define-simple-instruction #:define-vm-binary-instruction
     #:define-vm-char-comparison #:define-vm-instruction #:define-vm-unary-instruction #:execute-instruction #:instruction->sexp #:make-vm-instruction #:sexp->instruction #:vm-char1 #:vm-char2 #:vm-dst
     #:vm-instruction #:vm-lhs #:vm-maybe-dump-type-profile #:vm-reg-get #:vm-reg-set #:vm-register-host-bridge #:vm-resolve-gf-method #:vm-rhs #:vm-src #:vm-state-heap
-    #:vm-typep-check #:vm-values-list #:vm-decode-symbol #:vm-encode-common-symbol #:vm-immediate-symbol-p    #:*vm-runtime-callables* #:*vm-self-host-mode* #:vm-check-index #:vm-register-runtime-callable
-  )
-  (:import-from #:cl-cc/vm/execution
-    #:%documentation-table* #:*adaptive-jit-enabled* #:*blind-constants-enabled* #:*bytecode-threshold* #:*deopt-enabled* #:*documentation-table* #:*jit-compilation-queue* #:*jit-hardening-enabled* #:*jit-random-key* #:*jit-tier1-threshold*
+    #:vm-typep-check #:vm-values-list #:vm-decode-symbol #:vm-encode-common-symbol #:vm-immediate-symbol-p    )
+  (:import-from #:cl-cc/vm/execution #:%documentation-table* #:*adaptive-jit-enabled* #:*blind-constants-enabled* #:*bytecode-threshold* #:*deopt-enabled* #:*documentation-table* #:*jit-compilation-queue* #:*jit-hardening-enabled* #:*jit-random-key* #:*jit-tier1-threshold*
     #:*opcode-dispatch-table* #:*opcode-encoder-table* #:*opcode-name-table* #:*optimize-for-instruction-count* #:*osr-enabled* #:*pass-pipeline* #:*stack-segment-size* #:*stack-size* #:*tier-upgrade-threshold* #:*trampoline-optimization-enabled*
     #:*vm-current-state* #:*vm-eval-deadline* #:*vm-forward-reference-auto-resolve-enabled* #:*vm-instruction-profile* #:*vm-instruction-profile-enabled* #:*vm-recompile-function-hook* #:*vm-state* #:*vm-tier-call-counters* #:*vm-value-profile* #:+bc-call+
     #:+bc-closure+ #:+bc-const+ #:+bc-jmp+ #:+bc-jnil+ #:+bc-load+ #:+bc-make-env+ #:+bc-ret+ #:+bc-store+ #:+bc-tcall+ #:+maximum-multiple-values+
@@ -81,10 +79,7 @@
     #:vm-tier-hot-p #:vm-tier-note-call #:vm-tier-reset-counters #:vm-tier1-code #:vm-trampoline #:vm-trigger-deopt #:vm-type-check #:vm-type-check-deopt-id #:vm-type-check-deopt-label #:vm-type-name
     #:vm-type-of #:vm-typecase-dispatch #:vm-typep #:vm-typep-type-name #:vm-value #:vm-value-profile-snapshot #:vm-value-reg #:vm-values #:vm-values-regs #:vm-values-to-list
     #:vm-values-typep #:vm-var-name #:vm-vr-count #:vm-vr0 #:vm-vr1 #:vm-vr2 #:vm-write-instruction-profile #:vm2-state-global-vars #:vm2-state-output-stream #:vm2-state-p
-    #:vm2-state-registers #:vm2-state-values-buffer #:with-vm-instance-lock #:with-vm-state-dispatch #:%vm-callable-registry-entry-p #:vm-current-stack-segment #:vm-program-load-time-value-cells #:*vm-immediate-symbol-table*
-    #:%vm-typep-normalize-sym #:%vm2-emit4 #:*safety-level* #:*security-canaries*    #:call-with-current-continuation #:make-mutex #:make-rwlock #:memory-fault #:vm-closure-dispatch-tag
-    #:vm-continuation-prompts #:vm-symbol-plist-lock #:vm-symbol-plist-read-barrier #:vm-symbol-plists    #:vm-verify-stack-canary #:vm2-collect-opcode-bigrams #:vm2-fuse-immediate-superinstructions
-  )
+    #:vm2-state-registers #:vm2-state-values-buffer #:with-vm-instance-lock #:with-vm-state-dispatch #:%vm-callable-registry-entry-p #:vm-current-stack-segment #:vm-program-load-time-value-cells #:*vm-immediate-symbol-table* #:vm-current-closure-stack #:%vm-closure-object-p #:vm-closure-dispatch-tag #:%vm-call-closure-sync)
   (:import-from #:cl-cc/vm/numbers
     #:*arith-dispatch-table* #:*associative-math* #:*fast-math* #:*floating-point-modes* #:*fuse-fma* #:*numeric-contagion-table* #:*numeric-precision* #:*vm-arithmetic-safety* #:+arith-operation-tags+ #:+arith-type-tags+
     #:+numeric-contagion-types+ #:arithmetic-dispatch-entry #:arithmetic-dispatch-index #:arithmetic-op-tag #:arithmetic-type-tag #:bfloat16 #:bswap #:clamp #:dd* #:dd+
@@ -116,12 +111,7 @@
     #:vm-round-inst #:vm-ryu-double-to-string #:vm-ryu-float-to-string #:vm-ryu-single-to-string #:vm-signum #:vm-simd-vector-op #:vm-simd-vector-op-dst-array #:vm-simd-vector-op-element-type #:vm-simd-vector-op-index-reg #:vm-simd-vector-op-lanes
     #:vm-simd-vector-op-lhs-array #:vm-simd-vector-op-op #:vm-simd-vector-op-p #:vm-simd-vector-op-rhs-array #:vm-sin-inst #:vm-sqrt #:vm-sub #:vm-sub-checked #:vm-sub-p #:vm-tan-inst
     #:vm-truncate #:vm-wrap #:vpshufb #:with-float-traps-masked #:with-precision #:wrap #:vm-bignum-add #:vm-bignum-gcd #:vm-bignum-mul #:vm-bignum-negate
-    #:vm-bignum-sub #:vm-bignum-to-integer #:vm-integer->bignum    #:%vm-cl-div-fast-path #:+vm-bignum-digit-base+ #:+vm-max-fixnum51+ #:+vm-min-fixnum51+    #:kahan-accumulator-p #:kahan-add! #:kahan-result #:make-kahan-accumulator #:vm-bignum-add-integers
-    #:vm-bignum-burnikel-ziegler-divide #:vm-bignum-burnikel-ziegler-divide-plan #:vm-bignum-digit-vector    #:vm-bignum-div #:vm-bignum-expt #:vm-bignum-integer-from-digits #:vm-bignum-karatsuba-multiply-digits
-    #:vm-bignum-multiplication-strategy #:vm-bignum-multiply-digits #:vm-bignum-multiply-integers #:vm-bignum-p    #:vm-bignum-schoolbook-multiply-digits #:vm-bignum-subtract-integers #:vm-complex-abs #:vm-complex-add
-    #:vm-complex-conjugate #:vm-complex-make #:vm-complex-mul #:vm-complex-p #:vm-complex-phase    #:vm-complex-sqrt #:vm-complex-sub #:vm-complex-unbox-plan #:vm-complex-unboxed-add-plan #:vm-ffloor
-    #:vm-floor #:vm-imagpart #:vm-make-ratio #:vm-ratio-denominator #:vm-ratio-numerator #:vm-ratio-p    #:vm-rational-add #:vm-rational-div #:vm-rational-mul #:vm-rational-sub #:vm-realpart
-  )
+    #:vm-bignum-sub #:vm-bignum-to-integer #:vm-integer->bignum    )
   (:shadowing-import-from #:cl-cc/vm/clos
     #:%eql-specializer-matches-p #:%eql-specializer-p #:%resolve-combination-operator #:%vm-extract-eql-specializer-keys #:%vm-gf-eql-methods #:%vm-gf-uses-composite-keys-p #:%vm-resolve-single-dispatch #:*collect-profile* #:*method-combination-operators* #:*profile-output*
     #:collect-inherited-initargs #:collect-inherited-slots #:compute-class-precedence-list #:deep-copy #:generic-function-method-combination #:generic-function-methods #:make-vm-class-def #:make-vm-class-name-fn #:make-vm-class-of-fn #:make-vm-compute-effective-slot-definition #:make-vm-find-class
@@ -130,12 +120,7 @@
     #:vm-find-class #:vm-generic-call #:vm-generic-call-metadata #:vm-gf-reg #:vm-ic-type-counters #:vm-initarg-regs #:vm-make-obj #:vm-method-qualifier #:vm-method-reg #:vm-method-specializer
     #:vm-obj-reg #:vm-pgo-specializer #:vm-register-method #:vm-sealed-p #:vm-slot-boundp #:vm-slot-exists-p #:vm-slot-initargs #:vm-slot-makunbound #:vm-slot-name-sym #:vm-slot-names
     #:vm-slot-read #:vm-slot-read-dst #:vm-slot-read-obj-reg #:vm-slot-read-slot-name #:vm-slot-types #:vm-slot-write #:vm-slot-write-obj-reg #:vm-slot-write-slot-name #:vm-slot-write-value-reg #:vm-superclasses
-    #:vm-try-dispatch-combinations #:vm-try-dispatch-sub #:vm-type-profile-alist #:with-satiating-gfs #:%lookup-qualified-methods #:%vm-direct-primary-method-p #:%vm-global-generic-function #:%vm-same-function-name-p #:vm-get-all-applicable-methods    #:%cia-walk #:%cis-walk #:%cpl-linearize #:%vm-allow-other-keys-p #:%vm-apply-initarg
-    #:%vm-cdef-collect-class-slots #:%vm-cdef-collect-default-initargs #:%vm-cdef-collect-initargs    #:%vm-cdef-collect-slots #:%vm-cdef-init-class-slots #:%vm-class-slots-of #:%vm-defunctionalized-dispatch
-    #:%vm-dispatch-key-collect #:%vm-obj-class-ht #:%vm-raw-slot-boundp #:%vm-raw-slot-makunbound    #:%vm-raw-slot-read #:%vm-raw-slot-write #:%vm-validate-initargs #:*unbound-slot-marker* #:add-method
-    #:allocate-instance-vector #:class-precedence-list #:class-slot-vector-index #:class-slots    #:compute-applicable-methods #:compute-applicable-methods-using-classes #:copy-instance
-    #:ensure-generic-function #:find-method #:method-qualifiers #:method-specializers #:remove-method    #:slot-makunbound-using-class #:slot-value-by-index #:slot-value-using-class #:vm-ic-cache
-  )
+    #:vm-try-dispatch-combinations #:vm-try-dispatch-sub #:vm-type-profile-alist #:with-satiating-gfs #:%lookup-qualified-methods #:%vm-direct-primary-method-p #:%vm-global-generic-function #:%vm-same-function-name-p #:vm-get-all-applicable-methods    )
   (:import-from #:cl-cc/vm/conditions
     #:*active-restarts* #:*dynamic-wind-stack* #:*vm-error-output-format* #:*vm-program-exception-tables* #:describe-restart #:dynamic-wind #:format-condition-json #:format-rich-condition #:format-stack-trace #:make-vm-cerror
     #:make-vm-division-by-zero #:make-vm-exception-entry #:make-vm-signal #:make-vm-simple-error #:make-vm-simple-warning #:make-vm-type-error #:make-vm-type-error-condition #:make-vm-unbound-variable #:make-vm-undefined-function #:make-vm-warn
@@ -147,8 +132,7 @@
     #:vm-levenshtein-distance #:vm-muffle-warning-restart #:vm-package-error #:vm-pop-handler #:vm-pop-handler-from-stack #:vm-program-error #:vm-push-handler #:vm-push-handler-to-stack #:vm-push-handler-type #:vm-reader-error
     #:vm-register-program-exception-table #:vm-restart-label #:vm-restart-name #:vm-restart-name-inst #:vm-retry-restart #:vm-serious-condition #:vm-show-restart-menu #:vm-signal #:vm-signal-condition #:vm-simple-condition
     #:vm-simple-error #:vm-simple-warning #:vm-storage-condition #:vm-store-value-restart #:vm-stream-error #:vm-style-warning #:vm-type-error #:vm-type-error-condition #:vm-type-error-values-p #:vm-unbound-slot
-    #:vm-unbound-variable #:vm-undefined-function #:vm-use-value-restart #:vm-warn #:vm-warning #:vm-with-simple-restart    #:make-vm-restart #:vm-restart-description #:vm-restart-interactive-function
-  )
+    #:vm-unbound-variable #:vm-undefined-function #:vm-use-value-restart #:vm-warn #:vm-warning #:vm-with-simple-restart    )
   (:import-from #:cl-cc/vm/data
     #:*deferred-rc-enabled* #:*hash-table-rehash-policy* #:*interpolation-prefix* #:*perfect-hash-tables-enabled* #:*rt-string-dedup-table* #:*string-intern-table* #:*vm-hash-cons-table* #:*vm-primitive-type-dispatch* #:+hash-table-rehash-policies+ #:+sso-max-length+
     #:assoc! #:build-perfect-hash-table #:conj #:conj! #:detect-rc-cycles #:dissoc #:dissoc! #:hash-table-simd-lookup-available-p #:hash-with #:hcons
@@ -198,12 +182,8 @@
     #:vm-string-lessp #:vm-string-not-equal #:vm-string-reg #:vm-string-right-trim #:vm-string-set #:vm-string-trim #:vm-string-upcase #:vm-string< #:vm-string<= #:vm-string=
     #:vm-string> #:vm-string>= #:vm-stringp #:vm-subseq #:vm-svref #:vm-sxhash #:vm-tenth #:vm-third #:vm-type-rep #:vm-type-rep-equal
     #:vm-type-rep-of #:vm-type-rep-p #:vm-type-rep-specifier #:vm-unwrap-dynamic #:vm-upper-case-p #:vm-val-reg #:vm-vector #:vm-vectorp #:vm-wrap-dynamic #:with-string-builder
-    #:%vm-copy-symbol-property-entry #:vm-string-materialize
-    #:%vm-symbol-property-entry-p #:*vm-compound-type-handlers* #:*vm-hash-enable-lock-elision-p*    #:*vm-hash-htm-abort-threshold* #:*vm-hash-htm-supported-p* #:*vm-hash-low-contention-p*
-    #:+rope-inline-threshold+ #:rope-node-left #:rope-node-p #:rope-node-right #:rope-root    #:string-builder-append-string! #:string-builder-ensure-capacity! #:string-builder-length #:string-freeze
-    #:taint-mark #:tainted-p #:untaint #:vm-adjustable-array-p-value #:vm-cow-string-backing    #:vm-cow-string-start #:vm-cow-vector-backing #:vm-cow-vector-p #:vm-hash-htm-eligible-p
-    #:vm-hash-table-htm-abort-count #:vm-hash-with-lock-fallback #:vm-string-copy #:vm-string-set-char    #:vm-string-subseq #:vm-symbol-plist-read-snapshot
-  )
+    #:vm-string-materialize
+    )
   (:shadowing-import-from #:cl-cc/vm/data
     #:random-state #:random-state-p
   )
@@ -227,9 +207,7 @@
     #:vm-open-stream-p #:vm-output-stream-p #:vm-peek-char #:vm-position-reg #:vm-prin1 #:vm-prin1-sexp #:vm-princ #:vm-princ-sexp #:vm-princ-to-string-inst #:vm-print-inst
     #:vm-print-sexp #:vm-read-byte #:vm-read-char #:vm-read-from-string-inst #:vm-read-line #:vm-read-sexp #:vm-read-sexp-inst #:vm-reader-read #:vm-set-stream-external-format #:vm-socket
     #:vm-socket-p #:vm-standard-input #:vm-standard-output #:vm-stream-direction #:vm-stream-external-format #:vm-stream-open-p #:vm-stream-write-string-inst #:vm-string-streams #:vm-terpri-inst #:vm-unread-char
-    #:vm-write-char #:vm-write-string #:vm-write-to-string-inst #:with-mmap #:with-socket #:%vm-format-native    #:%copy-ht-into #:%resolve-integer-stream-handle #:%vm-bridge-get-output-stream-string    #:%vm-bridge-make-broadcast-stream #:%vm-bridge-make-concatenated-stream #:%vm-bridge-make-echo-stream
-    #:%vm-bridge-make-synonym-stream #:%vm-bridge-make-two-way-stream #:%vm-format-render-to-string    #:dns-async-result-thread #:make-buffered-stream #:tls-context-p #:vm-write-object-to-string
-  )
+    #:vm-write-char #:vm-write-string #:vm-write-to-string-inst #:with-mmap #:with-socket #:%vm-format-native    )
   (:shadowing-import-from #:cl-cc/vm/io
     #:*print-array* #:*print-base* #:*print-case* #:*print-circle* #:*print-escape* #:*print-gensym* #:*print-length* #:*print-level* #:*print-lines* #:*print-pprint-dispatch*
     #:*print-pretty* #:*print-radix* #:*print-readably* #:*print-right-margin* #:*readtable* #:copy-pprint-dispatch #:copy-readtable #:get-dispatch-macro-character #:get-macro-character #:open
@@ -249,32 +227,26 @@
     #:vm-fdefinition #:vm-get-internal-real-time #:vm-get-internal-run-time #:vm-get-source-location #:vm-get-universal-time #:vm-handle-runtime-flag #:vm-make-random-state #:vm-makunbound #:vm-random #:vm-record-gc-pause
     #:vm-signal-with-location #:vm-source-context-lines #:vm-source-location #:vm-source-location-column #:vm-source-location-compilation-unit #:vm-source-location-form #:vm-source-location-line #:vm-source-location-macro-context #:vm-source-location-p #:vm-source-location-pathname
     #:vm-source-location-string #:when-feature #:with-timeout #:check-package-lock #:vm-lock-package #:vm-unlock-package
-    #:*symbol-table-compact* #:*symbol-table-frozen* #:*symbol-table-weak* #:build-timestamp #:lock-package
-    #:package-locked-error #:source-date-epoch #:unlock-package
-  )
+    )
   (:shadowing-import-from #:cl-cc/vm/environment
     #:*features* #:*load-pathname* #:*load-truename* #:*random-state* #:*read-base* #:*read-default-float-format* #:*read-eval* #:*read-suppress* #:apropos #:apropos-list
     #:decode-universal-time #:encode-universal-time #:get-internal-real-time #:get-internal-run-time #:get-universal-time #:internal-time-units-per-second #:lisp-implementation-type #:lisp-implementation-version #:machine-instance #:machine-type
-    #:machine-version #:make-random-state #:random #:room #:sleep #:software-type #:software-version #:time    #:long-site-name #:short-site-name
-  )
+    #:machine-version #:make-random-state #:random #:room #:sleep #:software-type #:software-version #:time    )
   (:import-from #:cl-cc/vm/debugging
     #:*repl-journal* #:*repl-syntax-colors* #:analyze-assertion-density #:bisect-regression #:extract-docstrings #:generate-api-docs #:macrostep #:objdump #:profile-values #:read-pmu-counters
     #:repl-complete #:repl-undo #:report-stack-overflow #:run-doctests #:show-types #:start-cpu-profile #:vm-ansi-color #:vm-ansi-reset #:vm-apropos #:vm-apropos-list
     #:vm-break #:vm-describe #:vm-dribble #:vm-ed #:vm-inspect #:vm-invoke-debugger #:vm-isatty #:vm-read-key #:vm-readline #:vm-room
-    #:vm-step #:vm-step-prompt #:vm-terminal-size #:vm-trace #:vm-traced-p #:vm-untrace #:vm-with-raw-terminal #:vm-with-trace    #:build-crash-report #:cr-backtrace #:cr-condition-message #:cr-condition-type #:cr-timestamp    #:crash-report-p #:format-timestamp #:write-crash-report
-  )
+    #:vm-step #:vm-step-prompt #:vm-terminal-size #:vm-trace #:vm-traced-p #:vm-untrace #:vm-with-raw-terminal #:vm-with-trace    )
   (:shadowing-import-from #:cl-cc/vm/debugging
     #:*trace-output* #:break #:describe #:dribble #:ed #:inspect #:invoke-debugger #:step #:trace #:untrace
   )
-  (:import-from #:cl-cc/vm/interop
-    #:%all-symbols #:%class-slot-definitions #:%class-slot-initargs-for-slot #:%class-slot-metadata #:%make-instances-obsolete #:%package-external-symbols #:%package-symbols #:*code-sign-identity* #:*sandbox-enabled* #:*seccomp-filter-rules*
+  (:import-from #:cl-cc/vm/interop #:%all-symbols #:%class-slot-definitions #:%class-slot-initargs-for-slot #:%class-slot-metadata #:%make-instances-obsolete #:%package-external-symbols #:%package-symbols #:*code-sign-identity* #:*sandbox-enabled* #:*seccomp-filter-rules*
     #:*shape-registry* #:*value-types* #:+imt-size+ #:aes-encrypt #:class-metaclass #:compute-effective-slot-definition #:defvalue-type #:emit-header #:export-c-api #:find-or-create-shape
     #:foreign-call-varargs #:hash-table-values #:imt-entry #:imt-insert #:imt-lookup #:initialize-sandbox #:inline-method-table #:make-callback #:make-imt-entry #:make-inline-method-table
     #:make-mark-word #:make-object-shape #:mark-word-gc-color #:object-shape #:octets-to-string #:regex-all-matches #:regex-replace #:regex-replace-all #:regex-scan #:regex-split
     #:register-gc-root #:resolve-hash-test #:sha256-rounds #:shape-slot-offset #:sign-binary #:slot-definition-allocation #:slot-definition-initargs #:slot-definition-initform #:slot-definition-initfunction #:slot-definition-location
-    #:slot-definition-type #:string-to-octets #:value-type-def #:with-pinned-object #:with-platform #:vm-bridge-callable
-    #:%vm-runtime-callable #:%vm-runtime-package-registry #:vm-install-eval-hooks #:vm-install-macroexpand-hooks    #:vm-install-parse-forms-hook
-  )
+    #:slot-definition-type #:string-to-octets #:value-type-def #:with-pinned-object #:with-platform #:vm-bridge-callable #:%vm-runtime-callable)
+  (:import-from #:cl-cc/vm/clos #:%vm-fixed-slot-layout-p #:%vm-hashlike-storage #:%vm-raw-allocate-instance #:%vm-slot-vector-index #:%vm-vector-instance-p #:*unbound-slot-marker* #:class-slots #:copy-instance)
   (:import-from #:cl
     #:*break-on-signals* #:*debugger-hook* #:abort #:arithmetic-error #:arithmetic-error-operands #:arithmetic-error-operation #:cell-error #:cell-error-name #:check-type #:compute-restarts
     #:condition #:continue #:control-error #:division-by-zero #:end-of-file #:error #:find-restart #:floating-point-overflow #:floating-point-underflow #:invoke-restart
@@ -285,8 +257,7 @@
   (:import-from #:cl-cc/bootstrap
     #:const
   )
-  (:export
-    #:%all-symbols #:%class-slot-definitions #:%class-slot-initargs-for-slot #:%class-slot-metadata #:%documentation-table* #:%eql-specializer-matches-p #:%eql-specializer-p #:%make-instances-obsolete #:%package-external-symbols #:%package-symbols
+  (:export #:%all-symbols #:%class-slot-definitions #:%class-slot-initargs-for-slot #:%class-slot-metadata #:%documentation-table* #:%eql-specializer-matches-p #:%eql-specializer-p #:%make-instances-obsolete #:%package-external-symbols #:%package-symbols
     #:%resolve-combination-operator #:%vm-extract-eql-specializer-keys #:%vm-gf-eql-methods #:%vm-gf-uses-composite-keys-p #:%vm-resolve-single-dispatch #:*active-restarts* #:*adaptive-jit-enabled* #:*arith-dispatch-table* #:*associative-math* #:*blind-constants-enabled*
     #:*break-on-signals* #:*bytecode-threshold* #:*code-sign-identity* #:*collect-profile* #:*command-line-args* #:*command-line-arguments* #:*compile-shared* #:*compile-static* #:*current-source-location* #:*debugger-hook*
     #:*default-external-format* #:*deferred-rc-enabled* #:*deopt-enabled* #:*documentation-table* #:*dynamic-wind-stack* #:*fasl-code-version* #:*fasl-preload-forms* #:*fasl-toc-enabled* #:*fast-math* #:*feature-flags*
@@ -492,8 +463,7 @@
     #:vm-warn #:vm-warning #:vm-with-raw-terminal #:vm-with-simple-restart #:vm-with-trace #:vm-wrap #:vm-wrap-dynamic #:vm-write-char #:vm-write-instruction-profile #:vm-write-string
     #:vm-write-to-fasl #:vm-write-to-string-inst #:vm2-state-global-vars #:vm2-state-output-stream #:vm2-state-p #:vm2-state-registers #:vm2-state-values-buffer #:vpshufb #:warning #:when-feature
     #:with-float-traps-masked #:with-mmap #:with-pinned-object #:with-platform #:with-precision #:with-satiating-gfs #:with-simple-restart #:with-socket #:with-standard-io-syntax #:with-string-builder
-    #:with-timeout #:with-vm-instance-lock #:with-vm-state-dispatch #:wrap
-  )
+    #:with-timeout #:with-vm-instance-lock #:with-vm-state-dispatch #:wrap #:%vm-vector-instance-p #:%vm-slot-vector-index #:copy-instance #:class-slots #:%vm-hashlike-storage #:*unbound-slot-marker* #:%vm-fixed-slot-layout-p #:%vm-raw-allocate-instance #:vm-current-closure-stack #:%vm-closure-object-p #:vm-closure-dispatch-tag #:%vm-call-closure-sync #:%vm-runtime-callable)
 )
 
 

@@ -407,7 +407,7 @@
   (declare (ignore labels))
   (let* ((pkg (vm-reg-get state (vm-package-name-pkg inst)))
          (result (%vm-package-result pkg
-                                     #'cl-cc/runtime::rt-package-name
+                                     #'cl-cc/runtime:rt-package-name
                                      #'package-name
                                      pkg)))
     (vm-reg-set state (vm-dst inst)
@@ -444,7 +444,7 @@
          (pkg (vm-reg-get state (vm-unuse-pkg inst)))
          (result (%vm-package-operation-result
                   pkg
-                  (function cl-cc/runtime::rt-unuse-package)
+                  (function cl-cc/runtime:rt-unuse-package)
                   (function unuse-package)
                   (list pkgs pkg)
                   0)))
@@ -457,7 +457,7 @@
          (pkg (vm-reg-get state (vm-use-pkg inst)))
          (result (%vm-package-operation-result
                   pkg
-                  (function cl-cc/runtime::rt-use-package)
+                  (function cl-cc/runtime:rt-use-package)
                   (function use-package)
                   (list pkgs pkg)
                   0)))

@@ -12,28 +12,28 @@
 (defun register-hash-tests ()
 (it-sequential "resolve-hash-test-cases eq"
   (destructuring-bind (test-sym expected-designator) (list 'eq 'eq)
-    (expect (cl-cc/vm::resolve-hash-test test-sym) :to-equal expected-designator)))
+    (expect (cl-cc/vm/protocols:vm-resolve-hash-test test-sym) :to-equal expected-designator)))
 (it-sequential "resolve-hash-test-cases eql"
   (destructuring-bind (test-sym expected-designator) (list 'eql 'eql)
-    (expect (cl-cc/vm::resolve-hash-test test-sym) :to-equal expected-designator)))
+    (expect (cl-cc/vm/protocols:vm-resolve-hash-test test-sym) :to-equal expected-designator)))
 (it-sequential "resolve-hash-test-cases equal"
   (destructuring-bind (test-sym expected-designator) (list 'equal 'equal)
-    (expect (cl-cc/vm::resolve-hash-test test-sym) :to-equal expected-designator)))
+    (expect (cl-cc/vm/protocols:vm-resolve-hash-test test-sym) :to-equal expected-designator)))
 (it-sequential "resolve-hash-test-cases equalp"
   (destructuring-bind (test-sym expected-designator) (list 'equalp 'equalp)
-    (expect (cl-cc/vm::resolve-hash-test test-sym) :to-equal expected-designator)))
+    (expect (cl-cc/vm/protocols:vm-resolve-hash-test test-sym) :to-equal expected-designator)))
 (it-sequential "resolve-hash-test-cases nil-defaults-eql"
   (destructuring-bind (test-sym expected-designator) (list nil 'eql)
-    (expect (cl-cc/vm::resolve-hash-test test-sym) :to-equal expected-designator)))
+    (expect (cl-cc/vm/protocols:vm-resolve-hash-test test-sym) :to-equal expected-designator)))
 (it-sequential "resolve-hash-test-unknown-errors"
   (expect (handler-case
-       (progn (cl-cc/vm::resolve-hash-test 'bogus) nil)
+       (progn (cl-cc/vm/protocols:vm-resolve-hash-test 'bogus) nil)
      (error () t)) :to-be-truthy))
 (it-sequential "make-hash-table-default-test"
   (let ((state (make-test-vm)))
     (vm-exec (cl-cc/vm:make-vm-make-hash-table :dst :R0 :test nil) state)
     (let ((obj (cl-cc/vm/protocols:vm-reg-get state :R0)))
-      (expect (typep obj 'cl-cc/vm::vm-hash-table-object) :to-be-truthy))))
+      (expect (typep obj 'cl-cc/vm/data:vm-hash-table-object) :to-be-truthy))))
 (it-sequential "make-hash-table-size-and-rehash-options"
   (let ((state (make-test-vm)))
     (cl-cc/vm/protocols:vm-reg-set state :SIZE 32)
@@ -79,7 +79,7 @@
     (vm-exec (funcall ctor :dst :R3 :found-dst :R4 :key :R1 :table :R0) state)
     (expect (cl-cc/vm/protocols:vm-reg-get state :R3) :to-equal 99)
     (expect (cl-cc/vm/protocols:vm-reg-get state :R4) :to-equal 1)
-    (expect (cl-cc/vm::vm-values-list state) :to-equal (list 99 1)))))
+    (expect (cl-cc/vm/protocols:vm-values-list state) :to-equal (list 99 1)))))
 (it-sequential "specialized-gethash-roundtrip eql"
   (destructuring-bind (ctor test-sym key) (list #'cl-cc/vm:make-vm-gethash-eql 'eql 42)
     (let ((state (make-test-vm)))
@@ -91,7 +91,7 @@
     (vm-exec (funcall ctor :dst :R3 :found-dst :R4 :key :R1 :table :R0) state)
     (expect (cl-cc/vm/protocols:vm-reg-get state :R3) :to-equal 99)
     (expect (cl-cc/vm/protocols:vm-reg-get state :R4) :to-equal 1)
-    (expect (cl-cc/vm::vm-values-list state) :to-equal (list 99 1)))))
+    (expect (cl-cc/vm/protocols:vm-values-list state) :to-equal (list 99 1)))))
 (it-sequential "specialized-gethash-roundtrip equal"
   (destructuring-bind (ctor test-sym key) (list #'cl-cc/vm:make-vm-gethash-equal 'equal "key")
     (let ((state (make-test-vm)))
@@ -103,7 +103,7 @@
     (vm-exec (funcall ctor :dst :R3 :found-dst :R4 :key :R1 :table :R0) state)
     (expect (cl-cc/vm/protocols:vm-reg-get state :R3) :to-equal 99)
     (expect (cl-cc/vm/protocols:vm-reg-get state :R4) :to-equal 1)
-    (expect (cl-cc/vm::vm-values-list state) :to-equal (list 99 1)))))
+    (expect (cl-cc/vm/protocols:vm-values-list state) :to-equal (list 99 1)))))
 (it-sequential "remhash-removes-entry"
   (let ((state (make-test-vm)))
     (vm-exec (cl-cc/vm:make-vm-make-hash-table :dst :R0 :test nil) state)
@@ -163,13 +163,13 @@
     ;; keys
     (vm-exec (cl-cc/vm:make-vm-hash-table-keys :dst :R3 :table :R0) state)
     (let ((keys (cl-cc/vm/protocols:vm-reg-get state :R3)))
-      (expect (length keys) :to-equal 2)
+      (expect (cl-cc/vm/data:length keys) :to-equal 2)
       (expect (member 'x keys) :to-be-truthy)
       (expect (member 'y keys) :to-be-truthy))
     ;; values
     (vm-exec (cl-cc/vm:make-vm-hash-table-values :dst :R4 :table :R0) state)
     (let ((vals (cl-cc/vm/protocols:vm-reg-get state :R4)))
-      (expect (length vals) :to-equal 2)
+      (expect (cl-cc/vm/data:length vals) :to-equal 2)
       (expect (member 10 vals) :to-be-truthy)
       (expect (member 20 vals) :to-be-truthy))))
 (it-sequential "hash-table-test-returns-symbol"
@@ -179,15 +179,15 @@
     (expect (cl-cc/vm/protocols:vm-reg-get state :R1) :to-equal 'eql)))
 (it-sequential "hash-lock-elision-wrapper-falls-back-after-abort"
   (let* ((table (make-hash-table :test 'eql))
-         (obj (make-instance 'cl-cc/vm::vm-hash-table-object
+         (obj (make-instance 'cl-cc/vm/data:vm-hash-table-object
                              :table table
                              :lock #+sb-thread (sb-thread:make-mutex :name "vm-hash-test-lock")
                                    #-sb-thread nil))
          (attempts 0)
-         (cl-cc/vm::*vm-hash-enable-lock-elision-p* t)
-         (cl-cc/vm::*vm-hash-htm-supported-p* t)
-         (cl-cc/vm::*vm-hash-low-contention-p* t))
-    (cl-cc/vm::vm-hash-with-lock-fallback
+         (cl-cc/vm/data::*vm-hash-enable-lock-elision-p* t)
+         (cl-cc/vm/data::*vm-hash-htm-supported-p* t)
+         (cl-cc/vm/data::*vm-hash-low-contention-p* t))
+    (cl-cc/vm/data::vm-hash-with-lock-fallback
      obj
      (lambda ()
        (incf attempts)
@@ -195,20 +195,20 @@
          (error "simulated-htm-abort"))
        (setf (gethash 'k table) 99)))
     (expect (= 2 attempts) :to-be-truthy)
-    (expect (= 1 (cl-cc/vm::vm-hash-table-htm-abort-count obj)) :to-be-truthy)
+    (expect (= 1 (cl-cc/vm/data::vm-hash-table-htm-abort-count obj)) :to-be-truthy)
     (expect (gethash 'k table) :to-equal 99)))
 (it-sequential "hash-lock-elision-disabled-after-abort-threshold"
   (let* ((table (make-hash-table :test 'eql))
-         (obj (make-instance 'cl-cc/vm::vm-hash-table-object
+         (obj (make-instance 'cl-cc/vm/data:vm-hash-table-object
                              :table table
                              :lock #+sb-thread (sb-thread:make-mutex :name "vm-hash-test-lock")
                                    #-sb-thread nil))
-         (cl-cc/vm::*vm-hash-enable-lock-elision-p* t)
-         (cl-cc/vm::*vm-hash-htm-supported-p* t)
-         (cl-cc/vm::*vm-hash-low-contention-p* t)
-         (cl-cc/vm::*vm-hash-htm-abort-threshold* 2))
-    (setf (cl-cc/vm::vm-hash-table-htm-abort-count obj) 2)
-    (expect (cl-cc/vm::vm-hash-htm-eligible-p obj) :to-be-falsy)))
+         (cl-cc/vm/data::*vm-hash-enable-lock-elision-p* t)
+         (cl-cc/vm/data::*vm-hash-htm-supported-p* t)
+         (cl-cc/vm/data::*vm-hash-low-contention-p* t)
+         (cl-cc/vm/data::*vm-hash-htm-abort-threshold* 2))
+    (setf (cl-cc/vm/data::vm-hash-table-htm-abort-count obj) 2)
+    (expect (cl-cc/vm/data::vm-hash-htm-eligible-p obj) :to-be-falsy)))
 )
 
 ;;; ─── Hash Table Create ────────────────────────────────────────────────────

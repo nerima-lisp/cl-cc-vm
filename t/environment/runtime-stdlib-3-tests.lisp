@@ -18,8 +18,8 @@
   (it-sequential "runtime-stdlib-3-environment-and-reader-vars"
   (expect (find :cl-cc cl-cc/vm:*features*) :to-be-truthy)
   (expect (cl-cc/vm:lisp-implementation-type) :to-equal "cl-cc")
-  (expect (stringp (cl-cc/vm::short-site-name)) :to-be-truthy)
-  (expect (stringp (cl-cc/vm::long-site-name)) :to-be-truthy)
+  (expect (stringp (cl-cc/vm/environment::short-site-name)) :to-be-truthy)
+  (expect (stringp (cl-cc/vm/environment::long-site-name)) :to-be-truthy)
   (expect (= 10 cl-cc/vm:*read-base*) :to-be-truthy)
   (expect (cl-cc/vm:source-location-p
                 (cl-cc/vm:make-source-location :pathname #P"x.lisp" :line 1 :column 0)) :to-be-truthy)

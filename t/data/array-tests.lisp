@@ -13,7 +13,7 @@
     (exec1 (cl-cc/vm:make-vm-make-array :dst 0 :size-reg 1) s)
     (let ((arr (cl-cc/vm:vm-reg-get s 0)))
       (expect (arrayp arr) :to-be-truthy)
-      (expect (= 5 (length arr)) :to-be-truthy))))
+      (expect (= 5 (cl-cc/vm/data:length arr)) :to-be-truthy))))
 (it-sequential "vm-array-make-with-initial-element-fills-all-slots"
   (let ((s (make-test-vm)))
     (cl-cc/vm:vm-reg-set s 1 3)
@@ -268,7 +268,7 @@
     (cl-cc/vm:vm-reg-set s 1 arr)
     (cl-cc/vm:vm-reg-set s 2 5)
     (exec1 (cl-cc/vm:make-vm-adjust-array :dst 0 :arr 1 :dims 2) s)
-    (expect (= 5 (length (cl-cc/vm:vm-reg-get s 0))) :to-be-truthy)))
+    (expect (= 5 (cl-cc/vm/data:length (cl-cc/vm:vm-reg-get s 0))) :to-be-truthy)))
 (it-sequential "vm-array-displacement-returns-nil-for-non-displaced"
   (let ((s (make-test-vm))
         (arr (make-array 3)))

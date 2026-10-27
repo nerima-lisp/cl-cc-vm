@@ -5,7 +5,7 @@
 - Definition: Shared contracts that let VM features call one another without depending on implementation packages.
 - Package: `cl-cc/vm/protocols`
 - Key types: `vm-instruction`
-- Key functions: `execute-instruction`, `vm-reg-get`, `vm-register-host-bridge`
+- Key functions: `execute-instruction`, `vm-reg-get`, `vm-lookup-bridge-callable`, `vm-register-host-bridge`, `vm-register-runtime-callable`
 - Other contexts: None.
 
 ## execution

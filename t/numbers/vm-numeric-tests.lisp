@@ -45,63 +45,63 @@
     (let ((s (make-test-vm)))
     (cl-cc/vm:vm-reg-set s 1 1.0)
     (exec1 (funcall ctor :dst 0 :src 1) s)
-    (expect (= 3 (length (cl-cc/vm:vm-values-list s))) :to-be-truthy))))
+    (expect (= 3 (cl:length (cl-cc/vm:vm-values-list s))) :to-be-truthy))))
 (it-sequential "vm-float-decode-values integer-decode-float"
   (destructuring-bind (ctor) (list #'cl-cc/vm:make-vm-integer-decode-float)
     (let ((s (make-test-vm)))
     (cl-cc/vm:vm-reg-set s 1 1.0)
     (exec1 (funcall ctor :dst 0 :src 1) s)
-    (expect (= 3 (length (cl-cc/vm:vm-values-list s))) :to-be-truthy))))
+    (expect (= 3 (cl:length (cl-cc/vm:vm-values-list s))) :to-be-truthy))))
 (it-sequential "vm-bignum-digit-vector-splits-little-endian-digits"
-  (let ((base cl-cc/vm::+vm-bignum-digit-base+))
+  (let ((base cl-cc/vm/numbers::+vm-bignum-digit-base+))
     (multiple-value-bind (digits sign)
-        (cl-cc/vm::vm-bignum-digit-vector (+ base 42))
+        (cl-cc/vm/numbers::vm-bignum-digit-vector (+ base 42))
       (expect (= 1 sign) :to-be-truthy)
-      (expect (= 2 (length digits)) :to-be-truthy)
+      (expect (= 2 (cl:length digits)) :to-be-truthy)
       (expect (= 42 (aref digits 0)) :to-be-truthy)
       (expect (= 1 (aref digits 1)) :to-be-truthy))))
 (it-sequential "vm-bignum-schoolbook-multiply-digits-computes-product-digits"
-  (let ((digits (cl-cc/vm::vm-bignum-schoolbook-multiply-digits
+  (let ((digits (cl-cc/vm/numbers::vm-bignum-schoolbook-multiply-digits
                  #(3 2 1) #(6 5 4) 10)))
     (expect (coerce digits 'list) :to-equal '(8 8 0 6 5))))
 (it-sequential "vm-bignum-karatsuba-multiply-digits-matches-schoolbook"
   (let* ((lhs #(9 8 7 6 5 4 3 2))
          (rhs #(1 2 3 4 5 6 7 8))
-         (schoolbook (cl-cc/vm::vm-bignum-schoolbook-multiply-digits lhs rhs 10))
-         (karatsuba  (cl-cc/vm::vm-bignum-karatsuba-multiply-digits lhs rhs 10 2)))
+         (schoolbook (cl-cc/vm/numbers::vm-bignum-schoolbook-multiply-digits lhs rhs 10))
+         (karatsuba  (cl-cc/vm/numbers::vm-bignum-karatsuba-multiply-digits lhs rhs 10 2)))
     (expect (coerce karatsuba 'list) :to-equal (coerce schoolbook 'list))))
 (it-sequential "vm-bignum-multiply-digits-selects-karatsuba-by-threshold"
   (let* ((lhs #(9 8 7 6 5 4 3 2))
          (rhs #(1 2 3 4 5 6 7 8))
-         (result (cl-cc/vm::vm-bignum-multiply-digits
+         (result (cl-cc/vm/numbers::vm-bignum-multiply-digits
                   lhs rhs :base 10 :threshold 4))
-         (expected (cl-cc/vm::vm-bignum-karatsuba-multiply-digits lhs rhs 10 2)))
+         (expected (cl-cc/vm/numbers::vm-bignum-karatsuba-multiply-digits lhs rhs 10 2)))
     (expect (coerce result 'list) :to-equal (coerce expected 'list))))
 (it-sequential "vm-bignum-integer-from-digits-reconstructs-value"
-  (expect (= 123456789 (cl-cc/vm::vm-bignum-integer-from-digits #(789 456 123) 1 1000)) :to-be-truthy)
-  (expect (= -123456789 (cl-cc/vm::vm-bignum-integer-from-digits #(789 456 123) -1 1000)) :to-be-truthy))
+  (expect (= 123456789 (cl-cc/vm/numbers::vm-bignum-integer-from-digits #(789 456 123) 1 1000)) :to-be-truthy)
+  (expect (= -123456789 (cl-cc/vm/numbers::vm-bignum-integer-from-digits #(789 456 123) -1 1000)) :to-be-truthy))
 (it-sequential "vm-bignum-multiply-integers-matches-host positive-large"
-  (destructuring-bind (lhs rhs) (list (expt cl-cc/vm::+vm-bignum-digit-base+ 6) (+ (expt cl-cc/vm::+vm-bignum-digit-base+ 4) 12345))
-    (expect (cl-cc/vm::vm-bignum-multiply-integers lhs rhs :threshold 4) :to-be (* lhs rhs))))
+  (destructuring-bind (lhs rhs) (list (expt cl-cc/vm/numbers::+vm-bignum-digit-base+ 6) (+ (expt cl-cc/vm/numbers::+vm-bignum-digit-base+ 4) 12345))
+    (expect (cl-cc/vm/numbers::vm-bignum-multiply-integers lhs rhs :threshold 4) :to-be (* lhs rhs))))
 (it-sequential "vm-bignum-multiply-integers-matches-host mixed-sign-large"
-  (destructuring-bind (lhs rhs) (list (- (expt cl-cc/vm::+vm-bignum-digit-base+ 5)) (+ (expt cl-cc/vm::+vm-bignum-digit-base+ 3) 6789))
-    (expect (cl-cc/vm::vm-bignum-multiply-integers lhs rhs :threshold 4) :to-be (* lhs rhs))))
+  (destructuring-bind (lhs rhs) (list (- (expt cl-cc/vm/numbers::+vm-bignum-digit-base+ 5)) (+ (expt cl-cc/vm/numbers::+vm-bignum-digit-base+ 3) 6789))
+    (expect (cl-cc/vm/numbers::vm-bignum-multiply-integers lhs rhs :threshold 4) :to-be (* lhs rhs))))
 (it-sequential "vm-bignum-multiplication-strategy-selects-thresholded-plan fixnum"
   (destructuring-bind (lhs rhs threshold expected) (list 21 2 4 :fixnum)
-    (expect (cl-cc/vm::vm-bignum-multiplication-strategy
+    (expect (cl-cc/vm/numbers::vm-bignum-multiplication-strategy
               lhs rhs :threshold threshold) :to-be expected)))
 (it-sequential "vm-bignum-multiplication-strategy-selects-thresholded-plan schoolbook"
   (destructuring-bind (lhs rhs threshold expected) (list most-positive-fixnum 2 64 :schoolbook)
-    (expect (cl-cc/vm::vm-bignum-multiplication-strategy
+    (expect (cl-cc/vm/numbers::vm-bignum-multiplication-strategy
               lhs rhs :threshold threshold) :to-be expected)))
 (it-sequential "vm-bignum-multiplication-strategy-selects-thresholded-plan karatsuba"
-  (destructuring-bind (lhs rhs threshold expected) (list (expt cl-cc/vm::+vm-bignum-digit-base+ 5) (expt cl-cc/vm::+vm-bignum-digit-base+ 5) 4 :karatsuba)
-    (expect (cl-cc/vm::vm-bignum-multiplication-strategy
+  (destructuring-bind (lhs rhs threshold expected) (list (expt cl-cc/vm/numbers::+vm-bignum-digit-base+ 5) (expt cl-cc/vm/numbers::+vm-bignum-digit-base+ 5) 4 :karatsuba)
+    (expect (cl-cc/vm/numbers::vm-bignum-multiplication-strategy
               lhs rhs :threshold threshold) :to-be expected)))
 (it-sequential "vm-bignum-burnikel-ziegler-divide-plan-records-chunk-metadata"
-  (let ((plan (cl-cc/vm::vm-bignum-burnikel-ziegler-divide-plan
-               (+ (expt cl-cc/vm::+vm-bignum-digit-base+ 6) 123)
-               (+ (expt cl-cc/vm::+vm-bignum-digit-base+ 3) 7)
+  (let ((plan (cl-cc/vm/numbers::vm-bignum-burnikel-ziegler-divide-plan
+               (+ (expt cl-cc/vm/numbers::+vm-bignum-digit-base+ 6) 123)
+               (+ (expt cl-cc/vm/numbers::+vm-bignum-digit-base+ 3) 7)
                :block-size 8)))
     (expect (getf plan :algorithm) :to-be :burnikel-ziegler)
     (expect (= 8 (getf plan :chunk-size)) :to-be-truthy)
@@ -109,10 +109,10 @@
     (expect (vectorp (getf plan :lhs-digits)) :to-be-truthy)
     (expect (vectorp (getf plan :rhs-digits)) :to-be-truthy)))
 (it-sequential "vm-bignum-burnikel-ziegler-divide-matches-truncate"
-  (let* ((lhs (+ (expt cl-cc/vm::+vm-bignum-digit-base+ 7) 99))
-         (rhs (+ (expt cl-cc/vm::+vm-bignum-digit-base+ 3) 5)))
+  (let* ((lhs (+ (expt cl-cc/vm/numbers::+vm-bignum-digit-base+ 7) 99))
+         (rhs (+ (expt cl-cc/vm/numbers::+vm-bignum-digit-base+ 3) 5)))
     (multiple-value-bind (q r)
-        (cl-cc/vm::vm-bignum-burnikel-ziegler-divide lhs rhs)
+        (cl-cc/vm/numbers::vm-bignum-burnikel-ziegler-divide lhs rhs)
       (multiple-value-bind (eq er) (truncate lhs rhs)
         (expect (= eq q) :to-be-truthy)
         (expect (= er r) :to-be-truthy)))))
@@ -123,7 +123,7 @@
     (cl-cc/vm:vm-reg-set s 2 2.0)
     (exec1 (funcall ctor :dst 0 :lhs 1 :rhs 2) s)
     (expect (numberp (cl-cc/vm:vm-reg-get s 0)) :to-be-truthy)
-    (expect (= 2 (length (cl-cc/vm:vm-values-list s))) :to-be-truthy))))
+    (expect (= 2 (cl:length (cl-cc/vm:vm-values-list s))) :to-be-truthy))))
 (it-sequential "vm-float-rounding fceiling"
   (destructuring-bind (ctor) (list #'cl-cc/vm:make-vm-fceiling)
     (let ((s (make-test-vm)))
@@ -131,7 +131,7 @@
     (cl-cc/vm:vm-reg-set s 2 2.0)
     (exec1 (funcall ctor :dst 0 :lhs 1 :rhs 2) s)
     (expect (numberp (cl-cc/vm:vm-reg-get s 0)) :to-be-truthy)
-    (expect (= 2 (length (cl-cc/vm:vm-values-list s))) :to-be-truthy))))
+    (expect (= 2 (cl:length (cl-cc/vm:vm-values-list s))) :to-be-truthy))))
 (it-sequential "vm-float-rounding ftruncate"
   (destructuring-bind (ctor) (list #'cl-cc/vm:make-vm-ftruncate)
     (let ((s (make-test-vm)))
@@ -139,7 +139,7 @@
     (cl-cc/vm:vm-reg-set s 2 2.0)
     (exec1 (funcall ctor :dst 0 :lhs 1 :rhs 2) s)
     (expect (numberp (cl-cc/vm:vm-reg-get s 0)) :to-be-truthy)
-    (expect (= 2 (length (cl-cc/vm:vm-values-list s))) :to-be-truthy))))
+    (expect (= 2 (cl:length (cl-cc/vm:vm-values-list s))) :to-be-truthy))))
 (it-sequential "vm-float-rounding fround"
   (destructuring-bind (ctor) (list #'cl-cc/vm:make-vm-fround)
     (let ((s (make-test-vm)))
@@ -147,7 +147,7 @@
     (cl-cc/vm:vm-reg-set s 2 2.0)
     (exec1 (funcall ctor :dst 0 :lhs 1 :rhs 2) s)
     (expect (numberp (cl-cc/vm:vm-reg-get s 0)) :to-be-truthy)
-    (expect (= 2 (length (cl-cc/vm:vm-values-list s))) :to-be-truthy))))
+    (expect (= 2 (cl:length (cl-cc/vm:vm-values-list s))) :to-be-truthy))))
 (it-sequential "vm-rational"
   (expect (%vm-num-unary #'cl-cc/vm:make-vm-rational 0.5) :to-equal 1/2))
 (it-sequential "vm-rational-parts numerator"
@@ -173,49 +173,49 @@
 (it-sequential "vm-conjugate"
   (expect (%vm-num-unary #'cl-cc/vm:make-vm-conjugate #C(3 4)) :to-equal #C(3 -4)))
 (it-sequential "vm-complex-unbox-plan-splits-local-complex"
-  (let ((plan (cl-cc/vm::vm-complex-unbox-plan #C(3 4) :local-p t)))
+  (let ((plan (cl-cc/vm/numbers::vm-complex-unbox-plan #C(3 4) :local-p t)))
     (expect (getf plan :representation) :to-be :split-registers)
     (expect (= 3 (getf plan :real)) :to-be-truthy)
     (expect (= 4 (getf plan :imag)) :to-be-truthy)))
 (it-sequential "vm-complex-unbox-plan-keeps-escaping-complex-boxed"
-  (let ((plan (cl-cc/vm::vm-complex-unbox-plan #C(3 4) :local-p nil)))
+  (let ((plan (cl-cc/vm/numbers::vm-complex-unbox-plan #C(3 4) :local-p nil)))
     (expect (getf plan :representation) :to-be :boxed)
     (expect (getf plan :value) :to-equal #C(3 4))))
 (it-sequential "vm-complex-unboxed-add-plan-adds-components"
-  (let ((plan (cl-cc/vm::vm-complex-unboxed-add-plan #C(1 2) #C(3 4) :local-p t)))
+  (let ((plan (cl-cc/vm/numbers::vm-complex-unboxed-add-plan #C(1 2) #C(3 4) :local-p t)))
     (expect (getf plan :representation) :to-be :split-registers)
     (expect (= 4 (getf plan :real)) :to-be-truthy)
     (expect (= 6 (getf plan :imag)) :to-be-truthy)))
 (it-sequential "kahan-accumulator-basics"
-  (let ((acc (cl-cc/vm::make-kahan-accumulator)))
-    (expect (cl-cc/vm::kahan-accumulator-p acc) :to-be-truthy)
-    (expect (= 0.0d0 (cl-cc/vm::kahan-result acc)) :to-be-truthy)))
+  (let ((acc (cl-cc/vm/numbers::make-kahan-accumulator)))
+    (expect (cl-cc/vm/numbers::kahan-accumulator-p acc) :to-be-truthy)
+    (expect (= 0.0d0 (cl-cc/vm/numbers::kahan-result acc)) :to-be-truthy)))
 (it-sequential "kahan-accumulator-seeded"
-  (let ((acc (cl-cc/vm::make-kahan-accumulator 3.5d0)))
-    (expect (= 3.5d0 (cl-cc/vm::kahan-result acc)) :to-be-truthy)))
+  (let ((acc (cl-cc/vm/numbers::make-kahan-accumulator 3.5d0)))
+    (expect (= 3.5d0 (cl-cc/vm/numbers::kahan-result acc)) :to-be-truthy)))
 (it-sequential "kahan-add-accumulates"
-  (let ((acc (cl-cc/vm::make-kahan-accumulator 10.0d0)))
-    (cl-cc/vm::kahan-add! acc 20.0d0)
-    (cl-cc/vm::kahan-add! acc 30.0d0)
-    (expect (= 60.0d0 (cl-cc/vm::kahan-result acc)) :to-be-truthy)))
+  (let ((acc (cl-cc/vm/numbers::make-kahan-accumulator 10.0d0)))
+    (cl-cc/vm/numbers::kahan-add! acc 20.0d0)
+    (cl-cc/vm/numbers::kahan-add! acc 30.0d0)
+    (expect (= 60.0d0 (cl-cc/vm/numbers::kahan-result acc)) :to-be-truthy)))
 (it-sequential "get-float-traps-returns-list"
-  (let ((traps (cl-cc/vm::get-float-traps)))
+  (let ((traps (cl-cc/vm/numbers:get-float-traps)))
     (expect (listp traps) :to-be-truthy)
     (dolist (trap traps)
       (expect (keywordp trap) :to-be-truthy))))
 (it-sequential "with-float-traps-masked-suppresses-divide-by-zero"
   (let ((result :unset))
-    (cl-cc/vm::with-float-traps-masked (:divide-by-zero)
+    (cl-cc/vm/numbers:with-float-traps-masked (:divide-by-zero)
       (setf result (/ 1.0d0 0.0d0)))
     (expect (sb-ext:float-infinity-p result) :to-be-truthy)))
 (it-sequential "with-float-traps-masked-multiple"
   (let ((result :unset))
-    (cl-cc/vm::with-float-traps-masked (:divide-by-zero :overflow :underflow :inexact)
+    (cl-cc/vm/numbers:with-float-traps-masked (:divide-by-zero :overflow :underflow :inexact)
       (setf result (/ 1.0d0 0.0d0)))
     (expect (sb-ext:float-infinity-p result) :to-be-truthy)))
 (it-sequential "floating-point-modes-variable"
-  (expect (listp cl-cc/vm::*floating-point-modes*) :to-be-truthy)
-  (expect (getf cl-cc/vm::*floating-point-modes* :rounding-mode) :to-be-truthy))
+  (expect (listp cl-cc/vm/numbers:*floating-point-modes*) :to-be-truthy)
+  (expect (getf cl-cc/vm/numbers:*floating-point-modes* :rounding-mode) :to-be-truthy))
 (it-sequential "double-double-add-preserves-low-word"
   (let ((sum (cl-cc/vm:dd+ (cl-cc/vm:make-double-double 10000000000000000.0d0)
                            1.0d0)))

@@ -37,7 +37,7 @@
     (exec1 (cl-cc/vm/data:make-vm-acons :dst 0 :key 1 :value 2 :alist 3) s)
     (let ((result (cl-cc/vm:vm-reg-get s 0)))
       (expect (first result) :to-equal '(x . 99))
-      (expect (= 2 (length result)) :to-be-truthy))))
+      (expect (= 2 (cl-cc/vm/data:length result)) :to-be-truthy))))
 (it-sequential "vm-list-assoc-on-copy-list-alist"
   (let ((s (make-test-vm)))
     (cl-cc/vm:vm-reg-set s 1 'b)

@@ -37,8 +37,7 @@
     #:vm-unuse-pkg #:vm-use-packages #:vm-use-pkg #:vm-val #:vm-idx #:vm-cow-vector-p #:vm-dimensions-reg #:vm-export-symbols #:vm-hash-rehash-size #:vm-hash-rehash-threshold
     #:vm-hash-size #:vm-hash-table-weak-entries #:vm-package-name-pkg #:vm-assoc-key #:vm-assoc-alist #:vm-char-index #:vm-char-string #:vm-acons-key #:vm-acons-value #:vm-acons-alist #:vm-remprop-sym #:vm-remprop-indicator #:vm-symbol-get-sym #:vm-symbol-get-indicator #:vm-symbol-get-default #:vm-symbol-set-sym #:vm-symbol-set-indicator #:vm-symbol-set-value
     #:vm-sym)
-  (:export
-    #:%documentation-table* #:*adaptive-jit-enabled* #:*blind-constants-enabled* #:*bytecode-threshold* #:*deopt-enabled* #:*documentation-table* #:*jit-compilation-queue* #:*jit-hardening-enabled* #:*jit-random-key* #:*jit-tier1-threshold*
+  (:export #:%documentation-table* #:*adaptive-jit-enabled* #:*blind-constants-enabled* #:*bytecode-threshold* #:*deopt-enabled* #:*documentation-table* #:*jit-compilation-queue* #:*jit-hardening-enabled* #:*jit-random-key* #:*jit-tier1-threshold*
     #:*opcode-dispatch-table* #:*opcode-encoder-table* #:*opcode-name-table* #:*optimize-for-instruction-count* #:*osr-enabled* #:*pass-pipeline* #:*stack-segment-size* #:*stack-size* #:*tier-upgrade-threshold* #:*trampoline-optimization-enabled*
     #:*vm-current-state* #:*vm-eval-deadline* #:*vm-forward-reference-auto-resolve-enabled* #:*vm-instruction-profile* #:*vm-instruction-profile-enabled* #:*vm-recompile-function-hook* #:*vm-state* #:*vm-tier-call-counters* #:*vm-value-profile* #:+bc-call+
     #:+bc-closure+ #:+bc-const+ #:+bc-jmp+ #:+bc-jnil+ #:+bc-load+ #:+bc-make-env+ #:+bc-ret+ #:+bc-store+ #:+bc-tcall+ #:+maximum-multiple-values+
@@ -95,10 +94,10 @@
     #:vm-type-of #:vm-typecase-dispatch #:vm-typep #:vm-typep-type-name #:vm-value #:vm-value-profile-snapshot #:vm-value-reg #:vm-values #:vm-values-regs #:vm-values-to-list
     #:vm-values-typep #:vm-var-name #:vm-vr-count #:vm-vr0 #:vm-vr1 #:vm-vr2 #:vm-write-instruction-profile #:vm2-state-global-vars #:vm2-state-output-stream #:vm2-state-p
     #:vm2-state-registers #:vm2-state-values-buffer #:with-vm-instance-lock #:with-vm-state-dispatch
-   #:vm-trampoline-thunk-p #:vm-force-trampoline-result)
+   #:vm-trampoline-thunk-p #:vm-force-trampoline-result #:%vm-call-closure-sync #:%vm-closure-object-p #:vm-closure-dispatch-tag #:vm-current-closure-stack)
   (:intern
     #:%bc-emit #:%bc-read-word #:%make-vm2-fast-opcode-handler-table #:%opcode-make-vector #:%resolve-direct-function-designator #:%resolve-symbol-function-designator #:%run-vm-core #:%set-vm-handler-entry-saved-regs #:%set-vm-profile-call-stack #:%set-vm-profile-call-start-times
-    #:%vm-apply-spread-args #:%vm-call-closure-sync #:%vm-call-type-refinement-accessor #:%vm-callable-registry-entry-p #:%vm-closure-object-p #:%vm-copy-register-table #:%vm-current-deopt-info #:%vm-decode-immediate-symbol-for-eql #:%vm-deopt-resume-pc #:%vm-frame-argument-values
+    #:%vm-apply-spread-args #:%vm-call-type-refinement-accessor #:%vm-callable-registry-entry-p #:%vm-copy-register-table #:%vm-current-deopt-info #:%vm-decode-immediate-symbol-for-eql #:%vm-deopt-resume-pc #:%vm-frame-argument-values
     #:%vm-initialize-package-global #:%vm-label-for-return-pc #:%vm-label-table-entries #:%vm-parent-hash #:%vm-php-array-values-list #:%vm-profile-call-stack #:%vm-profile-call-start-times #:%vm-profile-enabled-p #:%vm-profile-finish-call #:%vm-profile-now-ns
     #:%vm-replace-stack-segments #:%vm-stack-segment-snapshot #:%vm-tier1-osr-target-pc #:%vm-type-refinement-accessor #:%vm-type-refinement-components #:%vm-typep-clos-class #:%vm-typep-clos-instance-p #:%vm-typep-normalize-sym #:%vm-unwind-to-handler #:%vm-values-type-parts
     #:%vm2-build-fusion-table #:%vm2-emit4 #:%vm2-fast-op-add-imm2 #:%vm2-fast-op-const #:%vm2-fast-op-const-halt2 #:%vm2-fast-op-halt2 #:%vm2-fast-op-move #:%vm2-fast-op-mul-imm2 #:%vm2-fast-op-sub-imm2 #:*max-call-stack-depth*
@@ -109,8 +108,7 @@
     #:vm-mutex
     #:MAKE-MUTEX #:vm-pop-call-frame #:vm-profile-bb-hit #:vm-profile-branch-edge #:vm-profile-enter-call #:vm-profile-return #:vm-profile-sample #:vm-random-canary #:vm-rwlock #:MAKE-RWLOCK #:vm-safepoint-poll
     #:vm-safety-level #:vm-stack-overflow #:vm-stack-protection-enabled-p #:vm-trampoline-thunk #:vm-values-typep-check #:vm-verify-stack-canary #:vm2-collect-opcode-bigrams #:vm2-fuse-immediate-superinstructions #:vm2-state #:*vm-current-dst-reg*
-    #:*vm-current-labels* #:*vm-current-pc* #:vm-current-stack-segment #:vm-program-load-time-value-cells #:vm-symbol-plists #:vm-system-symbol-plists #:vm-symbol-plist-lock #:vm-symbol-plist-read-barrier #:vm-clos-shadow-stack #:VM-CONTINUATION-PROMPTS #:vm-closure-dispatch-tag
-    #:vm-tail-call-optimization-enabled-p #:vm-store-multiple-values
+    #:*vm-current-labels* #:*vm-current-pc* #:vm-current-stack-segment #:vm-program-load-time-value-cells #:vm-symbol-plists #:vm-system-symbol-plists #:vm-symbol-plist-lock #:vm-symbol-plist-read-barrier #:vm-clos-shadow-stack #:VM-CONTINUATION-PROMPTS #:vm-tail-call-optimization-enabled-p #:vm-store-multiple-values
   )
 )
 

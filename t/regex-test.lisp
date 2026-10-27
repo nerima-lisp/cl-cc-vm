@@ -23,7 +23,7 @@
   (it "finds every non-overlapping match left to right"
     (let ((ranges (cl-cc/vm:regex-all-matches "\\d+" "a1 b22 c333")))
       (expect (equal (length ranges) 3) :to-be-truthy)
-      (expect (equal (mapcar (lambda (r) (subseq "a1 b22 c333" (car r) (cdr r))) ranges)
+      (expect (equal (mapcar (lambda (r) (cl-cc/vm/data:subseq "a1 b22 c333" (car r) (cdr r))) ranges)
                      '("1" "22" "333"))
               :to-be-truthy)))
 

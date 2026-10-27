@@ -56,31 +56,31 @@ EQL-PLIST is a list of (eql-value . method-fn) pairs."
 
 (defun register-vm-dispatch-gf-multi-tests ()
   (it-sequential "gf-multi-composite-keys-empty-table-returns-false"
-                 (expect (cl-cc/vm::%vm-gf-uses-composite-keys-p (make-hash-table :test #'equal)) :to-be-falsy))
+                 (expect (cl-cc/vm/clos:%vm-gf-uses-composite-keys-p (make-hash-table :test #'equal)) :to-be-falsy))
 
   (it-sequential "gf-multi-composite-keys-symbol-only-keys-return-false"
                  (let ((ht (make-hash-table :test #'equal)))
                    (setf (gethash 'integer ht) #'identity)
                    (setf (gethash 'string  ht) #'identity)
-                   (expect (cl-cc/vm::%vm-gf-uses-composite-keys-p ht) :to-be-falsy)))
+                   (expect (cl-cc/vm/clos:%vm-gf-uses-composite-keys-p ht) :to-be-falsy)))
 
   (it-sequential "gf-multi-composite-keys-list-key-returns-true"
                  (let ((ht (make-hash-table :test #'equal)))
                    (setf (gethash '(integer string) ht) #'identity)
-                   (expect (cl-cc/vm::%vm-gf-uses-composite-keys-p ht) :to-be-truthy)))
+                   (expect (cl-cc/vm/clos:%vm-gf-uses-composite-keys-p ht) :to-be-truthy)))
 
   (it-sequential "gf-multi-composite-keys-mixed-keys-return-true"
                  (let ((ht (make-hash-table :test #'equal)))
                    (setf (gethash 'integer          ht) #'identity)
                    (setf (gethash '(integer string) ht) #'identity)
-                   (expect (cl-cc/vm::%vm-gf-uses-composite-keys-p ht) :to-be-truthy)))
+                   (expect (cl-cc/vm/clos:%vm-gf-uses-composite-keys-p ht) :to-be-truthy)))
 
   (it-sequential "gf-multi-single-dispatch-cases exact-integer-hit"
                  (destructuring-bind (dispatch-type method-fn arg expect-match-p) (list 'integer #'identity 42 t)
                    (let* ((s (make-test-vm))
                           (gf-ht (make-single-dispatch-gf-ht (list (cons dispatch-type method-fn))))
                           (methods-ht (gethash :__methods__ gf-ht))
-                          (result (cl-cc/vm::%vm-resolve-single-dispatch gf-ht methods-ht s arg)))
+                          (result (cl-cc/vm/clos:%vm-resolve-single-dispatch gf-ht methods-ht s arg)))
                      (if expect-match-p
                          (expect result :to-be method-fn)
                        (expect result :to-be-null)))))
@@ -90,7 +90,7 @@ EQL-PLIST is a list of (eql-value . method-fn) pairs."
                    (let* ((s (make-test-vm))
                           (gf-ht (make-single-dispatch-gf-ht (list (cons dispatch-type method-fn))))
                           (methods-ht (gethash :__methods__ gf-ht))
-                          (result (cl-cc/vm::%vm-resolve-single-dispatch gf-ht methods-ht s arg)))
+                          (result (cl-cc/vm/clos:%vm-resolve-single-dispatch gf-ht methods-ht s arg)))
                      (if expect-match-p
                          (expect result :to-be method-fn)
                        (expect result :to-be-null)))))
@@ -100,7 +100,7 @@ EQL-PLIST is a list of (eql-value . method-fn) pairs."
                    (let* ((s (make-test-vm))
                           (gf-ht (make-single-dispatch-gf-ht (list (cons dispatch-type method-fn))))
                           (methods-ht (gethash :__methods__ gf-ht))
-                          (result (cl-cc/vm::%vm-resolve-single-dispatch gf-ht methods-ht s arg)))
+                          (result (cl-cc/vm/clos:%vm-resolve-single-dispatch gf-ht methods-ht s arg)))
                      (if expect-match-p
                          (expect result :to-be method-fn)
                        (expect result :to-be-null)))))
@@ -110,7 +110,7 @@ EQL-PLIST is a list of (eql-value . method-fn) pairs."
                    (let* ((s (make-test-vm))
                           (gf-ht (make-single-dispatch-gf-ht (list (cons dispatch-type method-fn))))
                           (methods-ht (gethash :__methods__ gf-ht))
-                          (result (cl-cc/vm::%vm-resolve-single-dispatch gf-ht methods-ht s arg)))
+                          (result (cl-cc/vm/clos:%vm-resolve-single-dispatch gf-ht methods-ht s arg)))
                      (if expect-match-p
                          (expect result :to-be method-fn)
                        (expect result :to-be-null)))))
@@ -123,7 +123,7 @@ EQL-PLIST is a list of (eql-value . method-fn) pairs."
                                 (list (cons 'symbol class-fn))
                                 (list (cons :read eql-fn))))
                         (methods-ht (gethash :__methods__ gf-ht)))
-                   (expect (cl-cc/vm::%vm-resolve-single-dispatch gf-ht methods-ht s :read) :to-be eql-fn)))
+                   (expect (cl-cc/vm/clos:%vm-resolve-single-dispatch gf-ht methods-ht s :read) :to-be eql-fn)))
 
   (it-sequential "gf-multi-single-dispatch-eql-index-avoids-linear-scan"
                  (let* ((s (make-test-vm))
@@ -134,53 +134,53 @@ EQL-PLIST is a list of (eql-value . method-fn) pairs."
                                 nil))
                         (methods-ht (gethash :__methods__ gf-ht)))
                    (setf (gethash '(eql :read) methods-ht) stale-eql-fn)
-                   (expect (cl-cc/vm::%vm-resolve-single-dispatch gf-ht methods-ht s :read) :to-be fallback-fn)))
+                   (expect (cl-cc/vm/clos:%vm-resolve-single-dispatch gf-ht methods-ht s :read) :to-be fallback-fn)))
 
   (it-sequential "gf-multi-try-dispatch-zero-arity-returns-nil"
-                 (expect (cl-cc/vm::vm-try-dispatch-combinations (make-hash-table :test #'equal) '() 0) :to-be-null))
+                 (expect (cl-cc/vm/clos:vm-try-dispatch-combinations (make-hash-table :test #'equal) '() 0) :to-be-null))
 
   (it-sequential "gf-multi-try-dispatch-exact-class-match"
                  (let ((ht (make-hash-table :test #'equal))
                        (my-fn #'identity))
                    (setf (gethash '(integer) ht) my-fn)
-                   (expect (cl-cc/vm::vm-try-dispatch-combinations ht '((integer string)) 1) :to-be my-fn)))
+                   (expect (cl-cc/vm/clos:vm-try-dispatch-combinations ht '((integer string)) 1) :to-be my-fn)))
 
   (it-sequential "gf-multi-try-dispatch-t-fallback"
                  (let ((ht (make-hash-table :test #'equal))
                        (fallback #'not))
                    (setf (gethash '(t) ht) fallback)
-                   (expect (cl-cc/vm::vm-try-dispatch-combinations ht '((symbol integer t)) 1) :to-be fallback)))
+                   (expect (cl-cc/vm/clos:vm-try-dispatch-combinations ht '((symbol integer t)) 1) :to-be fallback)))
 
   (it-sequential "gf-multi-try-dispatch-no-match-returns-nil"
                  (let ((ht (make-hash-table :test #'equal)))
                    (setf (gethash '(string) ht) #'identity)
-                   (expect (cl-cc/vm::vm-try-dispatch-combinations ht '((integer)) 1) :to-be-null)))
+                   (expect (cl-cc/vm/clos:vm-try-dispatch-combinations ht '((integer)) 1) :to-be-null)))
 
   (it-sequential "gf-multi-try-dispatch-sub-null-cpls-matches-prefix-directly"
                  (let ((ht (make-hash-table :test #'equal))
                        (my-fn #'identity))
                    (setf (gethash '(integer string) ht) my-fn)
-                   (expect (cl-cc/vm::vm-try-dispatch-sub ht nil '(integer string)) :to-be my-fn)))
+                   (expect (cl-cc/vm/clos:vm-try-dispatch-sub ht nil '(integer string)) :to-be my-fn)))
 
   (it-sequential "gf-multi-try-dispatch-sub-missing-key-returns-nil"
                  (let ((ht (make-hash-table :test #'equal)))
-                   (expect (cl-cc/vm::vm-try-dispatch-sub ht nil '(integer string)) :to-be-null)))
+                   (expect (cl-cc/vm/clos:vm-try-dispatch-sub ht nil '(integer string)) :to-be-null)))
 
   (it-sequential "gf-multi-resolve-gf-exact-integer-dispatch"
                  (let* ((s (make-test-vm))
                         (int-fn #'1+)
                         (gf-ht (make-single-dispatch-gf-ht (list (cons 'integer int-fn)))))
-                   (expect (cl-cc/vm::vm-resolve-gf-method gf-ht s 42) :to-be int-fn)))
+                   (expect (cl-cc/vm/protocols:vm-resolve-gf-method gf-ht s 42) :to-be int-fn)))
 
   (it-sequential "gf-multi-resolve-gf-no-match-signals-error"
                  (let* ((s (make-test-vm))
                         (gf-ht (make-single-dispatch-gf-ht (list (cons 'string #'identity)))))
-                   (signals error (cl-cc/vm::vm-resolve-gf-method gf-ht s 42))))
+                   (signals error (cl-cc/vm/protocols:vm-resolve-gf-method gf-ht s 42))))
 
   (it-sequential "gf-multi-resolve-gf-composite-list-key-dispatch"
                  (let* ((s (make-test-vm))
                         (multi-fn #'cons)
                         (gf-ht (make-composite-dispatch-gf-ht
                                 (list (cons '(integer integer) multi-fn)))))
-                   (expect (cl-cc/vm::vm-resolve-gf-method gf-ht s 1 '(1 2)) :to-be multi-fn)))
+                   (expect (cl-cc/vm/protocols:vm-resolve-gf-method gf-ht s 1 '(1 2)) :to-be multi-fn)))
   )

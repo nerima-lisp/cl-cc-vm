@@ -97,4 +97,16 @@
                              (deep-copy-test-structure-right copy))
                      (expect (deep-copy-test-structure-left copy)
                              :to-equal
-                             shared)))))
+                             shared))))
+  (it-sequential "deep-copy-seen-entry-preserves-cons-identity"
+                 (let* ((pair (cons :head nil))
+                        (seen (make-hash-table :test #'eq)))
+                   ;; Register pair in seen before calling deep-copy to exercise a cycle break.
+                   (setf (gethash pair seen) pair)
+                   (expect (cl-cc/vm/clos::%deep-copy pair seen) :to-be pair)))
+  (it-sequential "deep-copy-hash-table-cycle-via-seen"
+                 (let* ((original (make-hash-table))
+                        (sentinel :already-copied)
+                        (seen (make-hash-table :test #'eq)))
+                   (setf (gethash original seen) sentinel)
+                   (expect (cl-cc/vm/clos::%deep-copy original seen) :to-be sentinel))))

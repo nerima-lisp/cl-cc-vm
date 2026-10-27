@@ -121,7 +121,7 @@
   (clrhash dst)
   (maphash (lambda (symbol entry)
              (setf (gethash symbol dst)
-                   (cl-cc/vm::%vm-copy-symbol-property-entry entry)))
+                   (cl-cc/vm/data:vm-copy-symbol-property-entry entry)))
            src))
 
 (defun clone-vm-state (source &key (output-stream *standard-output*))

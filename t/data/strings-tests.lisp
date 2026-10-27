@@ -9,46 +9,46 @@
 
 (defun register-strings-tests ()
 (it-sequential "strings-cow-copy-set-isolates-shared-backing"
-  (let* ((original (cl-cc/vm::vm-string-copy (copy-seq "abc")))
-         (copy (cl-cc/vm::vm-string-copy original)))
-    (cl-cc/vm::vm-string-set-char copy 0 #\z)
-    (expect (cl-cc/vm::vm-string-materialize original) :to-equal "abc")
-    (expect (cl-cc/vm::vm-string-materialize copy) :to-equal "zbc")))
+  (let* ((original (cl-cc/vm/data::vm-string-copy (copy-seq "abc")))
+         (copy (cl-cc/vm/data::vm-string-copy original)))
+    (cl-cc/vm/data::vm-string-set-char copy 0 #\z)
+    (expect (cl-cc/vm/data::vm-string-materialize original) :to-equal "abc")
+    (expect (cl-cc/vm/data::vm-string-materialize copy) :to-equal "zbc")))
 (it-sequential
   "strings-cow-subseq-mutation-detaches-displaced-alias"
-  (let* ((parent (cl-cc/vm::vm-string-copy (copy-seq "abcdef")))
-         (slice (cl-cc/vm::vm-string-subseq parent 2 5))
-         (alias (cl-cc/vm::vm-string-copy slice)))
-    (expect (cl-cc/vm::vm-string-materialize slice) :to-equal "cde")
-    (expect (cl-cc/vm::vm-cow-string-start slice) :to-equal 2)
+  (let* ((parent (cl-cc/vm/data::vm-string-copy (copy-seq "abcdef")))
+         (slice (cl-cc/vm/data::vm-string-subseq parent 2 5))
+         (alias (cl-cc/vm/data::vm-string-copy slice)))
+    (expect (cl-cc/vm/data::vm-string-materialize slice) :to-equal "cde")
+    (expect (cl-cc/vm/data::vm-cow-string-start slice) :to-equal 2)
     (expect
       (eq
-        (cl-cc/vm::vm-cow-string-backing parent)
-        (cl-cc/vm::vm-cow-string-backing slice))
+        (cl-cc/vm/data::vm-cow-string-backing parent)
+        (cl-cc/vm/data::vm-cow-string-backing slice))
       :to-be-truthy)
     (expect
       (eq
-        (cl-cc/vm::vm-cow-string-backing slice)
-        (cl-cc/vm::vm-cow-string-backing alias))
+        (cl-cc/vm/data::vm-cow-string-backing slice)
+        (cl-cc/vm/data::vm-cow-string-backing alias))
       :to-be-truthy)
-    (cl-cc/vm::vm-string-set-char slice 1 #\X)
-    (expect (cl-cc/vm::vm-string-materialize parent) :to-equal "abcdef")
-    (expect (cl-cc/vm::vm-string-materialize alias) :to-equal "cde")
-    (expect (cl-cc/vm::vm-string-materialize slice) :to-equal "cXe")
-    (expect (cl-cc/vm::vm-cow-string-start slice) :to-equal 0)
+    (cl-cc/vm/data::vm-string-set-char slice 1 #\X)
+    (expect (cl-cc/vm/data::vm-string-materialize parent) :to-equal "abcdef")
+    (expect (cl-cc/vm/data::vm-string-materialize alias) :to-equal "cde")
+    (expect (cl-cc/vm/data::vm-string-materialize slice) :to-equal "cXe")
+    (expect (cl-cc/vm/data::vm-cow-string-start slice) :to-equal 0)
     (expect
       (eq
-        (cl-cc/vm::vm-cow-string-backing slice)
-        (cl-cc/vm::vm-cow-string-backing alias))
+        (cl-cc/vm/data::vm-cow-string-backing slice)
+        (cl-cc/vm/data::vm-cow-string-backing alias))
       :to-be-falsy)
-    (cl-cc/vm::string-freeze alias)
-    (signals error (cl-cc/vm::vm-string-set-char alias 0 #\Y))))
+    (cl-cc/vm/data::string-freeze alias)
+    (signals error (cl-cc/vm/data::vm-string-set-char alias 0 #\Y))))
 (it-sequential "strings-taint-mark-untaint"
   (let ((s (copy-seq "unsafe")))
-    (cl-cc/vm::taint-mark s)
-    (expect (cl-cc/vm::tainted-p s) :to-be-truthy)
-    (cl-cc/vm::untaint s)
-    (expect (cl-cc/vm::tainted-p s) :to-be-falsy)))
+    (cl-cc/vm/data::taint-mark s)
+    (expect (cl-cc/vm/data::tainted-p s) :to-be-truthy)
+    (cl-cc/vm/data::untaint s)
+    (expect (cl-cc/vm/data::tainted-p s) :to-be-falsy)))
 (it-sequential "str-comparison-truthy equal"
   (destructuring-bind (ctor str1 str2) (list #'cl-cc/vm:make-vm-string= "hello" "hello")
     (let ((s (str-vm)))
@@ -377,11 +377,11 @@
 
 (defun str-vm ()
   "Create a minimal vm-state for string tests."
-  (make-instance 'cl-cc/vm::vm-io-state))
+  (make-test-vm))
 
 (defun str-exec (inst state)
   "Execute a single instruction against STATE."
-  (cl-cc/vm::execute-instruction inst state 0 (make-hash-table :test #'equal)))
+  (cl-cc/vm/protocols:execute-instruction inst state 0 (make-hash-table :test #'equal)))
 
 ;;; ─── String Comparisons (case-sensitive) ──────────────────────────────────
 
