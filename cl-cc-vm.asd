@@ -398,6 +398,7 @@
   (:file "io-network-tests")
   (:file "io-runners-tests")
   (:file "io-tests")
+  (:file "vm-stream-bridge-regression-tests")
   (:file "runtime-stdlib-2-print-circle-tests")
   (:file "runtime-stdlib-3-external-format-tests")
   (:file "runtime-stdlib-3-io-tests")
