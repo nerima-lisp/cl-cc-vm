@@ -14,7 +14,7 @@
   (let ((name (and (symbolp sym) (symbol-name sym)))
         (result nil))
     (when name
-      (dolist (package-name '(:cl-cc :cl-cc/vm :cl))
+      (dolist (package-name (list *vm-guest-function-package* :cl-cc/vm :cl))
         (let ((package (find-package package-name)))
           (when package
             (multiple-value-bind (candidate status)

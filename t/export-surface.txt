@@ -107,6 +107,7 @@
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/execution" "cl-cc/vm/execution" "*VM-EVAL-DEADLINE*")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/protocols" "cl-cc/vm/protocols" "*VM-EVAL-HOOK*")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/execution" "cl-cc/vm/execution" "*VM-FORWARD-REFERENCE-AUTO-RESOLVE-ENABLED*")
+(:symbol :keep "cl-cc/vm" "cl-cc/vm/protocols" "cl-cc/vm/protocols" "*VM-GUEST-FUNCTION-PACKAGE*")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/data" "cl-cc/vm/data" "*VM-HASH-CONS-TABLE*")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/protocols" "cl-cc/vm/protocols" "*VM-HOST-BRIDGE-FUNCTIONS*")
 (:symbol :keep "cl-cc/vm" "cl-cc/vm/execution" "cl-cc/vm/execution" "*VM-INSTRUCTION-PROFILE*")

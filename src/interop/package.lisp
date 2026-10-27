@@ -1,6 +1,6 @@
 (defpackage #:cl-cc/vm/interop
   (:use #:cl)
-    (:import-from #:cl-cc/vm/protocols #:*vm-compile-string-hook* #:*vm-eval-hook* #:*vm-host-bridge-functions* #:*vm-macroexpand-1-hook* #:*vm-macroexpand-hook* #:*vm-parse-forms-hook* #:vm-register-host-bridge #:vm-register-runtime-callable #:vm-resolve-hash-test #:*vm-runtime-callables* #:vm-trace-output-stream #:vm-lookup-bridge-callable)
+    (:import-from #:cl-cc/vm/protocols #:*vm-compile-string-hook* #:*vm-eval-hook* #:*vm-guest-function-package* #:*vm-host-bridge-functions* #:*vm-macroexpand-1-hook* #:*vm-macroexpand-hook* #:*vm-parse-forms-hook* #:vm-register-host-bridge #:vm-register-runtime-callable #:vm-resolve-hash-test #:*vm-runtime-callables* #:vm-trace-output-stream #:vm-lookup-bridge-callable)
     (:import-from #:cl-cc/bootstrap #:rt-plist-put)
   (:import-from #:cl-cc/vm/clos
    #:class-slots

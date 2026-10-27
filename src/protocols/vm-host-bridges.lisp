@@ -1,5 +1,8 @@
 (in-package :cl-cc/vm/protocols)
 
+(defvar *vm-guest-function-package* :cl-user
+  "Package used to find and register host symbols for guest function definitions.")
+
 ;;; VM Host Callable Registration
 ;;; Owns the synchronized registries and explicit registration APIs for host
 ;;; and runtime callables. Lookup and invocation live in interop.

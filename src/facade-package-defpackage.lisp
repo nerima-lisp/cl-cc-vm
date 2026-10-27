@@ -1,12 +1,11 @@
-;;;; packages/vm/src/facade-package.lisp -- cl-cc/vm package definition
+;;;; src/facade-package-defpackage.lisp -- cl-cc/vm package definition
 ;;;;
 ;;;; VM instruction set subsystem: instruction defstructs, VM state, heap
 ;;;; operations, I/O, conditions, CLOS dispatch, hash tables, strings, etc.
 ;;;;
-;;;; Extracted as a Phase 2 sibling system (:cl-cc-vm). The package
-;;;; facade is loaded first (no dependencies); the umbrella :cl-cc system
-;;;; then sets up (use-package :cl-cc :cl-cc/vm) so the source files
-;;;; can access all symbols unqualified.
+;;;; The package facade is loaded first. Source files use their owning
+;;;; subsystem packages and import shared protocols explicitly, so the system
+;;;; does not depend on the umbrella system.
 ;;;;
 ;;;; Export lists are organized by domain in separate files:
 ;;;;   exports-instructions.lisp  — instruction types, constructors, predicates
@@ -19,10 +18,10 @@
     #:cl
   )
   (:import-from #:cl-cc/vm/protocols
-    #:*instruction-constructors* #:*vm-compile-string-hook* #:*vm-eval-hook* #:*vm-host-bridge-functions* #:*vm-macroexpand-1-hook* #:*vm-macroexpand-hook* #:*vm-parse-forms-hook* #:build-label-table #:define-simple-instruction #:define-vm-binary-instruction
+    #:*instruction-constructors* #:*vm-compile-string-hook* #:*vm-eval-hook* #:*vm-guest-function-package* #:*vm-host-bridge-functions* #:*vm-macroexpand-1-hook* #:*vm-macroexpand-hook* #:*vm-parse-forms-hook* #:build-label-table #:define-simple-instruction #:define-vm-binary-instruction
     #:define-vm-char-comparison #:define-vm-instruction #:define-vm-unary-instruction #:execute-instruction #:instruction->sexp #:make-vm-instruction #:sexp->instruction #:vm-char1 #:vm-char2 #:vm-dst
     #:vm-instruction #:vm-lhs #:vm-maybe-dump-type-profile #:vm-reg-get #:vm-reg-set #:vm-register-host-bridge #:vm-resolve-gf-method #:vm-rhs #:vm-src #:vm-state-heap
-    #:vm-typep-check #:vm-values-list #:vm-decode-symbol #:vm-encode-common-symbol #:vm-immediate-symbol-p    )
+    #:vm-typep-check #:vm-values-list #:vm-decode-symbol #:vm-encode-common-symbol #:vm-immediate-symbol-p)
   (:import-from #:cl-cc/vm/execution #:%documentation-table* #:*adaptive-jit-enabled* #:*blind-constants-enabled* #:*bytecode-threshold* #:*deopt-enabled* #:*documentation-table* #:*jit-compilation-queue* #:*jit-hardening-enabled* #:*jit-random-key* #:*jit-tier1-threshold*
     #:*opcode-dispatch-table* #:*opcode-encoder-table* #:*opcode-name-table* #:*optimize-for-instruction-count* #:*osr-enabled* #:*pass-pipeline* #:*stack-segment-size* #:*stack-size* #:*tier-upgrade-threshold* #:*trampoline-optimization-enabled*
     #:*vm-current-state* #:*vm-eval-deadline* #:*vm-forward-reference-auto-resolve-enabled* #:*vm-instruction-profile* #:*vm-instruction-profile-enabled* #:*vm-recompile-function-hook* #:*vm-state* #:*vm-tier-call-counters* #:*vm-value-profile* #:+bc-call+
@@ -463,7 +462,7 @@
     #:vm-warn #:vm-warning #:vm-with-raw-terminal #:vm-with-simple-restart #:vm-with-trace #:vm-wrap #:vm-wrap-dynamic #:vm-write-char #:vm-write-instruction-profile #:vm-write-string
     #:vm-write-to-fasl #:vm-write-to-string-inst #:vm2-state-global-vars #:vm2-state-output-stream #:vm2-state-p #:vm2-state-registers #:vm2-state-values-buffer #:vpshufb #:warning #:when-feature
     #:with-float-traps-masked #:with-mmap #:with-pinned-object #:with-platform #:with-precision #:with-satiating-gfs #:with-simple-restart #:with-socket #:with-standard-io-syntax #:with-string-builder
-    #:with-timeout #:with-vm-instance-lock #:with-vm-state-dispatch #:wrap #:%vm-vector-instance-p #:%vm-slot-vector-index #:copy-instance #:class-slots #:%vm-hashlike-storage #:*unbound-slot-marker* #:%vm-fixed-slot-layout-p #:%vm-raw-allocate-instance #:vm-current-closure-stack #:%vm-closure-object-p #:vm-closure-dispatch-tag #:%vm-call-closure-sync #:%vm-runtime-callable)
+    #:with-timeout #:with-vm-instance-lock #:with-vm-state-dispatch #:wrap #:%vm-vector-instance-p #:%vm-slot-vector-index #:copy-instance #:class-slots #:%vm-hashlike-storage #:*unbound-slot-marker* #:%vm-fixed-slot-layout-p #:%vm-raw-allocate-instance #:vm-current-closure-stack #:%vm-closure-object-p #:vm-closure-dispatch-tag #:%vm-call-closure-sync #:%vm-runtime-callable #:*vm-guest-function-package*)
 )
 
 

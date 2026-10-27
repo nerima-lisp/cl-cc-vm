@@ -149,7 +149,7 @@ the program could not observe."
   (if (symbolp value)
       (let ((result (list value))
             (name (symbol-name value)))
-        (dolist (package-name '(:cl :cl-cc :cl-cc/vm :cl-cc/expand :cl-user))
+        (dolist (package-name (list :cl *vm-guest-function-package* :cl-cc/vm :cl-cc/expand :cl-user))
           (let ((package (find-package package-name)))
             (when package
               (multiple-value-bind (candidate status)
@@ -256,7 +256,7 @@ the program could not observe."
 ;; Register self-hosting functions: these take strings/forms, not closures
 ;; CL standard symbols and VM-local symbols are quoted directly.
 ;; Cross-package cl-cc symbols are resolved via find-symbol to avoid
-;; interning fresh symbols that conflict when the umbrella :cl-cc uses both packages.
+;; interning fresh symbols that conflict when the umbrella facade uses both packages.
 (dolist (entry `((%package-symbols . ,#'%package-symbols)
                  (cons . ,#'cons)
                  (%make-hash-table-with-test . ,#'%make-hash-table-with-test)
