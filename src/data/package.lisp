@@ -5,12 +5,10 @@
   (:shadow
     #:copy-structure #:elt #:length #:random-state #:random-state-p #:sequence #:subseq
   )
-  (:import-from #:cl-cc/vm/protocols
-    #:*instruction-constructors* #:define-simple-instruction #:define-vm-binary-instruction #:define-vm-char-comparison #:define-vm-instruction #:define-vm-unary-instruction #:execute-instruction #:instruction->sexp #:vm-char1 #:vm-char2
+  (:import-from #:cl-cc/vm/protocols #:vm-value #:vm-index #:*instruction-constructors* #:define-simple-instruction #:define-vm-binary-instruction #:define-vm-char-comparison #:define-vm-instruction #:define-vm-unary-instruction #:execute-instruction #:instruction->sexp #:vm-char1 #:vm-char2
     #:vm-dst #:vm-instruction #:vm-lhs #:vm-reg-get #:vm-reg-set #:vm-register-host-bridge #:vm-rhs #:vm-src #:vm-state-heap #:vm-typep-check
     #:vm-values-list #:%vm-typep-call-predicate #:%vm-typep-range-check #:vm-check-index #:vm-closure-object-p #:vm-copy-instance #:vm-decode-symbol #:vm-immediate-symbol-p #:vm-random-integer #:vm-state-symbol-plists
-    #:vm-state-system-symbol-plists #:vm-state-symbol-plist-lock #:vm-state-symbol-plist-read-barrier
-  )
+    #:vm-state-system-symbol-plists #:vm-state-symbol-plist-lock #:vm-state-symbol-plist-read-barrier)
   (:export #:*deferred-rc-enabled* #:*hash-table-rehash-policy* #:*interpolation-prefix* #:*perfect-hash-tables-enabled* #:*rt-string-dedup-table* #:*string-intern-table* #:*vm-hash-cons-table* #:*vm-primitive-type-dispatch* #:+hash-table-rehash-policies+ #:+sso-max-length+
     #:assoc! #:build-perfect-hash-table #:conj #:conj! #:detect-rc-cycles #:dissoc #:dissoc! #:hash-table-simd-lookup-available-p #:hash-with #:hcons
     #:hhead #:hnil #:htail #:intern-string #:iterate #:lazy-filter #:lazy-force #:lazy-map #:lazy-range #:lazy-seq

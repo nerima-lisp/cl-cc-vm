@@ -75,4 +75,73 @@
                 (equal (gethash (car entry) globals :missing)
                        (cdr entry)))
               expected)
-       :to-be t))))
+       :to-be t)))
+  (it "uses shared reader symbols and restores reader calls across features"
+    (let ((protocols (find-package "CL-CC/VM/PROTOCOLS"))
+          (facade (find-package "CL-CC/VM")))
+      (dolist (entry
+               (list
+                (list "VM-VALUE" "CL-CC/VM/DATA" "CL-CC/VM/EXECUTION" "CL-CC/VM/IO")
+                (list "VM-INDEX" "CL-CC/VM/DATA" "CL-CC/VM/EXECUTION")
+                (list "VM-ARGS" "CL-CC/VM/CLOS" "CL-CC/VM/EXECUTION")
+                (list "VM-HANDLER-LABEL" "CL-CC/VM/CONDITIONS" "CL-CC/VM/EXECUTION")
+                (list "VM-HANDLER-RESULT-REG" "CL-CC/VM/CONDITIONS" "CL-CC/VM/EXECUTION")
+                (list "VM-VALUE-REG" "CL-CC/VM/CLOS" "CL-CC/VM/EXECUTION")))
+        (let* ((name (first entry))
+               (protocol-symbol (find-symbol name protocols))
+               (facade-symbol (find-symbol name facade)))
+          (expect (eq protocol-symbol facade-symbol) :to-be t)
+          (expect (eq (symbol-package protocol-symbol) protocols) :to-be t)
+          (dolist (package-name (rest entry))
+            (let ((feature-symbol
+                    (find-symbol name (find-package package-name))))
+              (expect (eq feature-symbol protocol-symbol) :to-be t)))))
+    (expect (cl-cc/vm:vm-index
+             (cl-cc/vm:make-vm-char :dst :dst :string :string :index 3))
+            :to-be 3)
+    (expect (cl-cc/vm:vm-index
+             (cl-cc/vm:make-vm-nth-value :dst :dst :index 2))
+            :to-be 2)
+    (expect (cl-cc/vm:vm-value
+             (cl-cc/vm:make-vm-acons :dst :dst :key :key
+                                      :value :data :alist nil))
+            :to-be :data)
+    (expect (cl-cc/vm:vm-value
+             (cl-cc/vm:make-vm-const :dst :dst :value :execution))
+            :to-be :execution)
+    (expect (cl-cc/vm:vm-value
+             (cl-cc/vm:make-vm-eof-p :dst :dst :value :io))
+            :to-be :io)
+    (expect (cl-cc/vm:vm-args
+             (cl-cc/vm:make-vm-generic-call :dst :dst :gf-reg :gf
+                                             :args (list :arg-1 :arg-2)))
+            :to-equal (list :arg-1 :arg-2))
+    (expect (cl-cc/vm:vm-args
+             (cl-cc/vm:make-vm-call :dst :dst :func :func
+                                    :args (list :call-arg-1 :call-arg-2)))
+            :to-equal (list :call-arg-1 :call-arg-2))
+    (let ((condition-handler
+            (cl-cc/vm/conditions::make-vm-push-handler
+             :handler-type :type :handler-label :condition-label
+             :result-reg :condition-result))
+          (execution-handler
+            (cl-cc/vm:make-vm-establish-handler
+             :handler-label :execution-label :result-reg :execution-result
+             :error-type :type)))
+      (expect (cl-cc/vm:vm-handler-label condition-handler)
+              :to-be :condition-label)
+      (expect (cl-cc/vm:vm-handler-result-reg condition-handler)
+              :to-be :condition-result)
+      (expect (cl-cc/vm:vm-handler-label execution-handler)
+              :to-be :execution-label)
+      (expect (cl-cc/vm:vm-handler-result-reg execution-handler)
+              :to-be :execution-result))
+    (expect (cl-cc/vm:vm-value-reg
+             (cl-cc/vm:make-vm-slot-write :obj-reg :object
+                                           :slot-name :slot
+                                           :value-reg :value))
+            :to-be :value)
+    (expect (cl-cc/vm:vm-value-reg
+             (cl-cc/vm:make-vm-abort-to-prompt :prompt :prompt
+                                                :value :abort-value))
+            :to-be :abort-value))))

@@ -1,6 +1,6 @@
 (defpackage #:cl-cc/vm/conditions
   (:use #:cl)
-    (:import-from #:cl-cc/vm/protocols #:*instruction-constructors* #:build-label-table #:define-vm-instruction #:execute-instruction #:instruction->sexp #:vm-dst #:vm-feature-initial-globals #:vm-instruction #:vm-reg-get #:vm-reg-set #:vm-register-host-bridge #:vm-values-list #:vm-request-debugger #:vm-execute-instruction-guarded #:vm-fatal-error-p)
+    (:import-from #:cl-cc/vm/protocols #:vm-handler-label #:vm-handler-result-reg #:*instruction-constructors* #:build-label-table #:define-vm-instruction #:execute-instruction #:instruction->sexp #:vm-dst #:vm-feature-initial-globals #:vm-instruction #:vm-reg-get #:vm-reg-set #:vm-register-host-bridge #:vm-values-list #:vm-request-debugger #:vm-execute-instruction-guarded #:vm-fatal-error-p)
     (:import-from #:cl-cc/vm/execution #:vm-error-reg #:vm-signal-error
    #:%vm-call-closure-sync
    #:%vm-unwind-to-handler

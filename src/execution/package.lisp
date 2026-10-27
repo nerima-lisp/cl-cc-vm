@@ -3,14 +3,12 @@
   (:use
     #:cl
   )
-  (:import-from #:cl-cc/vm/protocols
-    #:*instruction-constructors* #:*vm-eval-hook* #:*vm-macroexpand-1-hook* #:*vm-macroexpand-hook* #:build-label-table #:define-simple-instruction #:define-vm-binary-instruction #:define-vm-instruction #:define-vm-unary-instruction #:execute-instruction
+  (:import-from #:cl-cc/vm/protocols #:vm-value #:vm-index #:vm-args #:vm-handler-label #:vm-handler-result-reg #:vm-value-reg #:*instruction-constructors* #:*vm-eval-hook* #:*vm-macroexpand-1-hook* #:*vm-macroexpand-hook* #:build-label-table #:define-simple-instruction #:define-vm-binary-instruction #:define-vm-instruction #:define-vm-unary-instruction #:execute-instruction
     #:instruction->sexp #:vm-dst #:vm-instruction #:vm-lhs #:vm-maybe-dump-type-profile #:vm-reg-get #:vm-reg-set #:vm-register-host-bridge #:vm-resolve-gf-method #:vm-rhs
     #:vm-src #:vm-state-heap #:vm-typep-check #:vm-values-list #:vm-decode-symbol #:vm-encode-common-symbol #:vm-immediate-symbol-p #:vm-trace-output-symbol #:vm-trace-output-stream #:%vm-dispatch-call
     #:%vm-method-function #:%vm-ret-qualified-dispatch #:*vm-self-host-mode* #:vm-call-with-readable-printing #:vm-create-io-state #:vm-environment-canary-value #:vm-execute-instruction-guarded #:vm-fatal-error-p #:vm-feature-initial-globals #:vm-load-pathname
     #:vm-lookup-bridge-callable #:vm-random-integer #:vm-resolve-hash-test #:vm-state-symbol-plists #:vm-state-system-symbol-plists #:vm-state-symbol-plist-lock #:vm-state-symbol-plist-read-barrier #:vm-check-index #:vm-check-row-major-index #:vm-closure-object-p
-    #:vm-getenv #:vm-immediate-intern-enabled-p #:vm-safety-checks-enabled-p #:%vm-typep-call-predicate #:%vm-typep-range-check
-  )
+    #:vm-getenv #:vm-immediate-intern-enabled-p #:vm-safety-checks-enabled-p #:%vm-typep-call-predicate #:%vm-typep-range-check)
   (:import-from #:cl-cc/vm/data #:%execute-vm-gethash #:%execute-vm-specialized-gethash #:%vm-array-dimensions-designator #:%vm-array-object #:%vm-array-total-size #:%vm-array-vector-dimensions-p #:%vm-cow-list-ensure-writable #:%vm-cow-list-materialize #:%vm-cow-vector-ensure-writable #:%vm-cow-vector-materialize
     #:%vm-cow-vector-share #:%vm-host-package-local-nickname-function #:%vm-host-string #:%vm-list-structure-materialize #:%vm-make-displaced-array #:%vm-make-standard-array #:%vm-managed-cons-alloc #:%vm-managed-cons-car #:%vm-managed-cons-cdr #:%vm-managed-cons-materialize
     #:%vm-managed-cons-pointer-p #:%vm-managed-cons-set-slot #:%vm-managed-cons-slot #:%vm-managed-list-length #:%vm-managed-list-tail #:%vm-managed-member #:%vm-managed-nil-p #:%vm-managed-tree-materialize #:%vm-maybe-sso-string #:%vm-normalize-specialized-element-type
