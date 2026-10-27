@@ -87,5 +87,18 @@
                    (expect (cl-cc/vm/clos::find-method gf nil '(integer) nil) :to-be method)
                    (cl-cc/vm/clos::remove-method gf method)
                    (expect (cl-cc/vm/clos::find-method gf nil '(integer) nil) :to-be-null)))
+  (it-sequential "fr-930-generic-function-method-introspection"
+                 :timeout
+                 10
+                 (let* ((gf (cl-cc/vm/clos::ensure-generic-function 'mop-gf :lambda-list '(x)))
+                        (primary (make-mop-test-method '(integer)))
+                        (before (make-mop-test-method '(integer) :qualifiers '(:before))))
+                   (cl-cc/vm/clos::add-method gf primary)
+                   (cl-cc/vm/clos::add-method gf before)
+                   (expect (member primary (cl-cc/vm/clos:generic-function-methods gf)) :to-be-truthy)
+                   (expect (member before (cl-cc/vm/clos:generic-function-methods gf)) :to-be-truthy)
+                   (expect (cl-cc/vm/clos::method-specializers primary) :to-equal '(integer))
+                   (expect (cl-cc/vm/clos::method-qualifiers before) :to-equal '(:before))
+                   (expect (cl-cc/vm/clos:generic-function-method-combination gf) :to-be 'standard)))
 
   )

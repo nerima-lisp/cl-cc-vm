@@ -47,5 +47,18 @@
     (expect (cl-cc/vm/data::rope-node-left root) :to-be left-text)
     (expect (cl-cc/vm/data::rope-node-right root) :to-be right-text)
     (expect (cl-cc/vm:rope-length joined) :to-equal (* 2 cl-cc/vm/data::+rope-inline-threshold+))))
+(it-sequential "string-builder-performance-metrics-are-linear"
+  :timeout
+  5
+  (flet ((test-string-builder-performance (&key iterations chunk)
+         (let ((builder (cl-cc/vm:make-string-builder :capacity 1)))
+           (loop repeat iterations
+                 do (cl-cc/vm:string-builder-append! builder chunk))
+           (list :length (cl-cc/vm/data::string-builder-length builder)
+                 :capacity-per-character
+                 (/ (cl-cc/vm/data::sb-capacity builder) iterations)))))
+    (let ((metrics (test-string-builder-performance :iterations 4096 :chunk "x")))
+      (expect (getf metrics :length) :to-equal 4096)
+      (expect (<= (getf metrics :capacity-per-character) 2) :to-be-truthy))))
 )
 

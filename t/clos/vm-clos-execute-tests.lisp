@@ -426,4 +426,10 @@
                                        :dispatch-tag '(:known-function . myfn))))
       (setf (gethash 'myfn (cl-cc/vm/execution:vm-function-registry s)) registered)
       (expect (cl-cc/vm/clos::%vm-defunctionalized-dispatch s placeholder) :to-be registered))))
+  (it-sequential "fr-888-slot-value-by-index-reads-and-writes-in-constant-time"
+                 (let* ((class (registry-add-class (make-test-registry) (quote point) :slots (quote (x y))))
+                        (instance (cl-cc/vm/clos::allocate-instance-vector class))
+                        (x-index (cl-cc/vm/clos::class-slot-vector-index class (quote x))))
+                   (setf (cl-cc/vm/clos::slot-value-by-index instance x-index) 42)
+                   (expect (= 42 (cl-cc/vm/clos::slot-value-by-index instance x-index)) :to-be-truthy)))
   )

@@ -377,7 +377,6 @@
                  (let ((class (registry-add-class (make-test-registry) 'dynamic :slots '(x))))
                    (setf (gethash :__dynamic-slot-layout__ class) t)
                    (signals error (cl-cc/vm/clos::allocate-instance-vector class))))
-
   (it-sequential "copy-instance-hash-table-shallow-copy"
                  (let* ((original (make-hash-table :test #'equal))
                         (copy nil))

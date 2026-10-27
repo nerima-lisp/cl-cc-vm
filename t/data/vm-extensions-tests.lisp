@@ -71,6 +71,23 @@
     (cl-cc/vm:vm-reg-set s 1 sym)
     (exec1 (cl-cc/vm:make-vm-symbol-plist :dst 0 :src 1) s)
     (expect (cl-cc/vm:vm-reg-get s 0) :to-be-null)))
+(it-sequential "vm-system-property-storage-is-separate"
+  (let* ((s (make-test-vm))
+         (sym (gensym "VM-SYSTEM-PROPS-"))
+         (system-plists
+           (cl-cc/vm/data::vm-state-system-symbol-plists s)))
+    (cl-cc/vm:vm-reg-set s 1 sym)
+    (cl-cc/vm:vm-reg-set s 2 :user)
+    (cl-cc/vm:vm-reg-set s 3 :value)
+    (exec1 (cl-cc/vm/data:make-vm-symbol-set :dst 0 :sym 1 :indicator 2 :value 3) s)
+    (cl-cc/vm/data::%vm-symbol-property-set s system-plists sym :function (quote compiled-fn))
+    (cl-cc/vm/data::%vm-symbol-property-set s system-plists sym :type (quote function))
+    (exec1 (cl-cc/vm:make-vm-symbol-plist :dst 4 :src 1) s)
+    (expect (getf (cl-cc/vm:vm-reg-get s 4) :user) :to-equal :value)
+    (expect (getf (cl-cc/vm:vm-reg-get s 4) :function) :to-be-null)
+    (expect (cl-cc/vm/data::%vm-symbol-property-get s system-plists sym :function nil) :to-equal (quote compiled-fn))
+    (expect (getf (cl-cc/vm/data::%vm-symbol-property-entry->plist (gethash sym system-plists)) :type) :to-equal (quote function))
+    (expect (getf (symbol-plist sym) :function) :to-be-null)))
 (it-sequential "vm-set-symbol-plist-overwrites-and-promotes-long-plist"
   (let* ((s (make-test-vm))
          (sym (gensym "VM-LONG-PLIST-"))

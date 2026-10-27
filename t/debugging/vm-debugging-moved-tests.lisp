@@ -67,7 +67,7 @@
                                        (cl-cc/vm:make-vm-halt :reg :r1)))
                           (program (cl-cc/vm/execution:make-vm-program :instructions insts :result-register :r1))
                           (state (make-test-vm)))
-                     (setf (cl-cc/vm:vm-profile-enabled-p state) t)
+                     (setf (cl-cc/vm/execution:vm-profile-enabled-p state) t)
                      (expect (= 2 (cl-cc/vm:run-compiled program :state state)) :to-be-truthy)
                      (let* ((bb (cl-cc/vm:vm-get-profile-bb-counts state))
                             (branches (cl-cc/vm:vm-get-profile-branch-counts state))
@@ -77,3 +77,4 @@
                        (expect (> (gethash 5 bb 0) 0) :to-be-truthy)
                        (expect (> (gethash (list jump-kind 2 5) branches 0) 0) :to-be-truthy))))
 )
+
