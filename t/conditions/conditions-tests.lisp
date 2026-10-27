@@ -148,7 +148,226 @@
      state 0 nil)
     (let ((entry (first (cl-cc/vm/execution:vm-handler-stack state))))
       (expect (cl-cc/vm/execution:vm-call-stack state) :to-be (fifth entry))
-      (expect (cl-cc/vm/execution:vm-method-call-stack state) :to-be (seventh entry))))))
+      (expect (cl-cc/vm/execution:vm-method-call-stack state) :to-be (seventh entry))))) (progn
+  (it-sequential "guest make-condition minimal condition"
+  (let* ((state (make-test-vm))
+         (make-condition-fn (cl-cc/vm/protocols:vm-lookup-bridge-callable 'cl:make-condition)))
+    (let ((cl-cc/vm/execution:*vm-current-state* state))
+      (let ((condition (funcall make-condition-fn 'condition)))
+        (expect (cl-cc/vm:vm-typep-check condition 'condition) :to-be-truthy)))))
+
+  (it-sequential "guest ANSI condition classes constructible"
+    (let* ((state (make-test-vm))
+           (make-condition-fn (cl-cc/vm/protocols:vm-lookup-bridge-callable 'cl:make-condition)))
+      (let ((cl-cc/vm/execution:*vm-current-state* state))
+        (dolist (class-name
+                 '(condition serious-condition error warning simple-condition
+                   simple-error simple-warning simple-type-error type-error
+                   arithmetic-error division-by-zero floating-point-inexact
+                   floating-point-invalid-operation floating-point-underflow
+                   floating-point-overflow cell-error unbound-slot unbound-variable
+                   undefined-function control-error file-error package-error
+                   parse-error print-not-readable program-error stream-error
+                   end-of-file reader-error storage-condition style-warning))
+          (expect (cl-cc/vm:vm-typep-check
+                   (funcall make-condition-fn class-name)
+                   class-name)
+                  :to-be-truthy)))))
+
+  (it-sequential "guest ANSI condition hierarchy and class queries"
+    (let* ((state (make-test-vm))
+           (make-condition-fn (cl-cc/vm/protocols:vm-lookup-bridge-callable 'cl:make-condition))
+           (subtypep-fn (cl-cc/vm/protocols:vm-lookup-bridge-callable 'cl:subtypep)))
+      (let* ((cl-cc/vm/execution:*vm-current-state* state)
+             (condition (funcall make-condition-fn 'simple-error
+                                 :format-control "guest error"))
+             (registry (cl-cc/vm/execution:vm-class-registry state)))
+        (cl-cc/vm:vm-reg-set state :condition condition)
+        (cl-cc/vm/protocols:execute-instruction
+         (cl-cc/vm:make-vm-class-of-fn :dst :class :src :condition)
+         state 0 nil)
+        (expect (cl-cc/vm:vm-reg-get state :class)
+                :to-be (gethash 'simple-error registry))
+        (expect (gethash :__cpl__ (gethash 'simple-error registry))
+                :to-equal '(simple-error simple-condition error serious-condition condition t))
+        (expect (cl-cc/vm:vm-typep-check condition 'condition) :to-be-truthy)
+        (expect (cl-cc/vm:vm-typep-check condition 'serious-condition) :to-be-truthy)
+        (expect (cl-cc/vm:vm-typep-check condition 'error) :to-be-truthy)
+        (expect (cl-cc/vm:vm-typep-check condition 'simple-condition) :to-be-truthy)
+        (expect (cl-cc/vm:vm-typep-check condition 'warning) :to-be-falsy)
+        (multiple-value-bind (yes certain)
+            (funcall subtypep-fn 'division-by-zero 'arithmetic-error)
+          (expect yes :to-be-truthy)
+          (expect certain :to-be-truthy))
+        (multiple-value-bind (yes certain)
+            (funcall subtypep-fn 'warning 'error)
+          (expect yes :to-be-falsy)
+          (expect certain :to-be-truthy)))))
+
+  (it-sequential "guest ANSI condition slot initargs and readers"
+    (let* ((state (make-test-vm))
+           (make-condition-fn (cl-cc/vm/protocols:vm-lookup-bridge-callable 'cl:make-condition)))
+      (let ((cl-cc/vm/execution:*vm-current-state* state))
+        (flet ((make-guest-condition (class &rest initargs)
+                 (apply make-condition-fn class initargs))
+               (read-condition-slot (reader condition)
+                 (funcall (cl-cc/vm/protocols:vm-lookup-bridge-callable reader) condition)))
+          (let ((condition (make-guest-condition 'arithmetic-error
+                                           :operation '/ :operands '(1 0))))
+            (expect (read-condition-slot 'cl:arithmetic-error-operation condition)
+                    :to-be '/)
+            (expect (read-condition-slot 'cl:arithmetic-error-operands condition)
+                    :to-equal '(1 0)))
+          (let ((condition (make-guest-condition 'cell-error :name 'missing-cell)))
+            (expect (read-condition-slot 'cl:cell-error-name condition)
+                    :to-be 'missing-cell))
+          (let ((condition (make-guest-condition 'unbound-slot
+                                           :name 'field
+                                           :instance :guest-instance)))
+            (expect (read-condition-slot 'cl:cell-error-name condition) :to-be 'field)
+            (expect (read-condition-slot 'cl:unbound-slot-instance condition)
+                    :to-be :guest-instance))
+          (let ((pathname #p"/tmp/guest-condition")
+                (condition nil))
+            (setf condition (make-guest-condition 'file-error :pathname pathname))
+            (expect (read-condition-slot 'cl:file-error-pathname condition)
+                    :to-equal pathname))
+          (let ((condition (make-guest-condition 'package-error :package :cl-user)))
+            (expect (read-condition-slot 'cl:package-error-package condition)
+                    :to-be :cl-user))
+          (let* ((object '(guest unreadable object))
+                 (condition (make-guest-condition 'print-not-readable :object object)))
+            (expect (read-condition-slot 'cl:print-not-readable-object condition)
+                    :to-be object))
+          (let ((condition (make-guest-condition 'stream-error :stream *standard-output*)))
+            (expect (read-condition-slot 'cl:stream-error-stream condition)
+                    :to-be *standard-output*))
+          (let ((condition (make-guest-condition 'simple-condition
+                                           :format-control "guest ~A"
+                                           :format-arguments '(condition))))
+            (expect (read-condition-slot 'cl:simple-condition-format-control condition)
+                    :to-equal "guest ~A")
+            (expect (read-condition-slot 'cl:simple-condition-format-arguments condition)
+                    :to-equal '(condition)))
+          (let ((condition (make-guest-condition 'simple-condition
+                                           :format-control "no arguments")))
+            (expect (read-condition-slot 'cl:simple-condition-format-arguments condition)
+                    :to-equal nil))
+          (let ((condition (make-guest-condition 'type-error
+                                           :datum :datum
+                                           :expected-type 'integer)))
+            (expect (read-condition-slot 'cl:type-error-datum condition)
+                    :to-be :datum)
+            (expect (read-condition-slot 'cl:type-error-expected-type condition)
+                    :to-be 'integer))))))
+
+  (progn
+  (progn
+  (it-sequential "guest ANSI condition direct superclasses"
+    (let* ((state (make-test-vm))
+           (registry (cl-cc/vm/execution:vm-class-registry state)))
+      (dolist (class-spec
+               '((condition (t))
+                 (serious-condition (condition))
+                 (error (serious-condition))
+                 (warning (condition))
+                 (simple-condition (condition))
+                 (simple-error (simple-condition error))
+                 (simple-type-error (simple-condition type-error))
+                 (simple-warning (simple-condition warning))
+                 (type-error (error))
+                 (arithmetic-error (error))
+                 (division-by-zero (arithmetic-error))
+                 (floating-point-inexact (arithmetic-error))
+                 (floating-point-invalid-operation (arithmetic-error))
+                 (floating-point-underflow (arithmetic-error))
+                 (floating-point-overflow (arithmetic-error))
+                 (cell-error (error))
+                 (unbound-slot (cell-error))
+                 (unbound-variable (cell-error))
+                 (undefined-function (cell-error))
+                 (control-error (error))
+                 (file-error (error))
+                 (package-error (error))
+                 (parse-error (error))
+                 (print-not-readable (error))
+                 (program-error (error))
+                 (stream-error (error))
+                 (end-of-file (stream-error))
+                 (reader-error (parse-error stream-error))
+                 (storage-condition (serious-condition))
+                 (style-warning (warning))))
+        (expect (gethash :__superclasses__
+                         (gethash (first class-spec) registry))
+                :to-equal (second class-spec)))))
+
+  (progn
+  (it-sequential "guest CLOS condition handler stack matching"
+    (let* ((state (make-test-vm))
+           (warning-state (make-test-vm))
+           (make-condition-fn (cl-cc/vm/protocols:vm-lookup-bridge-callable 'cl:make-condition))
+           (handler-fn #'identity))
+      (let* ((cl-cc/vm/execution:*vm-current-state* state)
+             (condition (funcall make-condition-fn 'simple-error
+                                 :format-control "guest error"))
+             (handler
+               (first
+                (cl-cc/vm/conditions:vm-push-handler-to-stack
+                 state 'simple-condition handler-fn))))
+        (expect (vectorp condition) :to-be-truthy)
+        (expect (eq (cl-cc/vm/conditions:vm-find-handler state condition)
+                    handler)
+                :to-be-truthy))
+      (let* ((cl-cc/vm/execution:*vm-current-state* warning-state)
+             (condition (funcall make-condition-fn 'warning)))
+        (cl-cc/vm/conditions:vm-push-handler-to-stack
+         warning-state 'error handler-fn)
+        (expect (vectorp condition) :to-be-truthy)
+        (expect (null (cl-cc/vm/conditions:vm-find-handler
+                       warning-state condition))
+                :to-be-truthy))))
+  (it-sequential "guest signal dispatches guest warning"
+    (let* ((state (make-test-vm))
+           (make-condition-fn (cl-cc/vm/protocols:vm-lookup-bridge-callable 'cl:make-condition))
+           (handler-fn #'identity)
+           (cl-cc/vm/execution:*vm-current-state* state)
+           (condition (funcall make-condition-fn 'warning))
+           (handler
+             (first
+              (cl-cc/vm/conditions:vm-push-handler-to-stack
+               state 'warning handler-fn))))
+      (multiple-value-bind (found matched-handler)
+          (cl-cc/vm/conditions:vm-signal-condition condition state)
+        (expect (cl-cc/vm:vm-typep-check condition 'warning) :to-be-truthy)
+        (expect found :to-be-truthy)
+        (expect (eq matched-handler handler) :to-be-truthy))))
+  (it-sequential "guest error handler matches guest simple-error"
+    (let* ((state (make-test-vm))
+           (make-condition-fn (cl-cc/vm/protocols:vm-lookup-bridge-callable 'cl:make-condition))
+           (handler-fn #'identity)
+           (cl-cc/vm/execution:*vm-current-state* state)
+           (condition (funcall make-condition-fn 'simple-error
+                               :format-control "guest error"))
+           (handler
+             (first
+              (cl-cc/vm/conditions:vm-push-handler-to-stack
+               state 'error handler-fn))))
+      (multiple-value-bind (found matched-handler)
+          (cl-cc/vm/conditions:vm-signal-condition condition state :error-p t)
+        (expect (cl-cc/vm:vm-typep-check condition 'error) :to-be-truthy)
+        (expect found :to-be-truthy)
+        (expect (eq matched-handler handler) :to-be-truthy))))
+  (it-sequential "guest warning does not match guest error handler"
+    (let* ((state (make-test-vm))
+           (make-condition-fn (cl-cc/vm/protocols:vm-lookup-bridge-callable 'cl:make-condition))
+           (cl-cc/vm/execution:*vm-current-state* state)
+           (condition (funcall make-condition-fn 'warning)))
+      (cl-cc/vm/conditions:vm-push-handler-to-stack state 'error #'identity)
+      (multiple-value-bind (found handler)
+          (cl-cc/vm/conditions:vm-signal-condition condition state)
+        (expect (cl-cc/vm:vm-typep-check condition 'warning) :to-be-truthy)
+        (expect found :to-equal nil)
+        (expect handler :to-equal nil)))))))))
 
 
 ;;; ─── Condition Construction ───────────────────────────────────────────────

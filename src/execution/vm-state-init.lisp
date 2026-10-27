@@ -210,21 +210,29 @@ When TAIL-P is true, replace the current leaf frame instead of pushing a new one
 ;;; Initialized as a real hash-table so the defun expander can gethash/setf into it
 (defvar *documentation-table* (make-hash-table :test #'equal))
 
-(defmethod initialize-instance :after ((state vm-state) &key &allow-other-keys)
-  "Initialize standard ANSI CL global variables in the VM."
-  (let ((gv (vm-global-vars state)))
-    (dolist (entry (append *vm-initial-globals*
-        (vm-feature-initial-globals :conditions)
-        (vm-feature-initial-globals :environment)
-        (vm-feature-initial-globals :io)))
-      (setf (gethash (car entry) gv)
-            (let ((value (second entry)))
-              (cond
-                ((functionp value) (funcall value))
-                ((and (symbolp value) (boundp value)) (symbol-value value))
-                (t value)))))
-    (dolist (entry *vm-package-initial-globals*)
-      (%vm-initialize-package-global gv (car entry) (cdr entry) nil))))
+(progn
+  (defgeneric vm-initialize-class-registry (state))
+
+  (defmethod vm-initialize-class-registry ((state t))
+    (declare (ignore state))
+    nil)
+
+  (defmethod initialize-instance :after ((state vm-state) &key &allow-other-keys)
+    "Initialize standard ANSI CL global variables in the VM."
+    (let ((gv (vm-global-vars state)))
+      (dolist (entry (append *vm-initial-globals*
+                             (vm-feature-initial-globals :conditions)
+                             (vm-feature-initial-globals :environment)
+                             (vm-feature-initial-globals :io)))
+        (setf (gethash (car entry) gv)
+              (let ((value (second entry)))
+                (cond
+                  ((functionp value) (funcall value))
+                  ((and (symbolp value) (boundp value)) (symbol-value value))
+                  (t value)))))
+      (dolist (entry *vm-package-initial-globals*)
+        (%vm-initialize-package-global gv (car entry) (cdr entry) nil)))
+    (vm-initialize-class-registry state)))
 
 ;;; ─── VM Heap Operations ──────────────────────────────────────────────────────
 

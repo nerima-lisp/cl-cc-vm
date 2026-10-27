@@ -109,7 +109,7 @@ Returns the popped handler or NIL if stack is empty."
 Returns the first matching handler or NIL if none found."
   (let ((stack (vm-get-handler-stack vm-state)))
     (find-if (lambda (handler)
-               (typep condition (vm-handler-type handler)))
+               (vm-error-type-matches-p condition (vm-handler-type handler)))
              stack)))
 
 (defun vm-get-restarts (vm-state)

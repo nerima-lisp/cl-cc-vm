@@ -285,12 +285,125 @@
   :find-class
   "Look up a class by name in the class registry.")
 
-(defmethod execute-instruction ((inst vm-find-class) state pc labels)
-  (declare (ignore labels))
-  (let* ((name (vm-reg-get state (vm-src inst)))
-         (class (gethash name (vm-class-registry state))))
-    (unless class
-      ;; Also try global vars as fallback
-      (setf class (gethash name (vm-global-vars state))))
-    (vm-reg-set state (vm-dst inst) (or class nil))
-    (values (1+ pc) nil nil)))
+(progn
+  (defmethod execute-instruction ((inst vm-find-class) state pc labels)
+    (declare (ignore labels))
+    (let* ((name (vm-reg-get state (vm-src inst)))
+           (class (gethash name (vm-class-registry state))))
+      (unless class
+        ;; Also try global vars as fallback
+        (setf class (gethash name (vm-global-vars state))))
+      (vm-reg-set state (vm-dst inst) (or class nil))
+      (values (1+ pc) nil nil)))
+
+  (defparameter +vm-ansi-condition-classes+
+    '((condition (t) nil nil nil)
+      (serious-condition (condition) nil nil nil)
+      (error (serious-condition) nil nil nil)
+      (warning (condition) nil nil nil)
+      (simple-condition (condition)
+       (format-control format-arguments)
+       ((:format-control . format-control)
+        (:format-arguments . format-arguments))
+       ((format-arguments . nil)))
+      (type-error (error) (datum expected-type)
+       ((:datum . datum) (:expected-type . expected-type)) nil)
+      (simple-error (simple-condition error) nil nil nil)
+      (simple-warning (simple-condition warning) nil nil nil)
+      (simple-type-error (simple-condition type-error) nil nil nil)
+      (arithmetic-error (error) (operation operands)
+       ((:operation . operation) (:operands . operands)) nil)
+      (division-by-zero (arithmetic-error) nil nil nil)
+      (floating-point-inexact (arithmetic-error) nil nil nil)
+      (floating-point-invalid-operation (arithmetic-error) nil nil nil)
+      (floating-point-underflow (arithmetic-error) nil nil nil)
+      (floating-point-overflow (arithmetic-error) nil nil nil)
+      (cell-error (error) (name) ((:name . name)) nil)
+      (unbound-slot (cell-error) (instance) ((:instance . instance)) nil)
+      (unbound-variable (cell-error) nil nil nil)
+      (undefined-function (cell-error) nil nil nil)
+      (control-error (error) nil nil nil)
+      (file-error (error) (pathname) ((:pathname . pathname)) nil)
+      (package-error (error) (package) ((:package . package)) nil)
+      (parse-error (error) nil nil nil)
+      (print-not-readable (error) (object) ((:object . object)) nil)
+      (program-error (error) nil nil nil)
+      (stream-error (error) (stream) ((:stream . stream)) nil)
+      (end-of-file (stream-error) nil nil nil)
+      (reader-error (parse-error stream-error) nil nil nil)
+      (storage-condition (serious-condition) nil nil nil)
+      (style-warning (warning) nil nil nil)))
+
+  (defun %vm-define-ansi-condition-class (state name supers own-slots own-initargs own-initforms)
+    (let* ((registry (vm-class-registry state))
+           (slots (%vm-cdef-collect-slots supers own-slots registry))
+           (initargs (%vm-cdef-collect-initargs supers own-initargs registry))
+           (initforms (%vm-cdef-collect-initforms supers own-initforms registry))
+           (class (make-hash-table :test #'eq)))
+      (setf (gethash :__name__ class) name
+            (gethash :__superclasses__ class) supers
+            (gethash :__direct-slots__ class) own-slots
+            (gethash :__slots__ class) slots
+            (gethash :__initargs__ class) initargs
+            (gethash :__methods__ class) (make-hash-table :test #'equal)
+            (gethash :__eql-index__ class) (make-hash-table :test #'equal)
+            (gethash :__initforms__ class) initforms
+            (gethash :__default-initargs__ class) nil
+            (gethash :__slot-types__ class) nil
+            (gethash :__class-slots__ class) nil
+            (gethash :__slot-locations__ class) (%vm-cdef-slot-locations slots)
+            (gethash :__metaclass__ class) 'standard-class
+            (gethash :__sealed__ class) nil
+            (gethash name registry) class
+            (gethash :__cpl__ class) (compute-class-precedence-list name registry))
+      class))
+
+  (defun %vm-register-ansi-condition-classes (state)
+    (dolist (definition +vm-ansi-condition-classes+)
+      (apply #'%vm-define-ansi-condition-class state definition))
+    state)
+
+  (defmethod cl-cc/vm/execution:vm-initialize-class-registry
+      ((state cl-cc/vm/execution:vm-state))
+    (%vm-register-ansi-condition-classes state))
+
+  (defun %vm-condition-slot-reader (condition class-name slot-name host-reader)
+    (let* ((class (when (or (%vm-vector-instance-p condition)
+                            (hash-table-p condition))
+                    (%vm-obj-class-ht condition)))
+           (class-name-of-instance (and class (gethash :__name__ class)))
+           (cpl (and class (gethash :__cpl__ class))))
+      (if (and class
+               (or (eq class-name class-name-of-instance)
+                   (member class-name cpl :test #'eq)))
+          (multiple-value-bind (class-ht class-slots)
+              (%vm-class-slots-of condition)
+            (%vm-raw-slot-read class-ht class-slots condition slot-name))
+          (funcall host-reader condition))))
+
+  (defun %vm-register-ansi-condition-reader (reader class-name slot-name)
+    (let ((host-reader (symbol-function reader)))
+      (vm-register-host-bridge
+       reader
+       (lambda (condition)
+         (%vm-condition-slot-reader condition class-name slot-name host-reader)))))
+
+  (defun %vm-callable-make-condition (class-designator &rest initargs)
+    (if (and *vm-current-state*
+             (%vm-resolve-class-designator class-designator *vm-current-state*))
+        (apply #'%vm-callable-make-instance class-designator initargs)
+        (apply #'cl:make-condition class-designator initargs)))
+
+  (vm-register-host-bridge 'make-condition #'%vm-callable-make-condition)
+  (%vm-register-ansi-condition-reader 'arithmetic-error-operation 'arithmetic-error 'operation)
+  (%vm-register-ansi-condition-reader 'arithmetic-error-operands 'arithmetic-error 'operands)
+  (%vm-register-ansi-condition-reader 'cell-error-name 'cell-error 'name)
+  (%vm-register-ansi-condition-reader 'unbound-slot-instance 'unbound-slot 'instance)
+  (%vm-register-ansi-condition-reader 'file-error-pathname 'file-error 'pathname)
+  (%vm-register-ansi-condition-reader 'package-error-package 'package-error 'package)
+  (%vm-register-ansi-condition-reader 'print-not-readable-object 'print-not-readable 'object)
+  (%vm-register-ansi-condition-reader 'stream-error-stream 'stream-error 'stream)
+  (%vm-register-ansi-condition-reader 'simple-condition-format-control 'simple-condition 'format-control)
+  (%vm-register-ansi-condition-reader 'simple-condition-format-arguments 'simple-condition 'format-arguments)
+  (%vm-register-ansi-condition-reader 'type-error-datum 'type-error 'datum)
+  (%vm-register-ansi-condition-reader 'type-error-expected-type 'type-error 'expected-type))
