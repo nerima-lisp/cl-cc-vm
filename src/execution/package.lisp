@@ -92,7 +92,7 @@
     #:vm-type-of #:vm-typecase-dispatch #:vm-typep #:vm-typep-type-name #:vm-value #:vm-value-profile-snapshot #:vm-value-reg #:vm-values #:vm-values-regs #:vm-values-to-list
     #:vm-values-typep #:vm-var-name #:vm-vr-count #:vm-vr0 #:vm-vr1 #:vm-vr2 #:vm-write-instruction-profile #:vm2-state-global-vars #:vm2-state-output-stream #:vm2-state-p
     #:vm2-state-registers #:vm2-state-values-buffer #:with-vm-instance-lock #:with-vm-state-dispatch
-   #:vm-trampoline-thunk-p #:vm-force-trampoline-result #:%vm-call-closure-sync #:%vm-closure-object-p #:vm-closure-dispatch-tag #:vm-current-closure-stack)
+   #:vm-trampoline-thunk-p #:vm-force-trampoline-result #:%vm-call-closure-sync #:%vm-closure-object-p #:vm-closure-dispatch-tag #:vm-current-closure-stack #:vm-initialize-class-registry)
   (:intern
     #:%bc-emit #:%bc-read-word #:%make-vm2-fast-opcode-handler-table #:%opcode-make-vector #:%resolve-direct-function-designator #:%resolve-symbol-function-designator #:%run-vm-core #:%set-vm-handler-entry-saved-regs #:%set-vm-profile-call-stack #:%set-vm-profile-call-start-times
     #:%vm-apply-spread-args #:%vm-call-type-refinement-accessor #:%vm-callable-registry-entry-p #:%vm-copy-register-table #:%vm-current-deopt-info #:%vm-decode-immediate-symbol-for-eql #:%vm-deopt-resume-pc #:%vm-frame-argument-values

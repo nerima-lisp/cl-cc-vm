@@ -138,10 +138,13 @@ so user-level (handler-case (error ...) ...) in VM programs cannot swallow it."
 
 (defun vm-error-type-matches-p (error-value handler-type)
   "Check if ERROR-VALUE matches HANDLER-TYPE for handler-case dispatch.
-String errors (from VM error instruction) match error/condition/t but not subtypes.
-CL condition objects use typep."
+String errors match the base condition types; host and VM conditions use their type hierarchies."
   (cond
-    ((member handler-type '(error condition serious-condition t)) t)
+    ((and (stringp error-value)
+          (member handler-type '(error condition serious-condition t)))
+     t)
+    ((%vm-typep-clos-class error-value)
+     (ignore-errors (vm-typep-check error-value handler-type)))
     ((typep error-value 'condition)
      (ignore-errors (typep error-value handler-type)))
     (t nil)))
