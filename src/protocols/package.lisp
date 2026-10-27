@@ -1,7 +1,6 @@
 (defpackage #:cl-cc/vm/protocols
   (:use #:cl)
-  (:export
-   #:*instruction-constructors*
+  (:export #:vm-value #:vm-index #:vm-args #:vm-handler-label #:vm-handler-result-reg #:vm-value-reg #:*instruction-constructors*
    #:*vm-compile-string-hook*
    #:*vm-eval-hook*
    #:*vm-self-host-mode*
@@ -34,8 +33,7 @@
    #:vm-src
    #:vm-state-heap
    #:vm-typep-check
-   #:vm-values-list   #:vm-resolve-hash-test #:vm-lookup-bridge-callable
-)
+   #:vm-values-list   #:vm-resolve-hash-test #:vm-lookup-bridge-callable)
   (:intern #:vm-decode-symbol #:vm-encode-common-symbol #:vm-immediate-symbol-p #:vm-trace-output-symbol #:vm-trace-output-stream #:vm-check-row-major-index #:vm-safety-checks-enabled-p #:vm-immediate-intern-enabled-p #:vm-io-initial-globals
    #:%vm-dispatch-call
    #:%vm-method-function

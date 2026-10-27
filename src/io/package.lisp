@@ -33,7 +33,7 @@
    #:STREAM-EXTERNAL-FORMAT
    #:WITH-STANDARD-IO-SYNTAX
   )
-    (:import-from #:cl-cc/vm/protocols #:*instruction-constructors* #:*vm-compile-string-hook* #:*vm-parse-forms-hook* #:build-label-table #:define-simple-instruction #:define-vm-instruction #:define-vm-unary-instruction #:execute-instruction #:instruction->sexp #:vm-create-io-state #:vm-feature-initial-globals #:vm-dst #:vm-instruction #:vm-reg-get #:vm-reg-set #:vm-register-host-bridge #:vm-src #:vm-state-heap #:vm-values-list #:vm-trace-output-symbol #:vm-trace-output-stream #:*vm-self-host-mode* #:vm-call-with-readable-printing)
+    (:import-from #:cl-cc/vm/protocols #:vm-value #:*instruction-constructors* #:*vm-compile-string-hook* #:*vm-parse-forms-hook* #:build-label-table #:define-simple-instruction #:define-vm-instruction #:define-vm-unary-instruction #:execute-instruction #:instruction->sexp #:vm-create-io-state #:vm-feature-initial-globals #:vm-dst #:vm-instruction #:vm-reg-get #:vm-reg-set #:vm-register-host-bridge #:vm-src #:vm-state-heap #:vm-values-list #:vm-trace-output-symbol #:vm-trace-output-stream #:*vm-self-host-mode* #:vm-call-with-readable-printing)
   (:import-from #:cl-cc/vm/data #:%vm-cow-vector-ensure-writable
    #:%vm-cow-vector-materialize
    #:string-to-utf8-bytes

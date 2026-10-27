@@ -10,6 +10,12 @@
 
 (defgeneric instruction->sexp (instruction)
   (:documentation "Convert a VM instruction to its sexp representation."))
+(defgeneric vm-value (object))
+(defgeneric vm-index (object))
+(defgeneric vm-args (object))
+(defgeneric vm-handler-label (object))
+(defgeneric vm-handler-result-reg (object))
+(defgeneric vm-value-reg (object))
 
 (defgeneric sexp->instruction (sexp)
   (:documentation "Convert a sexp to a VM instruction."))

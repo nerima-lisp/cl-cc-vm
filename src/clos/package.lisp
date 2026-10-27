@@ -8,8 +8,7 @@
    #:METHOD-QUALIFIERS
    #:REMOVE-METHOD
   )
-    (:import-from #:cl-cc/vm/protocols
-   #:define-vm-binary-instruction #:define-vm-instruction #:define-vm-unary-instruction
+    (:import-from #:cl-cc/vm/protocols #:vm-args #:vm-value-reg #:define-vm-binary-instruction #:define-vm-instruction #:define-vm-unary-instruction
    #:execute-instruction #:vm-dst #:vm-instruction #:vm-lhs #:vm-maybe-dump-type-profile
    #:vm-reg-get #:vm-reg-set #:vm-register-host-bridge #:vm-resolve-gf-method #:vm-rhs #:vm-src #:vm-values-list
    #:%vm-dispatch-call #:%vm-method-function #:%vm-ret-qualified-dispatch #:vm-copy-instance)
