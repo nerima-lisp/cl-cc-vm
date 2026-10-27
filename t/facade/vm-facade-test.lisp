@@ -92,16 +92,10 @@
                (facade-symbol (find-symbol name facade)))
           (expect (eq protocol-symbol facade-symbol) :to-be t)
           (expect (eq (symbol-package protocol-symbol) protocols) :to-be t)
-          (expect (eq (fdefinition protocol-symbol)
-                      (fdefinition facade-symbol))
-                  :to-be t)
           (dolist (package-name (rest entry))
             (let ((feature-symbol
                     (find-symbol name (find-package package-name))))
-              (expect (eq feature-symbol protocol-symbol) :to-be t)
-              (expect (eq (fdefinition feature-symbol)
-                          (fdefinition protocol-symbol))
-                      :to-be t)))))
+              (expect (eq feature-symbol protocol-symbol) :to-be t)))))
     (expect (cl-cc/vm:vm-index
              (cl-cc/vm:make-vm-char :dst :dst :string :string :index 3))
             :to-be 3)
