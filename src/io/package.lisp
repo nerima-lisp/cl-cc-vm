@@ -1,5 +1,6 @@
 (defpackage #:cl-cc/vm/io
   (:use #:cl)
+  (:intern #:DNS-ASYNC-RESULT-THREAD #:TLS-CONTEXT-P)
   (:shadow
    #:*PRINT-ARRAY*
    #:*PRINT-BASE*

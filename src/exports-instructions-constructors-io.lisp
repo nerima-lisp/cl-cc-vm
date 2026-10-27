@@ -225,3 +225,6 @@
     make-vm-unintern-inst
     make-vm-package-name-inst
     make-vm-list-all-packages-inst))
+;;; Constructor exports: runtime, I/O, string, symbol, and stream builders.
+
+#-cl-cc-self-hosting (export '(make-vm-parse-float))

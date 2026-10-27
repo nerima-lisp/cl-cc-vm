@@ -32,7 +32,7 @@
    #:SOFTWARE-VERSION
    #:TIME
   )
-    (:import-from #:cl-cc/vm/protocols #:define-simple-instruction #:define-vm-binary-instruction #:define-vm-instruction #:define-vm-unary-instruction #:execute-instruction #:vm-dst #:vm-feature-initial-globals #:vm-instruction #:vm-lhs #:vm-reg-get #:vm-reg-set #:vm-register-host-bridge #:vm-rhs #:vm-src #:vm-state-heap #:vm-values-list #:vm-getenv #:vm-lookup-bridge-callable #:vm-load-pathname #:vm-random-integer #:vm-environment-canary-value)
+    (:import-from #:cl-cc/vm/protocols #:define-simple-instruction #:define-vm-binary-instruction #:define-vm-instruction #:define-vm-unary-instruction #:execute-instruction #:vm-dst #:vm-feature-initial-globals #:vm-instruction #:vm-lhs #:vm-reg-get #:vm-reg-set #:vm-register-host-bridge #:vm-rhs #:vm-src #:vm-state-heap #:vm-values-list #:vm-getenv #:vm-lookup-bridge-callable #:vm-load-pathname #:vm-random-integer #:vm-environment-canary-value #:vm-trace-output-stream)
   (:import-from #:cl-cc/vm/data
    #:+mt19937-n+
    #:vm-random-state-p
@@ -188,6 +188,7 @@
    #:CHECK-PACKAGE-LOCK
    #:DEFINE-HOST-ENVIRONMENT-QUERY
    #:LOCK-PACKAGE
+   #:PACKAGE-LOCKED-ERROR
    #:SOURCE-DATE-EPOCH
    #:UNLOCK-PACKAGE
    #:VM-LOCK-PACKAGE

@@ -26,23 +26,8 @@
              (vm-reg-get state (vm-find-symbol-pkg inst)))))
     (multiple-value-bind (symbol status)
         (if package-supplied-p
-            (multiple-value-bind (runtime-package host-designator)
-                (%vm-resolve-package-designator package-designator)
-              (if runtime-package
-                  (let* ((table (gethash :symbols runtime-package))
-                         (exports (gethash :exports runtime-package)))
-                    (multiple-value-bind (found present-p)
-                        (if table (gethash name table) (values nil nil))
-                      (if present-p
-                          (values found
-                                  (if (member found exports :test (function eq))
-                                      :external
-                                      :internal))
-                          (if (packagep host-designator)
-                              (find-symbol name host-designator)
-                              (values nil nil)))))
-                  (find-symbol name host-designator)))
-            (find-symbol name))
+            (cl-cc/vm/data:vm-find-symbol name package-designator)
+            (cl-cc/vm/data:vm-find-symbol name))
       (vm-reg-set state (vm-dst inst) symbol)
       (setf (vm-values-list state) (list symbol status))
       (values (1+ pc) nil nil))))
@@ -228,9 +213,9 @@
 
 (defmethod execute-instruction ((inst vm-char) state pc labels)
   (declare (ignore labels))
-  (let* ((string (vm-reg-get state (vm-string-reg inst)))
-          (index (vm-reg-get state (vm-index inst)))
-          (result (%vm-string-char string index)))
+  (let* ((string (vm-reg-get state (vm-char-string inst)))
+         (index (vm-reg-get state (vm-char-index inst)))
+         (result (%vm-string-char string index)))
     (vm-reg-set state (vm-dst inst) result)
     (values (1+ pc) nil nil)))
 
@@ -363,17 +348,17 @@
 
 (defmethod execute-instruction ((inst vm-acons) state pc labels)
   (declare (ignore labels))
-  (let* ((key (vm-reg-get state (vm-key inst)))
-         (value (vm-reg-get state (vm-value inst)))
-         (alist (vm-reg-get state (vm-alist inst))))
+  (let* ((key (vm-reg-get state (vm-acons-key inst)))
+         (value (vm-reg-get state (vm-acons-value inst)))
+         (alist (vm-reg-get state (vm-acons-alist inst))))
     (vm-reg-set state (vm-dst inst) (acons key value alist))
     (values (1+ pc) nil nil)))
 
 ;; Execute instructions
 (defmethod execute-instruction ((inst vm-assoc) state pc labels)
   (declare (ignore labels))
-  (let* ((key (vm-reg-get state (vm-key inst)))
-         (alist (vm-reg-get state (vm-alist inst)))
+  (let* ((key (vm-reg-get state (vm-assoc-key inst)))
+         (alist (vm-reg-get state (vm-assoc-alist inst)))
          (alist-value (%vm-list-structure-materialize state alist))
          (result (assoc key alist-value)))
     (vm-reg-set state (vm-dst inst) result)

@@ -1,0 +1,18 @@
+(in-package #:cl-cc/vm/data/test)
+
+(describe-concurrent "data feature tests"
+  (register-feature-api-tests)
+  (register-array-tests)
+  (register-fr-668-669-754-757-tests)
+  (register-hash-tests)
+  (register-list-alist-tests)
+  (register-list-coerce-tests)
+  (register-list-tests)
+  (register-persistent-tests)
+  (register-primitives-tests)
+  (register-string-builder-tests)
+  (register-strings-tests)
+  (register-symbols-tests)
+  (register-vm-execution-moved-tests)
+  (register-vm-extensions-tests)
+  (register-vm-sequence-tests))

@@ -11,8 +11,7 @@
     #:vm-values-list #:%vm-typep-call-predicate #:%vm-typep-range-check #:vm-check-index #:vm-closure-object-p #:vm-copy-instance #:vm-decode-symbol #:vm-immediate-symbol-p #:vm-random-integer #:vm-state-symbol-plists
     #:vm-state-system-symbol-plists #:vm-state-symbol-plist-lock #:vm-state-symbol-plist-read-barrier
   )
-  (:export
-    #:*deferred-rc-enabled* #:*hash-table-rehash-policy* #:*interpolation-prefix* #:*perfect-hash-tables-enabled* #:*rt-string-dedup-table* #:*string-intern-table* #:*vm-hash-cons-table* #:*vm-primitive-type-dispatch* #:+hash-table-rehash-policies+ #:+sso-max-length+
+  (:export #:*deferred-rc-enabled* #:*hash-table-rehash-policy* #:*interpolation-prefix* #:*perfect-hash-tables-enabled* #:*rt-string-dedup-table* #:*string-intern-table* #:*vm-hash-cons-table* #:*vm-primitive-type-dispatch* #:+hash-table-rehash-policies+ #:+sso-max-length+
     #:assoc! #:build-perfect-hash-table #:conj #:conj! #:detect-rc-cycles #:dissoc #:dissoc! #:hash-table-simd-lookup-available-p #:hash-with #:hcons
     #:hhead #:hnil #:htail #:intern-string #:iterate #:lazy-filter #:lazy-force #:lazy-map #:lazy-range #:lazy-seq
     #:lazy-seq-p #:lazy-take-seq #:make-lazy-seq #:make-mphf-table #:make-rope #:make-sso-string #:make-string-builder #:make-vm-acons #:make-vm-add-package-local-nickname #:make-vm-adjust-array
@@ -27,7 +26,7 @@
     #:make-vm-hash-cons #:make-vm-hash-table-count #:make-vm-hash-table-keys #:make-vm-hash-table-p #:make-vm-hash-table-rehash-size #:make-vm-hash-table-rehash-threshold #:make-vm-hash-table-size #:make-vm-hash-table-test #:make-vm-hash-table-values #:make-vm-identity
     #:make-vm-import-inst #:make-vm-intern-symbol #:make-vm-keywordp #:make-vm-last #:make-vm-length #:make-vm-list-all-packages-inst #:make-vm-list-length #:make-vm-listp #:make-vm-lower-case-p #:make-vm-make-array
     #:make-vm-make-hash-table #:make-vm-make-list #:make-vm-make-string #:make-vm-make-symbol #:make-vm-member #:make-vm-name-char #:make-vm-nbutlast #:make-vm-nconc #:make-vm-ninth #:make-vm-nreconc
-    #:make-vm-nreverse #:make-vm-nstring-capitalize #:make-vm-nstring-downcase #:make-vm-nstring-upcase #:make-vm-nth #:make-vm-nthcdr #:make-vm-null #:make-vm-package-name-inst #:make-vm-parse-integer #:make-vm-pop
+    #:make-vm-nreverse #:make-vm-nstring-capitalize #:make-vm-nstring-downcase #:make-vm-nstring-upcase #:make-vm-nth #:make-vm-nthcdr #:make-vm-null #:make-vm-package-name-inst #:make-vm-parse-float #:make-vm-parse-integer #:make-vm-pop
     #:make-vm-push #:make-vm-remhash #:make-vm-remove-package-local-nickname #:make-vm-remprop #:make-vm-rest #:make-vm-reverse #:make-vm-row-major-aref #:make-vm-rplaca #:make-vm-rplacd #:make-vm-sbit
     #:make-vm-search-string #:make-vm-second #:make-vm-set-fill-pointer #:make-vm-set-symbol-plist #:make-vm-sethash #:make-vm-seventh #:make-vm-shadow-inst #:make-vm-simple-vector-p #:make-vm-sixth #:make-vm-standard-char-p
     #:make-vm-string #:make-vm-string-capitalize #:make-vm-string-coerce #:make-vm-string-downcase #:make-vm-string-equal #:make-vm-string-greaterp #:make-vm-string-left-trim #:make-vm-string-length #:make-vm-string-lessp #:make-vm-string-not-equal
@@ -60,8 +59,10 @@
     #:vm-string-left-trim #:vm-string-length #:vm-string-lessp #:vm-string-not-equal #:vm-string-reg #:vm-string-right-trim #:vm-string-set #:vm-string-trim #:vm-string-upcase #:vm-string<
     #:vm-string<= #:vm-string= #:vm-string> #:vm-string>= #:vm-stringp #:vm-subseq #:vm-svref #:vm-sxhash #:vm-tenth #:vm-third
     #:vm-type-rep #:vm-type-rep-equal #:vm-type-rep-of #:vm-type-rep-p #:vm-type-rep-specifier #:vm-unwrap-dynamic #:vm-upper-case-p #:vm-val-reg #:vm-vector #:vm-vectorp
-    #:vm-wrap-dynamic #:with-string-builder
-  )
+    #:vm-wrap-dynamic #:with-string-builder #:vm-assoc-key #:vm-assoc-alist #:vm-char-index #:vm-char-string #:vm-acons-key #:vm-acons-value #:vm-acons-alist #:vm-remprop-sym #:vm-remprop-indicator #:vm-symbol-get-sym #:vm-symbol-get-indicator #:vm-symbol-get-default #:vm-symbol-set-sym #:vm-symbol-set-indicator #:vm-symbol-set-value #:vm-find-symbol
+    #:vm-sym
+    #:sequence #:length #:elt #:subseq
+    #:make-sequence-like #:sequence-protocol-p)
   (:intern
     #:%ascii-char-class-logtest #:%ascii-control-p #:%char-code<=255-p #:%copy-hash-table #:%ensure-even-key-values #:%ensure-persistent-map #:%ensure-unfrozen-transient #:%execute-vm-gethash #:%execute-vm-specialized-gethash #:%host-general-category
     #:%lazy-range-finished-p #:%lazy-realize #:%make-char-class-table #:%make-rope-from-root #:%make-ucd-bmp-category-ranges #:%make-vm-specialized-array-header #:%offset-case-map #:%parse-persistent-map-args #:%persistent-map-test-name #:%pvec->mutable-buffer
@@ -79,16 +80,17 @@
     #:*vm-primitive-type-predicates* #:*vm-standard-character-names* #:*vm-taint-table* #:*vm-type-of-dispatch* #:+char-class-alpha+ #:+char-class-alphanumeric+ #:+char-class-digit+ #:+char-class-graphic+ #:+char-class-lower+ #:+char-class-standard+
     #:+char-class-upper+ #:+char-class-whitespace+ #:+mt19937-n+ #:+rope-inline-threshold+ #:+ucd-categories+ #:+unicode-bmp-limit+ #:+unicode-max-code-point+ #:+unicode-replacement-character+ #:+vm-bit-vector-tag+ #:+vm-hash-table-weakness-modes+
     #:+vm-specialized-array-tag+ #:+vm-symbol-plist-linear-limit+ #:define-builtin-sequence-methods #:define-managed-list-nth-accessor #:define-vm-hash-property-executors #:define-vm-sso-string-comparison-executor #:define-vm-sso-string-destructive-unary-executor #:define-vm-sso-string-unary-executor #:define-vm-string-comparison #:define-vm-string-trim-executor
-    #:define-vm-string-trim-instruction #:make-sequence-like #:rope-length* #:rope-node #:sequence-protocol-p #:string-builder-append-string! #:string-builder-ensure-capacity! #:string-builder-length #:string-freeze #:string-unfreeze
+    #:define-vm-string-trim-instruction #:rope-length* #:rope-node #:ROPE-NODE-LEFT #:ROPE-NODE-P #:ROPE-NODE-RIGHT #:ROPE-ROOT #:string-builder-append-string! #:string-builder-ensure-capacity! #:string-builder-length #:string-freeze #:string-unfreeze
     #:taint-mark #:tainted-p #:ucd-init-category-index #:unicode-init #:untaint #:vm-acons #:vm-adjust-array #:vm-adjustable-array-p #:vm-adjustable-array-p-value #:vm-alpha-char-p-value
     #:vm-alphanumericp-value #:vm-array-dimension #:vm-array-dimension-value #:vm-array-dimensions #:vm-array-dimensions-value #:vm-array-displacement #:vm-array-element-type #:vm-array-element-type-value #:vm-array-has-fill-pointer-p-value #:vm-array-in-bounds-p
     #:vm-array-in-bounds-p-value #:vm-array-rank #:vm-array-rank-value #:vm-array-total-size #:vm-array-total-size-value #:vm-assoc #:vm-atom #:vm-bit-access #:vm-bit-and #:vm-bit-not
     #:vm-bit-or #:vm-bit-set #:vm-bit-xor #:vm-both-case-p-value #:vm-char-downcase #:vm-char-equal #:vm-char-greaterp #:vm-char-lessp #:vm-char-name #:vm-char-name-value
     #:vm-char-not-equal #:vm-char-not-greaterp #:vm-char-not-lessp #:vm-char-upcase #:vm-char/= #:vm-char<= #:vm-char> #:vm-char>= #:vm-characterp #:vm-check-tainted-usage
-    #:vm-copy-list #:vm-copy-tree #:vm-cow-list #:vm-cow-storage #:vm-cow-string #:vm-cow-vector #:vm-cow-vector-backing #:vm-digit-char #:vm-digit-char-p-value #:vm-ephemeron
-    #:vm-equal #:vm-export #:vm-export-inst #:vm-fill-pointer-inst #:vm-find-package #:vm-find-symbol #:vm-gensym-inst #:vm-graphic-char-p-value #:vm-hash-ensure-writable #:vm-hash-htm-eligible-p
-    #:vm-hash-table-get-internal #:vm-hash-with-lock-fallback #:vm-import #:vm-import-inst #:vm-intern-symbol #:vm-keywordp #:vm-list-all-packages #:vm-list-all-packages-inst #:vm-lower-case-p-value #:vm-make-host-hash-table
-    #:vm-make-symbol #:vm-name-char #:vm-name-char-value #:vm-nconc #:vm-nreverse #:vm-package-name #:vm-package-name-inst #:vm-parse-integer #:vm-record-weak-hash-entry #:vm-remprop
+    #:vm-copy-list #:vm-copy-tree #:vm-cow-list #:vm-cow-storage #:vm-cow-string #:VM-COW-STRING-BACKING #:VM-COW-STRING-START #:vm-cow-vector #:vm-cow-vector-backing #:vm-digit-char #:vm-digit-char-p-value #:vm-ephemeron
+    #:vm-equal #:vm-export #:vm-export-inst #:vm-fill-pointer-inst #:vm-find-package #:vm-gensym-inst #:vm-graphic-char-p-value #:vm-hash-ensure-writable #:vm-hash-htm-eligible-p
+    #:vm-hash-table-get-internal
+    #:VM-HASH-TABLE-HTM-ABORT-COUNT #:vm-hash-with-lock-fallback #:vm-import #:vm-import-inst #:vm-intern-symbol #:vm-keywordp #:vm-list-all-packages #:vm-list-all-packages-inst #:vm-lower-case-p-value #:vm-make-host-hash-table
+    #:vm-make-symbol #:vm-name-char #:vm-name-char-value #:vm-nconc #:vm-nreverse #:vm-package-name #:vm-package-name-inst #:vm-parse-float #:vm-parse-integer #:vm-record-weak-hash-entry #:vm-remprop
     #:vm-row-major-aref #:vm-sbit #:vm-set-fill-pointer #:vm-set-symbol-plist #:vm-shadow #:vm-shadow-inst #:vm-standard-char-p-value #:vm-string-copy #:vm-string-materialize #:vm-string-set-char
     #:vm-string-subseq #:vm-subst #:vm-svset #:vm-sweep-weak-hash-table #:vm-symbol-get #:vm-symbol-name #:vm-symbol-plist #:vm-symbol-plist-read-snapshot #:vm-symbol-property-hash-store #:vm-symbol-set
     #:vm-unintern #:vm-unintern-inst #:vm-unuse-package #:vm-unuse-package-inst #:vm-upper-case-p-value #:vm-use-package #:vm-use-package-inst #:vm-valid-hash-weakness-p #:vm-vector-pop #:vm-vector-push

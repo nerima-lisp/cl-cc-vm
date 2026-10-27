@@ -139,3 +139,14 @@
   (src nil :reader vm-src)
   (:sexp-tag :atom)
   (:sexp-slots dst src))
+
+(in-package #:cl-cc/vm/data)
+
+(define-vm-instruction vm-acons (vm-instruction)
+  "Prepend (KEY . VALUE) to ALIST."
+  (dst nil :reader vm-dst)
+  (key nil :reader vm-key)
+  (value nil :reader vm-value)
+  (alist nil :reader vm-alist)
+  (:sexp-tag :acons)
+  (:sexp-slots dst key value alist))

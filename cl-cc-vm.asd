@@ -263,62 +263,172 @@
   :pathname "t"
   :serial t
   :components ((:file "package")
-               (:file "vm-boundary-test")
-               (:file "regex-test")
-               (:file "vm-numeric-bignum-test")
-               (:file "vm-format-render-test")
-               (:file "vm-terminal-test")
-               (:file "vm-list-execute-test")
-               (:file "vm-array-execute-test")
-               (:file "vm-package-designator-test")
-               (:file "vm-hash-execute-test")
-               (:file "vm-string-execute-test")
-               (:file "vm-clos-execute-test")
-               (:module "protocols"
-                        :pathname "protocols"
-                        :serial t
-                        :components ((:file "feature-api-test")))
-               (:module "execution"
-                        :pathname "execution"
-                        :serial t
-                        :components ((:file "feature-api-test")))
-               (:module "data"
-                        :pathname "data"
-                        :serial t
-                        :components ((:file "feature-api-test")))
-               (:module "numbers"
-                        :pathname "numbers"
-                        :serial t
-                        :components ((:file "feature-api-test")))
-               (:module "environment"
-                        :pathname "environment"
-                        :serial t
-                        :components ((:file "feature-api-test")))
-               (:module "conditions"
-                        :pathname "conditions"
-                        :serial t
-                        :components ((:file "feature-api-test")))
-               (:module "clos"
-                        :pathname "clos"
-                        :serial t
-                        :components ((:file "feature-api-test")))
-               (:module "io"
-                        :pathname "io"
-                        :serial t
-                        :components ((:file "feature-api-test")))
-               (:module "serialization"
-                        :pathname "serialization"
-                        :serial t
-                        :components ((:file "feature-api-test")
-                                     (:file "json-test")))
-               (:module "debugging"
-                        :pathname "debugging"
-                        :serial t
-                        :components ((:file "feature-api-test")))
-               (:module "interop"
-                        :pathname "interop"
-                        :serial t
-                        :components ((:file "feature-api-test"))))
+ (:file "vm-boundary-test")
+ (:file "regex-test")
+ (:file "vm-numeric-bignum-test")
+ (:file "vm-format-render-test")
+ (:file "vm-terminal-test")
+ (:file "vm-list-execute-test")
+ (:file "vm-array-execute-test")
+ (:file "vm-package-designator-test")
+ (:file "vm-hash-execute-test")
+ (:file "vm-string-execute-test")
+ (:file "vm-clos-execute-test")
+ (:module "support"
+ :pathname "support"
+ :serial t
+ :components ((:file "package")
+              (:file "vm-test-support")))
+ (:file "cross-feature-tests")
+ (:module "protocols"
+ :pathname "protocols"
+ :serial t
+ :components
+ (  (:file "package")
+  (:file "feature-api-test")
+  (:file "vm-execution-protocol-tests")
+  (:file "vm-host-bridge-tests")
+  (:file "suite")))
+ (:module "execution"
+ :pathname "execution"
+ :serial t
+ :components
+ (  (:file "package")
+  (:file "feature-api-test")
+  (:file "package-tests")
+  (:file "primitives-typep-tests")
+  (:file "runtime-stdlib-2-vm-tests")
+  (:file "vm-call-tests")
+  (:file "vm-dispatch-tests")
+  (:file "vm-execute-tests")
+  (:file "vm-execute-tests-2")
+  (:file "vm-instructions-tests")
+  (:file "vm-opcodes-defs-tests")
+  (:file "vm-opcodes-tests")
+  (:file "vm-run-fusion-tests")
+  (:file "vm-run-tests")
+  (:file "vm-tests")
+  (:file "suite")))
+ (:module "data"
+ :pathname "data"
+ :serial t
+ :components
+ (  (:file "package")
+  (:file "array-tests")
+  (:file "feature-api-test")
+  (:file "vm-regression-tests")
+  (:file "hash-tests")
+  (:file "list-alist-tests")
+  (:file "list-coerce-tests")
+  (:file "list-tests")
+  (:file "persistent-tests")
+  (:file "primitives-tests")
+  (:file "string-builder-tests")
+  (:file "strings-tests")
+  (:file "symbols-tests")
+  (:file "vm-execution-moved-tests")
+  (:file "vm-extensions-tests")
+  (:file "vm-sequence-tests")
+  (:file "suite")))
+ (:module "numbers"
+ :pathname "numbers"
+ :serial t
+ :components
+ (  (:file "package")
+  (:file "feature-api-test")
+  (:file "vm-regression-tests")
+  (:file "parse-float-tests")
+  (:file "primitives-tests")
+  (:file "runtime-stdlib-3-numeric-tests")
+  (:file "runtime-stdlib-3-ryu-tests")
+  (:file "vm-bignum-tests")
+  (:file "vm-bitwise-tests")
+  (:file "vm-extensions-tests")
+  (:file "vm-numeric-tests")
+  (:file "vm-runtime-stdlib-2-smoke-tests")
+  (:file "vm-transcendental-tests")
+  (:file "suite")))
+ (:module "environment"
+ :pathname "environment"
+ :serial t
+ :components
+ (  (:file "package")
+  (:file "feature-api-test")
+  (:file "runtime-stdlib-2-completion-tests")
+  (:file "runtime-stdlib-3-tests")
+  (:file "vm-environment-tests")
+  (:file "vm-runtime-stdlib-2-smoke-tests")
+  (:file "suite")))
+ (:module "conditions"
+ :pathname "conditions"
+ :serial t
+ :components
+ (  (:file "package")
+  (:file "conditions-tests")
+  (:file "feature-api-test")
+  (:file "runtime-stdlib-3-condition-tests")
+  (:file "suite")))
+ (:module "clos"
+ :pathname "clos"
+ :serial t
+ :components
+ (  (:file "package")
+  (:file "feature-api-test")
+  (:file "vm-clos-execute-extra-tests")
+  (:file "vm-clos-execute-tests")
+  (:file "vm-clos-tests")
+  (:file "deep-copy-tests")
+  (:file "vm-dispatch-gf-multi-tests")
+  (:file "vm-dispatch-gf-tests")
+  (:file "vm-execution-moved-tests")
+  (:file "vm-mop-tests")
+  (:file "suite")))
+ (:module "io"
+ :pathname "io"
+ :serial t
+ :components
+ (  (:file "package")
+  (:file "feature-api-test")
+  (:file "format-tests")
+  (:file "io-network-tests")
+  (:file "io-runners-tests")
+  (:file "io-tests")
+  (:file "runtime-stdlib-2-print-circle-tests")
+  (:file "runtime-stdlib-3-external-format-tests")
+  (:file "runtime-stdlib-3-io-tests")
+  (:file "vm-runtime-stdlib-2-smoke-tests")
+  (:file "suite")))
+ (:module "serialization"
+ :pathname "serialization"
+ :serial t
+ :components
+ (  (:file "package")
+  (:file "feature-api-test")
+  (:file "json-test")
+  (:file "json-tests")
+  (:file "runtime-stdlib-3-fasl-tests")
+  (:file "vm-runtime-stdlib-2-smoke-tests")
+  (:file "suite")))
+ (:module "debugging"
+ :pathname "debugging"
+ :serial t
+ :components
+ (  (:file "package")
+  (:file "crash-report-tests")
+  (:file "feature-api-test")
+  (:file "runtime-stdlib-3-debug-tests")
+  (:file "runtime-stdlib-3-terminal-tests")
+  (:file "vm-debugging-moved-tests")
+  (:file "suite")))
+ (:module "interop"
+ :pathname "interop"
+ :serial t
+ :components
+ (  (:file "package")
+  (:file "feature-api-test")
+  (:file "regex-tests")
+  (:file "vm-bridge-tests")
+  (:file "suite"))))
   ;; Not HOST-KIT:SYMBOL-CALL: a .asd is read before :depends-on is ever
   ;; consulted, so a CL-HOST-KIT-prefixed token here would be a read-time
   ;; PACKAGE-DOES-NOT-EXIST error regardless of what the system depends on.

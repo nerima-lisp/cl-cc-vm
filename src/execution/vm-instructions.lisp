@@ -293,25 +293,3 @@ and OFFSET denotes the address to prefetch; LOCALITY is :T0/:NTA on x86-64 and
   (name nil :reader vm-global-name)
   (:sexp-tag :get-global))
 
-(define-vm-instruction vm-char (vm-instruction)
-  "Character at position. DST = STRING[INDEX]."
-  (dst nil :reader vm-dst)
-  (string nil :reader vm-string-reg)
-  (index nil :reader vm-index)
-  (:sexp-tag :char)
-  (:sexp-slots dst string index))
-
-(define-vm-instruction vm-acons (vm-instruction)
-  "Prepend (KEY . VALUE) to ALIST."
-  (dst nil :reader vm-dst)
-  (key nil :reader vm-key)
-  (value nil :reader vm-value)
-  (alist nil :reader vm-alist)
-  (:sexp-tag :acons)
-  (:sexp-slots dst key value alist))
-
-(define-vm-instruction vm-symbol-set (vm-instruction)
-  "Set property INDICATOR on symbol SYM's plist to VALUE."
-  (dst nil :reader vm-dst) (sym nil :reader vm-sym)
-  (indicator nil :reader vm-indicator) (value nil :reader vm-value)
-  (:sexp-tag :symbol-set) (:sexp-slots dst sym indicator value))

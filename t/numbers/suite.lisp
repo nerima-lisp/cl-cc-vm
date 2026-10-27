@@ -1,0 +1,15 @@
+(in-package #:cl-cc/vm/numbers/test)
+
+(describe-concurrent "numbers feature tests"
+  (register-feature-api-tests)
+  (register-vm-regression-tests)
+  (register-parse-float-tests)
+  (register-primitives-tests)
+  (register-runtime-stdlib-3-numeric-tests)
+  (register-runtime-stdlib-3-ryu-tests)
+  (register-vm-bignum-tests)
+  (register-vm-bitwise-tests)
+  (register-vm-extensions-tests)
+  (register-vm-numeric-tests)
+  (register-vm-runtime-stdlib-2-smoke-tests)
+  (register-vm-transcendental-tests))

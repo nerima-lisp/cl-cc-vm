@@ -1,0 +1,10 @@
+(in-package #:cl-cc/vm/debugging/test)
+(defun register-runtime-stdlib-3-terminal-tests ()
+  (it-sequential "stdlib3-terminal-ansi-and-size"
+  (let ((out (make-string-output-stream)))
+    (cl-cc/vm:vm-ansi-color out :red)
+    (cl-cc/vm:vm-ansi-reset out)
+    (expect (get-output-stream-string out) :to-equal (format nil "~C[31m~C[0m" #\Esc #\Esc)))
+  (multiple-value-bind (cols rows) (cl-cc/vm:vm-terminal-size)
+    (expect (plusp cols) :to-be-truthy)
+    (expect (plusp rows) :to-be-truthy))))

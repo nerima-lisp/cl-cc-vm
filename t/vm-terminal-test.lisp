@@ -21,5 +21,5 @@
 
   (it "writes the SGR reset escape sequence"
     (expect (string= (with-output-to-string (s) (cl-cc/vm:vm-ansi-reset s))
-                     (format nil "~C[m" #\Escape))
+                     (format nil "~C[0m" #\Escape))
             :to-be-truthy)))
