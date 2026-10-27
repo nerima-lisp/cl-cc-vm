@@ -3,7 +3,10 @@
   (:use
     #:cl
   )
-  (:import-from #:cl-cc/vm/protocols #:vm-value #:vm-index #:vm-args #:vm-handler-label #:vm-handler-result-reg #:vm-value-reg #:*instruction-constructors* #:*vm-eval-hook* #:*vm-macroexpand-1-hook* #:*vm-macroexpand-hook* #:build-label-table #:define-simple-instruction #:define-vm-binary-instruction #:define-vm-instruction #:define-vm-unary-instruction #:execute-instruction
+  (:import-from #:cl-cc/vm/protocols
+    #:vm-value #:vm-index #:vm-args #:vm-handler-label #:vm-handler-result-reg #:vm-value-reg
+    #:*instruction-constructors* #:*vm-eval-hook* #:*vm-guest-function-package* #:*vm-macroexpand-1-hook* #:*vm-macroexpand-hook*
+    #:build-label-table #:define-simple-instruction #:define-vm-binary-instruction #:define-vm-instruction #:define-vm-unary-instruction #:execute-instruction
     #:instruction->sexp #:vm-dst #:vm-instruction #:vm-lhs #:vm-maybe-dump-type-profile #:vm-reg-get #:vm-reg-set #:vm-register-host-bridge #:vm-resolve-gf-method #:vm-rhs
     #:vm-src #:vm-state-heap #:vm-typep-check #:vm-values-list #:vm-decode-symbol #:vm-encode-common-symbol #:vm-immediate-symbol-p #:vm-trace-output-symbol #:vm-trace-output-stream #:%vm-dispatch-call
     #:%vm-method-function #:%vm-ret-qualified-dispatch #:*vm-self-host-mode* #:vm-call-with-readable-printing #:vm-create-io-state #:vm-environment-canary-value #:vm-execute-instruction-guarded #:vm-fatal-error-p #:vm-feature-initial-globals #:vm-load-pathname

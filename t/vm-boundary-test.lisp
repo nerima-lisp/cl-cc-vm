@@ -137,9 +137,12 @@
         (expect (cl-cc/vm:run-compiled program :gc-heap heap) :to-be 42)
         (expect (cl-cc/runtime:rt-heap-gc-pending heap) :to-be nil))))
 
-  (it "resolves function references through CL-CC, CL parent, then bridge lookup"
+  (it "resolves configured guest symbols before CL and bridge fallback"
     (let* ((name "MAKE-INSTANCES-OBSOLETE")
-           (cl-cc-symbol (find-symbol name :cl-cc))
+           (function-package
+             (or (find-package "CL-CC/VM-BOUNDARY-GUESTS")
+                 (make-package "CL-CC/VM-BOUNDARY-GUESTS" :use nil)))
+           (guest-symbol (intern name function-package))
            (cl-symbol (find-symbol name :cl))
            (parent-functions (make-hash-table :test #'eq))
            (parent-function (lambda () :parent))
@@ -148,19 +151,21 @@
                         :functions parent-functions))
            (state (cl-cc/vm:make-vm-instance :parent-env parent-env))
            (instruction (cl-cc/vm:make-vm-func-ref :dst :r0 :label name)))
-      (expect cl-cc-symbol :not :to-be nil)
-      (expect cl-symbol :not :to-be nil)
-      (setf (gethash cl-symbol parent-functions) parent-function)
-      (cl-cc/vm:execute-instruction instruction state 0 (make-hash-table))
-      (expect (cl-cc/vm/protocols:vm-reg-get state :r0) :to-be parent-function)
-      (setf (gethash cl-cc-symbol (cl-cc/vm:vm-function-registry state)) local-function)
-      (cl-cc/vm:execute-instruction instruction state 0 (make-hash-table))
-      (expect (cl-cc/vm/protocols:vm-reg-get state :r0) :to-be local-function)
-      (remhash cl-cc-symbol (cl-cc/vm:vm-function-registry state))
-      (remhash cl-symbol parent-functions)
-      (cl-cc/vm:execute-instruction instruction state 0 (make-hash-table))
-      (expect (cl-cc/vm/protocols:vm-reg-get state :r0)
-              :to-be (cl-cc/vm/protocols:vm-lookup-bridge-callable cl-symbol)))))
+      (let ((cl-cc/vm:*vm-guest-function-package* function-package))
+        (expect guest-symbol :not :to-be nil)
+        (expect cl-symbol :not :to-be nil)
+        (setf (gethash cl-symbol parent-functions) parent-function)
+        (cl-cc/vm:execute-instruction instruction state 0 (make-hash-table))
+        (expect (cl-cc/vm/protocols:vm-reg-get state :r0) :to-be parent-function)
+        (setf (gethash guest-symbol (cl-cc/vm:vm-function-registry state)) local-function)
+        (cl-cc/vm:execute-instruction instruction state 0 (make-hash-table))
+        (expect (cl-cc/vm/protocols:vm-reg-get state :r0) :to-be local-function)
+        (remhash guest-symbol (cl-cc/vm:vm-function-registry state))
+        (remhash cl-symbol parent-functions)
+        (cl-cc/vm:execute-instruction instruction state 0 (make-hash-table))
+        (expect (cl-cc/vm/protocols:vm-reg-get state :r0)
+                :to-be (cl-cc/vm/protocols:vm-lookup-bridge-callable cl-symbol))))))
+
 (describe-sequential "catch tag identity"
   (it "does not match distinct EQL numeric tags"
     (let* ((digits "10000000000000000000000000000000000000001")
@@ -289,3 +294,83 @@
         (expect (funcall callable holder
                          (find-symbol "VALUE" "CL-CC-VM/TEST") 42)
                 :to-be 42)))))
+
+(describe-sequential "configurable guest function package"
+  (it "defaults to CL-USER and is exported from the public packages"
+    (expect cl-cc/vm:*vm-guest-function-package* :to-be :cl-user)
+    (expect (nth-value 1 (find-symbol "*VM-GUEST-FUNCTION-PACKAGE*" :cl-cc/vm))
+            :to-be :external)
+    (expect (nth-value 1 (find-symbol "*VM-GUEST-FUNCTION-PACKAGE*" :cl-cc/vm/protocols))
+            :to-be :external))
+
+  (it "uses its package for bridge aliases"
+    (let* ((guest-package
+             (or (find-package "CL-CC/VM-BOUNDARY-ALIASES")
+                 (make-package "CL-CC/VM-BOUNDARY-ALIASES" :use nil)))
+           (source-package
+             (or (find-package "CL-CC/VM-BOUNDARY-SOURCE")
+                 (make-package "CL-CC/VM-BOUNDARY-SOURCE" :use nil)))
+           (name "VM-BOUNDARY-ALIAS")
+           (guest-symbol (intern name guest-package))
+           (source-symbol (intern name source-package))
+           (callable (lambda () :bridge)))
+      (unwind-protect
+           (let ((cl-cc/vm:*vm-guest-function-package* guest-package))
+             (cl-cc/vm:vm-register-host-bridge guest-symbol callable)
+             (expect (cl-cc/vm/protocols:vm-lookup-bridge-callable source-symbol) :to-be callable))
+        (remhash guest-symbol cl-cc/vm/protocols:*vm-host-bridge-functions*))))
+
+  (it "registers qualified guest functions in its package"
+    (let* ((guest-package
+             (or (find-package "CL-CC/VM-BOUNDARY-REGISTRY")
+                 (make-package "CL-CC/VM-BOUNDARY-REGISTRY" :use nil)))
+           (runtime-package (make-hash-table :test #'eq))
+           (state (cl-cc/vm:make-vm-state))
+           (name (make-symbol "HELLO-WORLD"))
+           (closure (lambda () :guest)))
+      (setf (gethash :name runtime-package) "VM-BOUNDARY-GUESTS"
+            (gethash (find-symbol "*PACKAGE*" :cl) (cl-cc/vm:vm-global-vars state))
+            runtime-package)
+      (cl-cc/vm:vm-reg-set state :closure closure)
+      (let ((cl-cc/vm:*vm-guest-function-package* guest-package))
+        (cl-cc/vm:execute-instruction
+         (cl-cc/vm:make-vm-register-function :name name :src :closure)
+         state 0 (make-hash-table))
+        (expect (gethash name (cl-cc/vm:vm-function-registry state)) :to-be closure)
+        (cl-cc/vm:execute-instruction
+         (cl-cc/vm:make-vm-func-ref :dst :r1 :label "VM-BOUNDARY-GUESTS::HELLO-WORLD")
+         state 0 (make-hash-table))
+        (expect (cl-cc/vm/protocols:vm-reg-get state :r1) :to-be closure))))
+
+  (it "uses the configured package for immediate-symbol gating"
+    (let* ((guest-package
+             (or (find-package "GUEST-FUNCTION-BOUNDARY-GATE")
+                 (make-package "GUEST-FUNCTION-BOUNDARY-GATE" :use nil)))
+           (existing-umbrella-package (find-package :cl-cc))
+           (umbrella-package-created-p (null existing-umbrella-package))
+           (umbrella-package
+             (or existing-umbrella-package
+                 (make-package :cl-cc :use nil)))
+           (implementation-package
+             (or (find-package "CL-CC/VM-BOUNDARY-IMPL")
+                 (make-package "CL-CC/VM-BOUNDARY-IMPL" :use nil))))
+      (unwind-protect
+           (progn
+             (let ((cl-cc/vm:*vm-guest-function-package* guest-package)
+                   (*package* guest-package))
+               (expect (cl-cc/vm/execution::vm-immediate-intern-enabled-p)
+                 :to-be nil))
+             (let ((cl-cc/vm:*vm-guest-function-package* guest-package)
+                   (*package* (find-package :cl-user)))
+               (expect (cl-cc/vm/execution::vm-immediate-intern-enabled-p)
+                 :to-be-truthy))
+             (let ((cl-cc/vm:*vm-guest-function-package* :cl-cc)
+                   (*package* umbrella-package))
+               (expect (cl-cc/vm/execution::vm-immediate-intern-enabled-p)
+                 :to-be nil))
+             (let ((cl-cc/vm:*vm-guest-function-package* :cl-cc)
+                   (*package* implementation-package))
+               (expect (cl-cc/vm/execution::vm-immediate-intern-enabled-p)
+                 :to-be nil)))
+        (when umbrella-package-created-p
+          (delete-package umbrella-package))))))

@@ -175,10 +175,10 @@
 
 (defmethod execute-instruction ((inst vm-func-ref) state pc labels)
   (declare (ignore labels))
-  ;; Resolve compiled definitions before host bridges, preserving CL-CC overrides.
+  ;; Resolve configured guest definitions before host bridges.
   (labels ((symbol-candidates (name)
              (remove nil
-                     (list (find-symbol name :cl-cc)
+                     (list (find-symbol name *vm-guest-function-package*)
                            (find-symbol name :cl))
                      :test #'eq))
            (registered-callable (candidates)

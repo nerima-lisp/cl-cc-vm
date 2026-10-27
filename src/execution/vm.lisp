@@ -140,11 +140,12 @@ closures, and reader states."))
       symbol))
 
 (defmethod vm-immediate-intern-enabled-p ()
-  "Avoid immediate symbols while compiling CL-CC's own build-time macro code."
+  "Avoid immediate symbols in VM implementation and configured guest packages."
   (let* ((package (or *package* (find-package :cl-user)))
-         (name (and package (package-name package))))
+         (name (and package (package-name package)))
+         (guest-function-package (find-package *vm-guest-function-package*)))
     (not (and name
-              (or (string= name "CL-CC")
+              (or (eq package guest-function-package)
                   (and (>= (length name) 6)
                        (string= name "CL-CC/" :end1 6)))))))
 

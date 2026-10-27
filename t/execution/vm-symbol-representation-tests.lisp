@@ -1,14 +1,15 @@
 (in-package #:cl-cc/vm/execution/test)
 
 (defun %vm-symbol-representation-intern (name package)
-  (cl-cc/vm:run-compiled
-   (cl-cc/vm:make-vm-program
-    :instructions
-    (list (cl-cc/vm:make-vm-const :dst :r0 :value name)
-          (cl-cc/vm:make-vm-const :dst :r1 :value package)
-          (cl-cc/vm:make-vm-intern-symbol :dst :result :src :r0 :pkg :r1)
-          (cl-cc/vm:make-vm-halt :reg :result))
-    :result-register :result)))
+  (let ((cl-cc/vm:*vm-guest-function-package* :cl-cc/vm))
+    (cl-cc/vm:run-compiled
+     (cl-cc/vm:make-vm-program
+      :instructions
+      (list (cl-cc/vm:make-vm-const :dst :r0 :value name)
+            (cl-cc/vm:make-vm-const :dst :r1 :value package)
+            (cl-cc/vm:make-vm-intern-symbol :dst :result :src :r0 :pkg :r1)
+            (cl-cc/vm:make-vm-halt :reg :result))
+      :result-register :result))))
 
 (defun register-vm-symbol-representation-tests ()
   (describe-sequential "VM immediate symbol representation"

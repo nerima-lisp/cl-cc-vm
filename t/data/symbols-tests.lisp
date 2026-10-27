@@ -155,9 +155,9 @@
       (delete-package package))))
 
 (defun str-vm-constructor (name)
-  "Return exported VM constructor NAME from CL-CC, or skip until FR-275 exists."
+  "Return exported VM constructor NAME from CL-CC/VM, or skip until FR-275 exists."
   (multiple-value-bind (symbol status)
-      (find-symbol name :cl-cc)
+      (find-symbol name :cl-cc/vm)
     (unless (and symbol (eq status :external) (fboundp symbol))
       (skip (format nil "FR-275 constructor ~A is not available yet" name)))
     (symbol-function symbol)))

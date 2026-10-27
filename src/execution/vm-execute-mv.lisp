@@ -319,8 +319,8 @@
                            (remove function-name *vm-unresolved-forward-refs* :key #'car :test #'eq)))
                    (setf (gethash function-name (vm-function-registry state)) closure)))))
       (register-name name)
-      ;; The reader currently tokenizes package-qualified references whose
-      ;; package is created earlier in the same input as CL-CC::|PKG::NAME|.
+      ;; The guest reader stores references to runtime packages created earlier
+      ;; in the same input as symbols named "PKG::NAME" in its current package.
       ;; When IN-PACKAGE has switched *PACKAGE* to a runtime descriptor before
       ;; this DEFUN executes, also register that package-qualified spelling so
       ;; calls such as E2E-PKG:HELLO-WORLD resolve without host fallback.
@@ -328,8 +328,9 @@
         (when (and (hash-table-p current-package) (symbolp name))
           (let ((package-name (gethash :name current-package)))
             (when package-name
-              (register-name (intern (format nil "~A::~A" package-name (symbol-name name))
-                                     :cl-cc)))))))
+              (register-name
+               (intern (format nil "~A::~A" package-name (symbol-name name))
+                       *vm-guest-function-package*)))))))
     (values (1+ pc) nil nil)))
 
 (defmethod execute-instruction ((inst vm-declare-forward-reference) state pc labels)

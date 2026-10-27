@@ -5,8 +5,8 @@
 
 
 (defun register-package-tests ()
-  (it-sequential "cl-cc-package-exists"
-                 (expect (find-package :cl-cc) :to-be-truthy))
+  (it-sequential "cl-cc-vm-package-exists"
+                 (expect (find-package :cl-cc/vm) :to-be-truthy))
 
   )
 
