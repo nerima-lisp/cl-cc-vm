@@ -20,7 +20,7 @@ what vm-label-table-lookup expects — raw (setf gethash) produces entries
 that lookup can't find."
   (let ((ht (make-hash-table :test #'equal)))
     (loop for (label pc) on kv-pairs by #'cddr
-          do (cl-cc/vm::vm-label-table-store ht label pc))
+          do (cl-cc/vm/execution:vm-label-table-store ht label pc))
     ht))
 
 (defun register-vm-call-tests ()
@@ -67,7 +67,7 @@ that lookup can't find."
                    (cl-cc/vm:execute-instruction
                     (cl-cc/vm:make-vm-call :dst :R0 :func :R1 :args '(:R2)) s 5 lbl)
                    ;; Frame is (return-pc dst-reg old-closure-env saved-regs)
-                   (expect (= 1 (length (cl-cc/vm:vm-call-stack s))) :to-be-truthy)
+                   (expect (= 1 (cl-cc/vm/data:length (cl-cc/vm:vm-call-stack s))) :to-be-truthy)
                    (expect (= 6 (first (first (cl-cc/vm:vm-call-stack s)))) :to-be-truthy))
                  (let* ((s (make-test-vm))
                         (cl (%make-test-closure "fn_entry" '(:R3)))
@@ -107,7 +107,7 @@ that lookup can't find."
 
   (it-sequential "vm-call/cc-basic-escape"
                  (let* ((receiver (%make-test-closure "receive-k" '(:k)))
-                        (program (cl-cc/vm::make-vm-program
+                        (program (cl-cc/vm/execution:make-vm-program
                                   :instructions
                                   (list (cl-cc/vm:make-vm-const :dst :fn :value receiver)
                                         (cl-cc/vm:make-vm-call/cc :dst :result :func :fn)
@@ -123,7 +123,7 @@ that lookup can't find."
   (it-sequential "vm-call/cc-non-local-return"
                  (let* ((receiver (%make-test-closure "receive-k-non-local" '(:k)))
                         (helper (%make-test-closure "invoke-k-from-helper" '(:k2)))
-                        (program (cl-cc/vm::make-vm-program
+                        (program (cl-cc/vm/execution:make-vm-program
                                   :instructions
                                   (list (cl-cc/vm:make-vm-const :dst :fn :value receiver)
                                         (cl-cc/vm:make-vm-call/cc :dst :result :func :fn)
@@ -145,44 +145,44 @@ that lookup can't find."
                  (let* ((state (make-test-vm))
                         (labels (%labels "resume" 12)))
                    (cl-cc/vm:vm-reg-set state :saved :original)
-                   (cl-cc/vm::vm-push-call-frame state 9 :return)
-                   (let ((captured-chain (cl-cc/vm::vm-current-stack-segment state)))
+                   (cl-cc/vm/execution:vm-push-call-frame state 9 :return)
+                   (let ((captured-chain (cl-cc/vm/execution::vm-current-stack-segment state)))
                      (let ((continuation (cl-cc/vm:vm-capture-continuation state 12 :result :labels labels)))
                        (cl-cc/vm:vm-reg-set state :saved :mutated)
                        (setf (cl-cc/vm:vm-call-stack state) (list :different-stack))
                        (expect (= 12 (cl-cc/vm:vm-invoke-continuation state continuation 10)) :to-be-truthy)
-                       (let ((first-restored-chain (cl-cc/vm::vm-current-stack-segment state)))
+                       (let ((first-restored-chain (cl-cc/vm/execution::vm-current-stack-segment state)))
                          (expect (eq first-restored-chain captured-chain) :to-be-null)
                          (expect (= 0 (cl-cc/runtime::stack-segment-used captured-chain)) :to-be-truthy)
                          (expect (cl-cc/runtime::stack-segment-prev captured-chain) :to-be-null)
                          (expect (= 10 (cl-cc/vm:vm-reg-get state :result)) :to-be-truthy)
                          (expect (cl-cc/vm:vm-reg-get state :saved) :to-be :original)
-                         (expect (= 1 (length (cl-cc/vm:vm-call-stack state))) :to-be-truthy)
+                         (expect (= 1 (cl-cc/vm/data:length (cl-cc/vm:vm-call-stack state))) :to-be-truthy)
                          (cl-cc/vm:vm-reg-set state :saved :mutated-again)
                          (setf (cl-cc/vm:vm-call-stack state) nil)
                          (expect (= 12 (cl-cc/vm:vm-invoke-continuation state continuation 20)) :to-be-truthy)
-                         (let ((second-restored-chain (cl-cc/vm::vm-current-stack-segment state)))
+                         (let ((second-restored-chain (cl-cc/vm/execution::vm-current-stack-segment state)))
                            (expect (eq second-restored-chain first-restored-chain) :to-be-null)
                            (expect (= 0 (cl-cc/runtime::stack-segment-used first-restored-chain)) :to-be-truthy)
                            (expect (cl-cc/runtime::stack-segment-prev first-restored-chain) :to-be-null)
                            (expect (= 20 (cl-cc/vm:vm-reg-get state :result)) :to-be-truthy)
                            (expect (cl-cc/vm:vm-reg-get state :saved) :to-be :original)
-                           (expect (= 1 (length (cl-cc/vm:vm-call-stack state))) :to-be-truthy)))))))
+                           (expect (= 1 (cl-cc/vm/data:length (cl-cc/vm:vm-call-stack state))) :to-be-truthy)))))))
 
   (it-sequential "vm-continuation-restores-dynamic-extent-stacks"
                  (let ((state (make-test-vm)))
-                   (setf (cl-cc/vm:vm-handler-stack state) (list (list :handler :result 'error nil (cl-cc/vm::vm-save-registers state)))
+                   (setf (cl-cc/vm:vm-handler-stack state) (list (list :handler :result 'error nil (cl-cc/vm/execution:vm-save-registers state)))
                          (cl-cc/vm:vm-method-call-stack state) (list :method-frame)
-                         (cl-cc/vm::vm-continuation-prompts state) (list (list :name :prompt :pc 5 :dst-reg :result)))
+                         (cl-cc/vm/execution::vm-continuation-prompts state) (list (list :name :prompt :pc 5 :dst-reg :result)))
                    (let ((continuation (cl-cc/vm:vm-capture-continuation state 8 :result)))
                      (setf (cl-cc/vm:vm-handler-stack state) nil
                            (cl-cc/vm:vm-method-call-stack state) nil
-                           (cl-cc/vm::vm-continuation-prompts state) nil)
+                           (cl-cc/vm/execution::vm-continuation-prompts state) nil)
                      (expect (= 8 (cl-cc/vm:vm-invoke-continuation state continuation :done)) :to-be-truthy)
                      (expect (cl-cc/vm:vm-reg-get state :result) :to-equal :done)
-                     (expect (= 1 (length (cl-cc/vm:vm-handler-stack state))) :to-be-truthy)
+                     (expect (= 1 (cl-cc/vm/data:length (cl-cc/vm:vm-handler-stack state))) :to-be-truthy)
                      (expect (cl-cc/vm:vm-method-call-stack state) :to-equal '(:method-frame))
-                     (expect (getf (first (cl-cc/vm::vm-continuation-prompts state)) :name) :to-equal :prompt))))
+                     (expect (getf (first (cl-cc/vm/execution::vm-continuation-prompts state)) :name) :to-equal :prompt))))
 
   (it-sequential "vm-apply-tail-p-closure-skips-frame-push"
                  (let* ((s (make-test-vm))
@@ -202,6 +202,6 @@ that lookup can't find."
                    (expect (= 10 (cl-cc/vm:vm-reg-get s :R2)) :to-be-truthy)
                    (expect (= 20 (cl-cc/vm:vm-reg-get s :R3)) :to-be-truthy)))
 
-  (progn (it-sequential "vm-ret-behavior" (let ((s (make-test-vm))) (cl-cc/vm:vm-reg-set s :R0 42) (multiple-value-bind (new-pc sig ret) (cl-cc/vm:execute-instruction (cl-cc/vm:make-vm-ret :reg :R0) s 0 (%labels)) (expect new-pc :to-be-null) (expect sig :to-be-truthy) (expect (= 42 ret) :to-be-truthy))) (let ((s (make-test-vm))) (cl-cc/vm::vm-push-call-frame s 8 :R4) (push nil (cl-cc/vm:vm-method-call-stack s)) (cl-cc/vm:vm-reg-set s :R5 777) (multiple-value-bind (new-pc sig ret) (cl-cc/vm:execute-instruction (cl-cc/vm:make-vm-ret :reg :R5) s 5 (%labels)) (expect (= 8 new-pc) :to-be-truthy) (expect sig :to-be-null) (expect ret :to-be-null) (expect (= 777 (cl-cc/vm:vm-reg-get s :R4)) :to-be-truthy) (expect (cl-cc/vm:vm-call-stack s) :to-be-null)))) (it-sequential "vm-ret-preserves-more-than-64-values-across-call-frame" (let* ((s (make-test-vm)) (expected (loop for i below 96 collect i))) (cl-cc/vm::vm-push-call-frame s 8 :R4) (push nil (cl-cc/vm:vm-method-call-stack s)) (cl-cc/vm:vm-reg-set s :RET 0) (setf (cl-cc/vm::vm-values-list s) expected) (multiple-value-bind (new-pc sig ret) (cl-cc/vm:execute-instruction (cl-cc/vm:make-vm-ret :reg :RET) s 5 (%labels)) (expect (= 8 new-pc) :to-be-truthy) (expect sig :to-be-null) (expect ret :to-be-null) (expect (cl-cc/vm::vm-values-list s) :to-equal expected)))) (it-sequential "vm-tail-call-return-preserves-more-than-64-values" (let* ((s (make-test-vm)) (expected (loop for i below 96 collect i)) (closure (%make-test-closure "fn_tail_mv" nil)) (labels (%labels "fn_tail_mv" 20))) (cl-cc/vm:vm-reg-set s :FN closure) (cl-cc/vm:execute-instruction (cl-cc/vm:make-vm-tail-call :dst :R0 :func :FN :args nil) s 5 labels) (expect (cl-cc/vm:vm-call-stack s) :to-be-null) (cl-cc/vm:vm-reg-set s :RET 0) (setf (cl-cc/vm::vm-values-list s) expected) (multiple-value-bind (new-pc sig ret) (cl-cc/vm:execute-instruction (cl-cc/vm:make-vm-ret :reg :RET) s 20 labels) (expect new-pc :to-be-null) (expect sig :to-be-truthy) (expect (= 0 ret) :to-be-truthy) (expect (cl-cc/vm::vm-values-list s) :to-equal expected)))))
+  (progn (it-sequential "vm-ret-behavior" (let ((s (make-test-vm))) (cl-cc/vm:vm-reg-set s :R0 42) (multiple-value-bind (new-pc sig ret) (cl-cc/vm:execute-instruction (cl-cc/vm:make-vm-ret :reg :R0) s 0 (%labels)) (expect new-pc :to-be-null) (expect sig :to-be-truthy) (expect (= 42 ret) :to-be-truthy))) (let ((s (make-test-vm))) (cl-cc/vm/execution:vm-push-call-frame s 8 :R4) (push nil (cl-cc/vm:vm-method-call-stack s)) (cl-cc/vm:vm-reg-set s :R5 777) (multiple-value-bind (new-pc sig ret) (cl-cc/vm:execute-instruction (cl-cc/vm:make-vm-ret :reg :R5) s 5 (%labels)) (expect (= 8 new-pc) :to-be-truthy) (expect sig :to-be-null) (expect ret :to-be-null) (expect (= 777 (cl-cc/vm:vm-reg-get s :R4)) :to-be-truthy) (expect (cl-cc/vm:vm-call-stack s) :to-be-null)))) (it-sequential "vm-ret-preserves-more-than-64-values-across-call-frame" (let* ((s (make-test-vm)) (expected (loop for i below 96 collect i))) (cl-cc/vm/execution:vm-push-call-frame s 8 :R4) (push nil (cl-cc/vm:vm-method-call-stack s)) (cl-cc/vm:vm-reg-set s :RET 0) (setf (cl-cc/vm/protocols:vm-values-list s) expected) (multiple-value-bind (new-pc sig ret) (cl-cc/vm:execute-instruction (cl-cc/vm:make-vm-ret :reg :RET) s 5 (%labels)) (expect (= 8 new-pc) :to-be-truthy) (expect sig :to-be-null) (expect ret :to-be-null) (expect (cl-cc/vm/protocols:vm-values-list s) :to-equal expected)))) (it-sequential "vm-tail-call-return-preserves-more-than-64-values" (let* ((s (make-test-vm)) (expected (loop for i below 96 collect i)) (closure (%make-test-closure "fn_tail_mv" nil)) (labels (%labels "fn_tail_mv" 20))) (cl-cc/vm:vm-reg-set s :FN closure) (cl-cc/vm:execute-instruction (cl-cc/vm:make-vm-tail-call :dst :R0 :func :FN :args nil) s 5 labels) (expect (cl-cc/vm:vm-call-stack s) :to-be-null) (cl-cc/vm:vm-reg-set s :RET 0) (setf (cl-cc/vm/protocols:vm-values-list s) expected) (multiple-value-bind (new-pc sig ret) (cl-cc/vm:execute-instruction (cl-cc/vm:make-vm-ret :reg :RET) s 20 labels) (expect new-pc :to-be-null) (expect sig :to-be-truthy) (expect (= 0 ret) :to-be-truthy) (expect (cl-cc/vm/protocols:vm-values-list s) :to-equal expected)))))
   )
 

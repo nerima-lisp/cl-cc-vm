@@ -9,25 +9,25 @@
 
 (defun register-vm-execute-tests ()
   (it-sequential "vm-execute-safety-level-bounds-checking"
-                 (let ((cl-cc/vm::*safety-level* 1))
-                   (let ((%%signaled1 nil)) (handler-case (progn (cl-cc/vm::vm-check-index "abc" 3 'char)) (type-error () (setf %%signaled1 t))) (expect %%signaled1 :to-be-truthy)))
-                 (let ((cl-cc/vm::*safety-level* 0))
-                   (expect (cl-cc/vm::vm-check-index "abc" 99 'char) :to-equal 99)))
+                 (let ((cl-cc/vm/execution::*safety-level* 1))
+                   (let ((%%signaled1 nil)) (handler-case (progn (cl-cc/vm/execution::vm-check-index "abc" 3 'char)) (type-error () (setf %%signaled1 t))) (expect %%signaled1 :to-be-truthy)))
+                 (let ((cl-cc/vm/execution::*safety-level* 0))
+                   (expect (cl-cc/vm/execution::vm-check-index "abc" 99 'char) :to-equal 99)))
 
   (it-sequential "vm-execute-stack-canary-verification"
-                 (let ((cl-cc/vm::*security-canaries* t)
+                 (let ((cl-cc/vm/execution::*security-canaries* t)
                        (snapshot (make-hash-table :test #'eq)))
                    (setf (gethash :__stack-canary__ snapshot) 1
                          (gethash :__stack-canary-check__ snapshot) 2)
-                   (let ((%%signaled2 nil)) (handler-case (progn (cl-cc/vm::vm-verify-stack-canary snapshot)) (cl-cc/vm::memory-fault () (setf %%signaled2 t))) (expect %%signaled2 :to-be-truthy))))
+                   (let ((%%signaled2 nil)) (handler-case (progn (cl-cc/vm/execution::vm-verify-stack-canary snapshot)) (cl-cc/vm/execution::memory-fault () (setf %%signaled2 t))) (expect %%signaled2 :to-be-truthy))))
 
   ;;; ─── vm-falsep ──────────────────────────────────────────────────────────────
 
   (it-sequential "vm-execute-vm-falsep-semantics"
-                 (expect (cl-cc/vm::vm-falsep nil) :to-be-truthy)
-                 (expect (cl-cc/vm::vm-falsep 0) :to-be-truthy)
+                 (expect (cl-cc/vm/execution:vm-falsep nil) :to-be-truthy)
+                 (expect (cl-cc/vm/execution:vm-falsep 0) :to-be-truthy)
                  (dolist (val '(1 -1 "hello" foo t (1 2 3)))
-                   (expect (cl-cc/vm::vm-falsep val) :to-be-falsy)))
+                   (expect (cl-cc/vm/execution:vm-falsep val) :to-be-falsy)))
 
 ;;; ─── vm-classify-arg ────────────────────────────────────────────────────────
 
@@ -37,28 +37,28 @@
                  (let ((s (make-test-vm)))
                    ;; Full save: snapshot is immutable
                    (cl-cc/vm:vm-reg-set s :R0 99)
-                   (let ((snap (cl-cc/vm::vm-save-registers s)))
+                   (let ((snap (cl-cc/vm/execution:vm-save-registers s)))
                      (cl-cc/vm:vm-reg-set s :R0 200)
                      (expect (= 99 (gethash :R0 snap)) :to-be-truthy))
                    ;; Full restore: overwrites
                    (cl-cc/vm:vm-reg-set s :R0 42)
-                   (let ((snap (cl-cc/vm::vm-save-registers s)))
+                   (let ((snap (cl-cc/vm/execution:vm-save-registers s)))
                      (cl-cc/vm:vm-reg-set s :R0 999)
-                     (cl-cc/vm::vm-restore-registers s snap)
+                     (cl-cc/vm/execution:vm-restore-registers s snap)
                      (expect (= 42 (cl-cc/vm:vm-reg-get s :R0)) :to-be-truthy))
                    ;; Subset save: only saves :R1
                    (cl-cc/vm:vm-reg-set s :R0 42)
                    (cl-cc/vm:vm-reg-set s :R1 99)
-                   (let ((snap (cl-cc/vm::vm-save-registers-subset s '(:R1))))
+                   (let ((snap (cl-cc/vm/execution:vm-save-registers-subset s '(:R1))))
                      (expect (gethash :R0 snap) :to-be-falsy)
                      (expect (= 99 (gethash :R1 snap)) :to-be-truthy))
                    ;; Subset restore: only restores :R1, leaves :R0 as-is
                    (cl-cc/vm:vm-reg-set s :R0 1)
                    (cl-cc/vm:vm-reg-set s :R1 2)
-                   (let ((snap (cl-cc/vm::vm-save-registers-subset s '(:R1))))
+                   (let ((snap (cl-cc/vm/execution:vm-save-registers-subset s '(:R1))))
                      (cl-cc/vm:vm-reg-set s :R0 10)
                      (cl-cc/vm:vm-reg-set s :R1 20)
-                     (cl-cc/vm::vm-restore-registers-subset s snap)
+                     (cl-cc/vm/execution:vm-restore-registers-subset s snap)
                      (expect (= 10 (cl-cc/vm:vm-reg-get s :R0)) :to-be-truthy)
                      (expect (= 2 (cl-cc/vm:vm-reg-get s :R1)) :to-be-truthy))))
 
@@ -69,44 +69,44 @@
                    (let ((s (make-test-vm)))
                      (when setup
                        (funcall setup s))
-                     (expect (cl-cc/vm::vm-list-to-lisp-list s input) :to-equal expected))))
+                     (expect (cl-cc/vm/execution:vm-list-to-lisp-list s input) :to-equal expected))))
 
   (it-sequential "vm-execute-vm-list-to-lisp-list proper-list"
                  (destructuring-bind (input expected setup) (list '(1 2 3) '(1 2 3) nil)
                    (let ((s (make-test-vm)))
                      (when setup
                        (funcall setup s))
-                     (expect (cl-cc/vm::vm-list-to-lisp-list s input) :to-equal expected))))
+                     (expect (cl-cc/vm/execution:vm-list-to-lisp-list s input) :to-equal expected))))
 
   (it-sequential "vm-execute-vm-list-to-lisp-list atom-wraps"
                  (destructuring-bind (input expected setup) (list 42 '(42) nil)
                    (let ((s (make-test-vm)))
                      (when setup
                        (funcall setup s))
-                     (expect (cl-cc/vm::vm-list-to-lisp-list s input) :to-equal expected))))
+                     (expect (cl-cc/vm/execution:vm-list-to-lisp-list s input) :to-equal expected))))
 
   (it-sequential "vm-execute-vm-list-to-lisp-list string-wraps"
                  (destructuring-bind (input expected setup) (list "hi" '("hi") nil)
                    (let ((s (make-test-vm)))
                      (when setup
                        (funcall setup s))
-                     (expect (cl-cc/vm::vm-list-to-lisp-list s input) :to-equal expected))))
+                     (expect (cl-cc/vm/execution:vm-list-to-lisp-list s input) :to-equal expected))))
 
   (it-sequential "vm-execute-vm-list-to-lisp-list plain-integer-ignores-heap-slots"
                  (destructuring-bind (input expected setup) (list 12 '(12) (lambda (state)
-                                                                             (cl-cc/vm::vm-heap-set
+                                                                             (cl-cc/vm/execution:vm-heap-set
                                                                               state 12
-                                                                              (make-instance 'cl-cc/vm::vm-cons-cell :car 99 :cdr nil))))
+                                                                              (make-instance 'cl-cc/vm/execution:vm-cons-cell :car 99 :cdr nil))))
                    (let ((s (make-test-vm)))
                      (when setup
                        (funcall setup s))
-                     (expect (cl-cc/vm::vm-list-to-lisp-list s input) :to-equal expected))))
+                     (expect (cl-cc/vm/execution:vm-list-to-lisp-list s input) :to-equal expected))))
 
   (it-sequential "vm-execute-vm-list-to-lisp-list-cow-list"
                  (let ((s (make-test-vm)))
                    (cl-cc/vm:vm-reg-set s 1 '(1 2 3))
                    (exec1 (cl-cc/vm:make-vm-copy-list :dst 0 :src 1) s)
-                   (expect (cl-cc/vm::vm-list-to-lisp-list s (cl-cc/vm:vm-reg-get s 0)) :to-equal '(1 2 3))))
+                   (expect (cl-cc/vm/execution:vm-list-to-lisp-list s (cl-cc/vm:vm-reg-get s 0)) :to-equal '(1 2 3))))
 
 ;;; ─── execute-instruction: vm-const ──────────────────────────────────────────
 
@@ -161,10 +161,10 @@
                  (destructuring-bind (reg-val current-pc label label-pc expected-pc) (list nil 0 "target" 99 99)
                    (let ((s (make-test-vm))
                          (lbls (make-hash-table :test #'eql)))
-                     (cl-cc/vm::vm-label-table-store lbls label label-pc)
+                     (cl-cc/vm/execution:vm-label-table-store lbls label label-pc)
                      (cl-cc/vm:vm-reg-set s :R0 reg-val)
                      (multiple-value-bind (next-pc halt-p)
-                         (cl-cc/vm:execute-instruction
+                         (cl-cc/vm/protocols:execute-instruction
                           (cl-cc/vm:make-vm-jump-zero :reg :R0 :label label) s current-pc lbls)
                        (declare (ignore halt-p))
                        (expect (= expected-pc next-pc) :to-be-truthy)))))
@@ -173,10 +173,10 @@
                  (destructuring-bind (reg-val current-pc label label-pc expected-pc) (list 1 5 "target" 99 6)
                    (let ((s (make-test-vm))
                          (lbls (make-hash-table :test #'eql)))
-                     (cl-cc/vm::vm-label-table-store lbls label label-pc)
+                     (cl-cc/vm/execution:vm-label-table-store lbls label label-pc)
                      (cl-cc/vm:vm-reg-set s :R0 reg-val)
                      (multiple-value-bind (next-pc halt-p)
-                         (cl-cc/vm:execute-instruction
+                         (cl-cc/vm/protocols:execute-instruction
                           (cl-cc/vm:make-vm-jump-zero :reg :R0 :label label) s current-pc lbls)
                        (declare (ignore halt-p))
                        (expect (= expected-pc next-pc) :to-be-truthy)))))
@@ -185,10 +185,10 @@
                  (destructuring-bind (reg-val current-pc label label-pc expected-pc) (list 0 10 "loop" 3 3)
                    (let ((s (make-test-vm))
                          (lbls (make-hash-table :test #'eql)))
-                     (cl-cc/vm::vm-label-table-store lbls label label-pc)
+                     (cl-cc/vm/execution:vm-label-table-store lbls label label-pc)
                      (cl-cc/vm:vm-reg-set s :R0 reg-val)
                      (multiple-value-bind (next-pc halt-p)
-                         (cl-cc/vm:execute-instruction
+                         (cl-cc/vm/protocols:execute-instruction
                           (cl-cc/vm:make-vm-jump-zero :reg :R0 :label label) s current-pc lbls)
                        (declare (ignore halt-p))
                        (expect (= expected-pc next-pc) :to-be-truthy)))))
@@ -196,7 +196,7 @@
   (it-sequential "vm-execute-vm-label-advances-pc"
                  (let ((s (make-test-vm)))
                    (multiple-value-bind (next-pc halt-p result)
-                       (cl-cc/vm::execute-instruction
+                       (cl-cc/vm/protocols:execute-instruction
                         (cl-cc/vm:make-vm-label :name "entry") s 4 (make-hash-table :test #'equal))
                      (declare (ignore result))
                      (expect (= 5 next-pc) :to-be-truthy)
@@ -205,9 +205,9 @@
   (it-sequential "vm-execute-vm-jump-taken"
                  (let ((s (make-test-vm))
                        (lbls (make-hash-table :test #'equal)))
-                   (cl-cc/vm::vm-label-table-store lbls "entry" 11)
+                   (cl-cc/vm/execution:vm-label-table-store lbls "entry" 11)
                    (multiple-value-bind (next-pc halt-p result)
-                       (cl-cc/vm::execute-instruction
+                       (cl-cc/vm/protocols:execute-instruction
                         (cl-cc/vm:make-vm-jump :label "entry") s 2 lbls)
                      (declare (ignore result))
                      (expect (= 11 next-pc) :to-be-truthy)
@@ -217,7 +217,7 @@
                  (let ((s (make-test-vm))
                        (labels (make-hash-table :test #'equal)))
                    (multiple-value-bind (next-pc halt-p result)
-                       (cl-cc/vm::execute-instruction
+                       (cl-cc/vm/protocols:execute-instruction
                         (cl-cc/vm:make-vm-func-ref :dst :R0 :label "1+") s 7 labels)
                      (declare (ignore result))
                      (expect (= 8 next-pc) :to-be-truthy)
@@ -266,26 +266,26 @@
                  (let* ((state (make-test-vm))
                         (labels (%labels "body" 10))
                         (closure (%make-test-closure "body" nil)))
-                   (cl-cc/vm::vm-push-call-frame state 1 :outer-result)
+                   (cl-cc/vm/execution:vm-push-call-frame state 1 :outer-result)
                    (let ((prompt-usage (cl-cc/runtime::stack-segment-used
-                                        (cl-cc/vm::vm-current-stack-segment state))))
+                                        (cl-cc/vm/execution::vm-current-stack-segment state))))
                      (cl-cc/vm:vm-reg-set state :fn closure)
                      (cl-cc/vm:vm-reg-set state :prompt 'p)
-                     (cl-cc/vm:execute-instruction
+                     (cl-cc/vm/protocols:execute-instruction
                       (cl-cc/vm:make-vm-call-with-prompt :dst :result :func :fn :prompt :prompt)
                       state 3 labels)
-                     (let ((aborted-chain (cl-cc/vm::vm-current-stack-segment state)))
+                     (let ((aborted-chain (cl-cc/vm/execution::vm-current-stack-segment state)))
                        (expect (> (cl-cc/runtime::stack-segment-used aborted-chain) prompt-usage)
                                :to-be-truthy)
                        (cl-cc/vm:vm-reg-set state :abort-prompt 'p)
                        (cl-cc/vm:vm-reg-set state :abort-value 77)
                        (multiple-value-bind (new-pc signal return-value)
-                           (cl-cc/vm:execute-instruction
+                           (cl-cc/vm/protocols:execute-instruction
                             (cl-cc/vm:make-vm-abort-to-prompt
                              :prompt :abort-prompt :value :abort-value)
                             state 10 labels)
                          (declare (ignore signal return-value))
-                         (let ((restored-chain (cl-cc/vm::vm-current-stack-segment state)))
+                         (let ((restored-chain (cl-cc/vm/execution::vm-current-stack-segment state)))
                            (expect (= 4 new-pc) :to-be-truthy)
                            (expect (eq restored-chain aborted-chain) :to-be-null)
                            (expect (= prompt-usage
@@ -302,14 +302,14 @@
                    (cl-cc/vm:vm-reg-set s :A 10)
                    (cl-cc/vm:vm-reg-set s :B 20)
                    (cl-cc/vm:vm-reg-set s :C 30)
-                   (cl-cc/vm::execute-instruction
+                   (cl-cc/vm/protocols:execute-instruction
                     (cl-cc/vm:make-vm-values :dst :R :src-regs '(:A :B :C)) s 0 labels)
-                   (expect (= 3 (cl-cc/vm::vm-mv-count s)) :to-be-truthy)
-                   (expect (= 20 (aref (cl-cc/vm::vm-mv-buffer s) 1)) :to-be-truthy)
-                   (cl-cc/vm::execute-instruction
+                   (expect (= 3 (cl-cc/vm/execution:vm-mv-count s)) :to-be-truthy)
+                   (expect (= 20 (aref (cl-cc/vm/execution:vm-mv-buffer s) 1)) :to-be-truthy)
+                   (cl-cc/vm/protocols:execute-instruction
                     (cl-cc/vm:make-vm-nth-value :dst :N :index 2) s 1 labels)
                    (expect (= 30 (cl-cc/vm:vm-reg-get s :N)) :to-be-truthy)
-                   (cl-cc/vm::execute-instruction
+                   (cl-cc/vm/protocols:execute-instruction
                     (cl-cc/vm:make-vm-mv-bind :dst-regs '(:X :Y :Z :MISSING)) s 2 labels)
                    (expect (= 10 (cl-cc/vm:vm-reg-get s :X)) :to-be-truthy)
                    (expect (= 20 (cl-cc/vm:vm-reg-get s :Y)) :to-be-truthy)
@@ -318,10 +318,10 @@
 
   (it-sequential "vm-execute-empty-values-buffer"
                  (let ((s (make-test-vm)))
-                   (cl-cc/vm::execute-instruction
+                   (cl-cc/vm/protocols:execute-instruction
                     (cl-cc/vm:make-vm-values :dst :R :src-regs nil) s 0 nil)
-                   (expect (= 0 (cl-cc/vm::vm-mv-count s)) :to-be-truthy)
-                   (expect (aref (cl-cc/vm::vm-mv-buffer s) 0) :to-be nil)
+                   (expect (= 0 (cl-cc/vm/execution:vm-mv-count s)) :to-be-truthy)
+                   (expect (aref (cl-cc/vm/execution:vm-mv-buffer s) 0) :to-be nil)
                    (expect (cl-cc/vm:vm-reg-get s :R) :to-be nil)))
   )
 

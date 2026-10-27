@@ -54,7 +54,7 @@
     (expect (cl-regex-kit:match-group-string match 0 text) :to-equal "abc-123")
     (expect (cl-regex-kit:match-group-string match 1 text) :to-equal "abc")
     (expect (cl-regex-kit:match-group-string match 2 text) :to-equal "123")
-    (expect (length (cl-regex-kit:match-captures match text)) :to-equal 3))) (it-sequential "regex-replace-first-and-all"
+    (expect (cl-cc/vm/data:length (cl-regex-kit:match-captures match text)) :to-equal 3))) (it-sequential "regex-replace-first-and-all"
   (expect (cl-regex-kit:replace-first
            (cl-regex-kit:compile-regex "([a-z]+)")
            "x abc y def"

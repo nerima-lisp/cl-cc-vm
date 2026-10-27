@@ -16,16 +16,16 @@
     (expect (cl-cc/vm:vm-stream-external-format stream) :to-equal :utf-8)
     (expect (cl-cc/vm:vm-set-stream-external-format stream :utf-16) :to-equal :utf-16le)
     (expect (cl-cc/vm:vm-stream-external-format stream) :to-equal :utf-16le))) (it-sequential "stdlib3-format-p-and-w-directives"
-  (expect (cl-cc/vm::%vm-format-native "~D file~:P" '(1)) :to-equal "1 file")
-  (expect (cl-cc/vm::%vm-format-native "~D file~:P" '(2)) :to-equal "2 files")
-  (expect (cl-cc/vm::%vm-format-native "~D stor~:@P" '(1)) :to-equal "1 story")
-  (expect (cl-cc/vm::%vm-format-native "~D stor~:@P" '(2)) :to-equal "2 stories")
-  (expect (cl-cc/vm::%vm-format-native "~W" '((:a 1))) :to-equal "(:A 1)")) (it-sequential "stdlib3-print-control-variables"
+  (expect (cl-cc/vm/io::%vm-format-native "~D file~:P" '(1)) :to-equal "1 file")
+  (expect (cl-cc/vm/io::%vm-format-native "~D file~:P" '(2)) :to-equal "2 files")
+  (expect (cl-cc/vm/io::%vm-format-native "~D stor~:@P" '(1)) :to-equal "1 story")
+  (expect (cl-cc/vm/io::%vm-format-native "~D stor~:@P" '(2)) :to-equal "2 stories")
+  (expect (cl-cc/vm/io::%vm-format-native "~W" '((:a 1))) :to-equal "(:A 1)")) (it-sequential "stdlib3-print-control-variables"
   (let ((cl-cc/vm:*print-case* :downcase)
         (cl-cc/vm:*print-base* 16)
         (cl-cc/vm:*print-radix* t)
         (cl-cc/vm:*print-array* nil))
-    (expect (cl-cc/vm::vm-write-object-to-string 'foo :escape t) :to-equal "foo")
-    (expect (string-downcase (cl-cc/vm::vm-write-object-to-string 16 :escape t)) :to-equal "#x10")
-    (expect (search "#<" (cl-cc/vm::vm-write-object-to-string #(1 2) :escape t)) :to-be-truthy))))
+    (expect (cl-cc/vm/io::vm-write-object-to-string 'foo :escape t) :to-equal "foo")
+    (expect (string-downcase (cl-cc/vm/io::vm-write-object-to-string 16 :escape t)) :to-equal "#x10")
+    (expect (search "#<" (cl-cc/vm/io::vm-write-object-to-string #(1 2) :escape t)) :to-be-truthy))))
 

@@ -5,8 +5,8 @@
                    (let ((sym (gensym "VM-BRIDGE-")))
                      (unwind-protect
                          (progn
-                           (expect (gethash sym cl-cc/vm::*vm-host-bridge-functions*) :to-be-null)
-                           (cl-cc/vm::vm-register-host-bridge sym (lambda () :ok))
-                           (expect (gethash sym cl-cc/vm::*vm-host-bridge-functions*) :to-be-truthy))
-                       (remhash sym cl-cc/vm::*vm-host-bridge-functions*))))
+                           (expect (gethash sym cl-cc/vm/protocols:*vm-host-bridge-functions*) :to-be-null)
+                           (cl-cc/vm/protocols:vm-register-host-bridge sym (lambda () :ok))
+                           (expect (gethash sym cl-cc/vm/protocols:*vm-host-bridge-functions*) :to-be-truthy))
+                       (remhash sym cl-cc/vm/protocols:*vm-host-bridge-functions*))))
 )

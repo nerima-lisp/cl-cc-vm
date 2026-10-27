@@ -2,10 +2,10 @@
 
 (defun register-vm-runtime-stdlib-2-smoke-tests ()
   (it-sequential "fr-function-exists fr-902-pgo"
-                   (destructuring-bind (sym) (list 'cl-cc/vm::save-pgo-data)
+                   (destructuring-bind (sym) (list 'cl-cc/vm/serialization:save-pgo-data)
                      (expect (fboundp sym) :to-be-truthy)))
 
   (it-sequential "fr-variable-exists fr-899-fasl-demand"
-                   (destructuring-bind (sym) (list 'cl-cc/vm::*fasl-toc-enabled*)
+                   (destructuring-bind (sym) (list 'cl-cc/vm/serialization:*fasl-toc-enabled*)
                      (expect (boundp sym) :to-be-truthy)))
 )

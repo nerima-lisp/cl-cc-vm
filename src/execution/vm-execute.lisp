@@ -184,7 +184,7 @@
            (registered-callable (candidates)
              (dolist (candidate candidates)
                (let ((entry (vm-instance-function-value state candidate)))
-                 (when (cl-cc/vm::%vm-callable-registry-entry-p entry)
+                 (when (%vm-callable-registry-entry-p entry)
                    (return entry)))))
            (bridge-callable (candidates)
              (dolist (candidate candidates)

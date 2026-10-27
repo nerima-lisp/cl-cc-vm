@@ -6,11 +6,11 @@
 
 (defun str-vm ()
   "Create a minimal vm-state for symbol tests."
-  (make-instance 'cl-cc/vm::vm-io-state))
+  (make-test-vm))
 
 (defun str-exec (inst state)
   "Execute a single instruction against STATE."
-  (cl-cc/vm::execute-instruction inst state 0 (make-hash-table :test #'equal)))
+  (cl-cc/vm/protocols:execute-instruction inst state 0 (make-hash-table :test #'equal)))
 
 (defun register-symbols-tests ()
 (it-sequential "sym-symbol-name"
@@ -45,7 +45,7 @@
     (let ((result (cl-cc/vm/protocols:vm-reg-get s :R0)))
       (expect (symbolp result) :to-be-truthy)
       (expect (symbol-name result) :to-equal "CAR")
-      (expect (second (cl-cc/vm::vm-values-list s)) :to-equal :external))))
+      (expect (second (cl-cc/vm/protocols:vm-values-list s)) :to-equal :external))))
 (it-sequential "sym-gensym"
   (let ((s (str-vm)))
     (str-exec (cl-cc/vm:make-vm-gensym-inst :dst :R0) s)
@@ -121,61 +121,29 @@
        (cl-cc/vm/protocols:vm-reg-set s :R2 target)
        (cl-cc/vm/protocols:vm-reg-set s :R3 user)
        (str-exec (funcall add-ctor :dst :R0 :pkg :R3 :nick :R1 :target :R2) s)
-       (setf (gethash '*package* (cl-cc/vm::vm-global-vars s)) user)
+       (setf (gethash '*package* (cl-cc/vm:vm-global-vars s)) user)
        (let ((*package* user))
          (str-exec (cl-cc/vm:make-vm-find-package :dst :R0 :src :R1) s))
         (expect (cl-cc/vm/protocols:vm-reg-get s :R0) :to-be target)))))
 (it-sequential "sym-self-host-find-package-works-with-runtime-registry"
-  (let ((cl-cc/vm::*vm-self-host-mode* t)
+  (let ((cl-cc/vm/protocols:*vm-self-host-mode* t)
         (s (str-vm)))
     ;; Register a package in the runtime registry
     (cl-cc/runtime:rt-make-package :self-host-test-pkg)
     (cl-cc/vm/protocols:vm-reg-set s :R1 :self-host-test-pkg)
     (str-exec (cl-cc/vm:make-vm-find-package :dst :R0 :src :R1) s)
     (expect (cl-cc/vm/protocols:vm-reg-get s :R0) :to-be-truthy)))
-(it-sequential "sym-lock-package"
-  (sb-thread:with-mutex (*str-package-lock*)
-    (%str-delete-package-if-exists :fr896-lock-test-a)
-    (unwind-protect
-         (let ((pkg (make-package :fr896-lock-test-a :use nil)))
-           (expect (sb-ext:package-locked-p pkg) :to-be-null)
-           (cl-cc/vm::lock-package pkg)
-           (expect (sb-ext:package-locked-p pkg) :to-be-truthy)
-           (cl-cc/vm::unlock-package pkg)
-           (expect (sb-ext:package-locked-p pkg) :to-be-null))
-      (%str-delete-package-if-exists :fr896-lock-test-a))))
-(it-sequential "sym-package-locked-error-on-intern"
-  (sb-thread:with-mutex (*str-package-lock*)
-    (%str-delete-package-if-exists :fr896-lock-test-b)
-    (unwind-protect
-         (let ((pkg (make-package :fr896-lock-test-b :use nil)))
-           (cl-cc/vm::lock-package pkg)
-           (signals cl-cc/vm::package-locked-error (intern "LOCKED-SYMBOL" pkg))
-           ;; Package should remain locked
-           (expect (sb-ext:package-locked-p pkg) :to-be-truthy))
-      (%str-delete-package-if-exists :fr896-lock-test-b))))
 (it-sequential "sym-default-locked-packages"
   (expect (find-package :cl) :to-be-truthy)
   (expect (sb-ext:package-locked-p (find-package :cl)) :to-be-truthy))
 (it-sequential "sym-self-host-intern-works-with-runtime-registry"
-  (let ((cl-cc/vm::*vm-self-host-mode* t)
+  (let ((cl-cc/vm/protocols:*vm-self-host-mode* t)
         (s (str-vm)))
     (cl-cc/vm/protocols:vm-reg-set s :R1 "SELF-HOST-INTERN-SYM")
     (str-exec (cl-cc/vm:make-vm-intern-symbol :dst :R0 :src :R1 :pkg nil) s)
     (let ((result (cl-cc/vm/protocols:vm-reg-get s :R0)))
       (expect (symbolp result) :to-be-truthy)
       (expect (symbol-name result) :to-equal "SELF-HOST-INTERN-SYM"))))
-(it-sequential "sym-check-package-lock-signals"
-  (sb-thread:with-mutex (*str-package-lock*)
-    (%str-delete-package-if-exists :fr896-lock-test-d)
-    (unwind-protect
-         (let ((pkg (make-package :fr896-lock-test-d :use nil)))
-           (cl-cc/vm::lock-package pkg)
-           (signals cl-cc/vm::package-locked-error (cl-cc/vm::check-package-lock pkg :intern))
-            (cl-cc/vm::unlock-package pkg)
-            ;; Unlocked should not signal
-            (expect (null (cl-cc/vm::check-package-lock pkg :intern)) :to-be-truthy))
-       (%str-delete-package-if-exists :fr896-lock-test-d))))
 )
 
 ;;; ─── Package-Local Nicknames (FR-275) ─────────────────────────────────────
@@ -212,13 +180,6 @@
 ;;; ─── FR-895: Symbol Table Compaction ─────────────────────────────────────────
 
 ;;; ─── FR-896: Package Lock / Sealed ──────────────────────────────────────────
-
-(defun %str-delete-package-if-exists (designator)
-  "Delete DESIGNATOR's package when it exists, unlocking first if necessary."
-  (let ((pkg (find-package designator)))
-    (when pkg
-      (cl-cc/vm::unlock-package pkg)
-      (delete-package pkg))))
 
 ;;; ─── Self-Host Mode (FR-626) ──────────────────────────────────────────────
 

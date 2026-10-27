@@ -172,15 +172,15 @@ INSTRUCTION-THUNK receives the source register index and must build the VM instr
     (expect (= expected (%run-binary-inst ctor lhs rhs)) :to-be-truthy)))
 (it-sequential "prim-add-fixnum51-overflow-uses-bignum-fallback"
   (let ((called nil))
-    (with-replaced-function (cl-cc/vm::vm-bignum-add-integers
+    (with-replaced-function (cl-cc/vm/numbers::vm-bignum-add-integers
                              (lambda (lhs rhs)
                                (setf called t)
                                (+ lhs rhs)))
-      (expect (= (ash 1 50) (%run-binary-inst #'cl-cc/vm:make-vm-add cl-cc/vm::+vm-max-fixnum51+ 1)) :to-be-truthy)
+      (expect (= (ash 1 50) (%run-binary-inst #'cl-cc/vm:make-vm-add cl-cc/vm/numbers::+vm-max-fixnum51+ 1)) :to-be-truthy)
       (expect called :to-be-truthy))))
 (it-sequential "prim-add-fixnum51-fast-path-skips-bignum-fallback"
   (let ((called nil))
-    (with-replaced-function (cl-cc/vm::vm-bignum-add-integers
+    (with-replaced-function (cl-cc/vm/numbers::vm-bignum-add-integers
                              (lambda (lhs rhs)
                                (declare (ignore lhs rhs))
                                (setf called t)
@@ -189,43 +189,43 @@ INSTRUCTION-THUNK receives the source register index and must build the VM instr
       (expect called :to-be-null))))
 (it-sequential "prim-sub-fixnum51-overflow-uses-bignum-fallback"
   (let ((called nil))
-    (with-replaced-function (cl-cc/vm::vm-bignum-subtract-integers
+    (with-replaced-function (cl-cc/vm/numbers::vm-bignum-subtract-integers
                              (lambda (lhs rhs)
                                (setf called t)
                                (- lhs rhs)))
-      (expect (= (1- cl-cc/vm::+vm-min-fixnum51+) (%run-binary-inst #'cl-cc/vm:make-vm-sub cl-cc/vm::+vm-min-fixnum51+ 1)) :to-be-truthy)
+      (expect (= (1- cl-cc/vm/numbers::+vm-min-fixnum51+) (%run-binary-inst #'cl-cc/vm:make-vm-sub cl-cc/vm/numbers::+vm-min-fixnum51+ 1)) :to-be-truthy)
       (expect called :to-be-truthy))))
 (it-sequential "prim-mul-fixnum51-overflow-uses-bignum-fallback"
   (let ((called nil))
-    (with-replaced-function (cl-cc/vm::vm-bignum-multiply-integers
+    (with-replaced-function (cl-cc/vm/numbers::vm-bignum-multiply-integers
                              (lambda (lhs rhs &key base threshold)
                                (declare (ignore base threshold))
                                (setf called t)
                                (* lhs rhs)))
-      (expect (= (* cl-cc/vm::+vm-max-fixnum51+ 2) (%run-binary-inst #'cl-cc/vm:make-vm-mul cl-cc/vm::+vm-max-fixnum51+ 2)) :to-be-truthy)
+      (expect (= (* cl-cc/vm/numbers::+vm-max-fixnum51+ 2) (%run-binary-inst #'cl-cc/vm:make-vm-mul cl-cc/vm/numbers::+vm-max-fixnum51+ 2)) :to-be-truthy)
       (expect called :to-be-truthy))))
 (it-sequential "prim-cl-div-fast-path-selection fixnum"
   (destructuring-bind (lhs rhs expected expected-path) (list 3 4 3/4 :fixnum)
     (multiple-value-bind (result path)
-      (cl-cc/vm::%vm-cl-div-fast-path lhs rhs)
+      (cl-cc/vm/numbers::%vm-cl-div-fast-path lhs rhs)
     (expect (= expected result) :to-be-truthy)
     (expect path :to-be expected-path))))
 (it-sequential "prim-cl-div-fast-path-selection ratio-ratio"
   (destructuring-bind (lhs rhs expected expected-path) (list 1/3 4/5 5/12 :fixnum-rational)
     (multiple-value-bind (result path)
-      (cl-cc/vm::%vm-cl-div-fast-path lhs rhs)
+      (cl-cc/vm/numbers::%vm-cl-div-fast-path lhs rhs)
     (expect (= expected result) :to-be-truthy)
     (expect path :to-be expected-path))))
 (it-sequential "prim-cl-div-fast-path-selection fixnum-ratio"
   (destructuring-bind (lhs rhs expected expected-path) (list 2 3/5 10/3 :fixnum-rational)
     (multiple-value-bind (result path)
-      (cl-cc/vm::%vm-cl-div-fast-path lhs rhs)
+      (cl-cc/vm/numbers::%vm-cl-div-fast-path lhs rhs)
     (expect (= expected result) :to-be-truthy)
     (expect path :to-be expected-path))))
 (it-sequential "prim-cl-div-fast-path-selection ratio-fixnum"
   (destructuring-bind (lhs rhs expected expected-path) (list 2/3 5 2/15 :fixnum-rational)
     (multiple-value-bind (result path)
-      (cl-cc/vm::%vm-cl-div-fast-path lhs rhs)
+      (cl-cc/vm/numbers::%vm-cl-div-fast-path lhs rhs)
     (expect (= expected result) :to-be-truthy)
     (expect path :to-be expected-path))))
 (it-sequential "prim-div-by-zero div"
@@ -342,7 +342,7 @@ INSTRUCTION-THUNK receives the source register index and must build the VM instr
      (expect (cl-cc/vm:vm-values-list state) :to-equal expected-vals)))))
 (it-sequential "prim-truncate-bignum-uses-vm-bignum-division-path"
   (let ((called nil))
-    (with-replaced-function (cl-cc/vm::vm-bignum-burnikel-ziegler-divide
+    (with-replaced-function (cl-cc/vm/numbers::vm-bignum-burnikel-ziegler-divide
                              (lambda (lhs rhs &key base block-size rounding)
                                (declare (ignore lhs rhs base block-size rounding))
                                (setf called t)
@@ -357,7 +357,7 @@ INSTRUCTION-THUNK receives the source register index and must build the VM instr
          (expect (cl-cc/vm:vm-values-list state) :to-equal '(9 1)))))))
 (it-sequential "prim-div-bignum-uses-vm-bignum-division-path"
   (let ((called nil))
-    (with-replaced-function (cl-cc/vm::vm-bignum-burnikel-ziegler-divide
+    (with-replaced-function (cl-cc/vm/numbers::vm-bignum-burnikel-ziegler-divide
                              (lambda (lhs rhs &key base block-size rounding)
                                (declare (ignore lhs rhs base block-size rounding))
                                (setf called t)
@@ -379,7 +379,7 @@ INSTRUCTION-THUNK receives the source register index and must build the VM instr
        (expect (= (floor lhs rhs) (cl-cc/vm:vm-reg-get state 0)) :to-be-truthy)))))
 (it-sequential "prim-mul-bignum-uses-vm-bignum-multiply-path"
   (let ((called nil))
-    (with-replaced-function (cl-cc/vm::vm-bignum-multiply-integers
+    (with-replaced-function (cl-cc/vm/numbers::vm-bignum-multiply-integers
                              (lambda (lhs rhs &key base threshold)
                                (declare (ignore lhs rhs base threshold))
                                (setf called t)

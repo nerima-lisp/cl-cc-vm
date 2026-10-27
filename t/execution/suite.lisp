@@ -13,4 +13,6 @@
   (register-vm-opcodes-tests)
   (register-vm-run-fusion-tests)
   (register-vm-run-tests)
-  (register-vm-tests))
+  (register-vm-tests)
+  (register-vm-boundary-tests)
+  (register-vm-symbol-representation-tests))

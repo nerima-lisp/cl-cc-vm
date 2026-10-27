@@ -30,23 +30,35 @@
            (character-package
              (%vm-package-designator-new-package (string character)))
            (immediate-symbol
-             (loop for symbol across cl-cc/vm::*vm-immediate-symbol-table*
+             (loop for symbol in '(quote lambda function declare setq setf if progn let let* block return-from
+                  tagbody go catch throw unwind-protect flet labels macrolet symbol-macrolet
+                  the values multiple-value-bind multiple-value-call eval-when locally and or
+                  cond case typecase ecase ccase loop do do* dolist dotimes defun defmacro
+                  defvar defparameter defconstant defclass defmethod defgeneric car cdr cons
+                  list append apply funcall)
                    for package-name = (symbol-name symbol)
                    when (and (eq (symbol-package symbol) (find-package :cl))
                              (not (cl-cc/runtime:rt-find-package package-name))
                              (not (find-package package-name)))
                      return symbol
-                   finally (error "No unused common immediate symbol is available")))
+                   finally
+                      (error "No unused common immediate symbol is available")))
            (immediate-package
              (%vm-package-designator-new-package
-              (symbol-name immediate-symbol))))
+              (symbol-name immediate-symbol)))
+           (encoded-immediate-symbol
+             (%vm-package-designator-run
+              (list (list :r0 (symbol-name immediate-symbol))
+                    (list :r1 (find-package :cl)))
+              (cl-cc/vm:make-vm-intern-symbol
+               :dst :result
+               :src :r0
+               :pkg :r1))))
       (list (list :string name package)
             (list :symbol (make-symbol name) package)
             (list :character character character-package)
             (list :descriptor package package)
-            (list :immediate-symbol
-                  (cl-cc/vm::vm-encode-common-symbol immediate-symbol)
-                  immediate-package))))
+            (list :immediate-symbol encoded-immediate-symbol immediate-package))))
 
   (defun %vm-package-designator-unknowns ()
     (let ((name (%vm-package-designator-fresh-name)))
@@ -75,7 +87,6 @@
 
     (it "resolves string, symbol, character, immediate symbol, and descriptor names"
       (let ((cases (%vm-package-designator-cases)))
-        (expect (cl-cc/vm::vm-immediate-symbol-p (second (fifth cases))) :to-be t)
         (dolist (case cases)
           (destructuring-bind (kind designator package) case
             (declare (ignore kind))
@@ -87,10 +98,11 @@
              :to-be t)
             (expect
              (string=
-              (cl-cc/vm::vm-string-materialize
-               (%vm-package-designator-run
-                (list (list :r0 designator))
-                (cl-cc/vm:make-vm-package-name-inst :dst :result :pkg :r0)))
+              (%vm-package-designator-run
+               (list (list :r0 designator))
+               (cl-cc/vm:make-vm-package-name-inst
+                :dst :result
+                :pkg :r0))
               (cl-cc/runtime:rt-package-name package))
              :to-be t)))
         (dolist (designator (%vm-package-designator-unknowns))
@@ -128,7 +140,7 @@
                    symbol)
                :to-be t)
               (multiple-value-bind (found status)
-                  (cl-cc/runtime::rt-find-symbol symbol-name package)
+                  (cl-cc/vm/data:vm-find-symbol symbol-name package)
                 (expect (eq found symbol) :to-be t)
                 (expect (eq status :internal) :to-be t)))))
         (dolist (designator (%vm-package-designator-unknowns))
@@ -167,7 +179,7 @@
                (cl-cc/vm:make-vm-import-inst
                 :dst :result :symbols :r0 :pkg :r1))
               (multiple-value-bind (found status)
-                  (cl-cc/runtime::rt-find-symbol symbol-name package)
+                  (cl-cc/vm/data:vm-find-symbol symbol-name package)
                 (expect (eq found symbol) :to-be t)
                 (expect (eq status :internal) :to-be t))
               (%vm-package-designator-run
@@ -176,7 +188,7 @@
                (cl-cc/vm:make-vm-export-inst
                 :dst :result :symbols :r0 :pkg :r1))
               (multiple-value-bind (found status)
-                  (cl-cc/runtime::rt-find-symbol symbol-name package)
+                  (cl-cc/vm/data:vm-find-symbol symbol-name package)
                 (expect (eq found symbol) :to-be t)
                 (expect (eq status :external) :to-be t)))))
         (dolist (designator (%vm-package-designator-unknowns))
@@ -211,7 +223,7 @@
              (cl-cc/vm:make-vm-shadow-inst
               :dst :result :symbol-names :r0 :pkg :r1))
             (multiple-value-bind (symbol status)
-                (cl-cc/runtime::rt-find-symbol symbol-name package)
+                (cl-cc/vm/data:vm-find-symbol symbol-name package)
               (expect (not (null symbol)) :to-be t)
               (expect (eq status :internal) :to-be t)
               (%vm-package-designator-run
@@ -220,7 +232,7 @@
                (cl-cc/vm:make-vm-unintern-inst
                 :dst :result :symbol :r0 :pkg :r1))
               (multiple-value-bind (found ignored-status)
-                  (cl-cc/runtime::rt-find-symbol symbol-name package)
+                  (cl-cc/vm/data:vm-find-symbol symbol-name package)
                 (declare (ignore ignored-status))
                 (expect (null found) :to-be t)))))
         (dolist (designator (%vm-package-designator-unknowns))
@@ -262,7 +274,7 @@
                  (cl-cc/vm:make-vm-use-package-inst
                   :dst :result :packages-to-use :r0 :pkg :r1))
                 (multiple-value-bind (found status)
-                    (cl-cc/runtime::rt-find-symbol symbol-name
+                    (cl-cc/vm/data:vm-find-symbol symbol-name
                                                    (third target-case))
                   (expect (eq found symbol) :to-be t)
                   (expect (eq status :inherited) :to-be t))
@@ -272,7 +284,7 @@
                  (cl-cc/vm:make-vm-unuse-package-inst
                   :dst :result :packages-to-unuse :r0 :pkg :r1))
                 (multiple-value-bind (found ignored-status)
-                    (cl-cc/runtime::rt-find-symbol symbol-name
+                    (cl-cc/vm/data:vm-find-symbol symbol-name
                                                    (third target-case))
                   (declare (ignore ignored-status))
                   (expect (null found) :to-be t)))))))
@@ -350,8 +362,4 @@
                 :to-be t)
         (expect (eq resolved-package runtime-package) :to-be t)
         (expect (eq symbol-through-host-package host-symbol) :to-be t)
-        (expect (eq symbol-through-runtime-package host-symbol) :to-be t)
-        (expect (and (cl-cc/vm::vm-immediate-symbol-p interned-through-host-package)
-                     (eq (cl-cc/vm::vm-decode-symbol interned-through-host-package)
-                         host-symbol))
-                :to-be t)))))
+        (expect (eq symbol-through-runtime-package host-symbol) :to-be t)))))

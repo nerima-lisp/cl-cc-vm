@@ -6,7 +6,7 @@
          (pkg (vm-reg-get state (vm-export-pkg inst)))
          (result (%vm-package-operation-result
                   pkg
-                  (function cl-cc/runtime::rt-export)
+                  (function cl-cc/runtime:rt-export)
                   (function export)
                   (list symbols pkg))))
     (vm-reg-set state (vm-dst inst) result)

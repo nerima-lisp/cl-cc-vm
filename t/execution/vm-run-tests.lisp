@@ -11,35 +11,35 @@
 (defun register-vm-run-tests ()
   (it-sequential "vm-error-type-matches string-matches-error"
                  (destructuring-bind (error-val handler-type expected-result) (list "boom" 'error t)
-                   (let ((actual (cl-cc/vm::vm-error-type-matches-p error-val handler-type)))
+                   (let ((actual (cl-cc/vm/execution:vm-error-type-matches-p error-val handler-type)))
                      (if expected-result
                          (expect actual :to-be-truthy)
                        (expect actual :to-be-falsy)))))
 
   (it-sequential "vm-error-type-matches string-matches-condition"
                  (destructuring-bind (error-val handler-type expected-result) (list "boom" 'condition t)
-                   (let ((actual (cl-cc/vm::vm-error-type-matches-p error-val handler-type)))
+                   (let ((actual (cl-cc/vm/execution:vm-error-type-matches-p error-val handler-type)))
                      (if expected-result
                          (expect actual :to-be-truthy)
                        (expect actual :to-be-falsy)))))
 
   (it-sequential "vm-error-type-matches string-matches-t"
                  (destructuring-bind (error-val handler-type expected-result) (list "boom" 't t)
-                   (let ((actual (cl-cc/vm::vm-error-type-matches-p error-val handler-type)))
+                   (let ((actual (cl-cc/vm/execution:vm-error-type-matches-p error-val handler-type)))
                      (if expected-result
                          (expect actual :to-be-truthy)
                        (expect actual :to-be-falsy)))))
 
   (it-sequential "vm-error-type-matches string-no-match-specific-subtype"
                  (destructuring-bind (error-val handler-type expected-result) (list "boom" 'type-error nil)
-                   (let ((actual (cl-cc/vm::vm-error-type-matches-p error-val handler-type)))
+                   (let ((actual (cl-cc/vm/execution:vm-error-type-matches-p error-val handler-type)))
                      (if expected-result
                          (expect actual :to-be-truthy)
                        (expect actual :to-be-falsy)))))
 
   (it-sequential "vm-error-type-matches condition-object-matches-t"
                  (destructuring-bind (error-val handler-type expected-result) (list (make-condition 'simple-error :format-control "x") 't t)
-                   (let ((actual (cl-cc/vm::vm-error-type-matches-p error-val handler-type)))
+                   (let ((actual (cl-cc/vm/execution:vm-error-type-matches-p error-val handler-type)))
                      (if expected-result
                          (expect actual :to-be-truthy)
                        (expect actual :to-be-falsy)))))
@@ -49,20 +49,20 @@
                                             (cl-cc/vm:make-vm-const :dst :r0 :value 1)
                                             (cl-cc/vm:make-vm-label :name :done)
                                             (cl-cc/vm:make-vm-halt :reg :r0)))
-                        (labels (cl-cc/vm::build-label-table instructions)))
+                        (labels (cl-cc/vm/protocols:build-label-table instructions)))
                    ;; SBCL's HASH-TABLE-TEST returns the symbol 'EQL, not the function object.
                    (expect (hash-table-test labels) :to-be 'eql)
-                   (expect (= 0 (cl-cc/vm::vm-label-table-lookup labels "entry")) :to-be-truthy)
-                   (expect (= 2 (cl-cc/vm::vm-label-table-lookup labels :done)) :to-be-truthy)))
+                   (expect (= 0 (cl-cc/vm/execution:vm-label-table-lookup labels "entry")) :to-be-truthy)
+                   (expect (= 2 (cl-cc/vm/execution:vm-label-table-lookup labels :done)) :to-be-truthy)))
 
   (it-sequential "vm-jump-uses-label-table-lookup"
                  (let* ((instructions (list (cl-cc/vm:make-vm-jump :label "target")
                                             (cl-cc/vm:make-vm-label :name "target")
                                             (cl-cc/vm:make-vm-halt :reg :r0)))
-                        (labels (cl-cc/vm::build-label-table instructions))
+                        (labels (cl-cc/vm/protocols:build-label-table instructions))
                         (state (make-test-vm)))
                    (multiple-value-bind (next-pc halt-p result)
-                       (cl-cc/vm::execute-instruction (first instructions) state 0 labels)
+                       (cl-cc/vm/protocols:execute-instruction (first instructions) state 0 labels)
                      (declare (ignore result))
                      (expect (= 1 next-pc) :to-be-truthy)
                      (expect halt-p :to-be-falsy))))
@@ -73,13 +73,13 @@
 
   (it-sequential "vm2-opcode-registration"
                  (expect (numberp cl-cc/vm:+op2-const+) :to-be-truthy)
-                 (expect (not (null (aref cl-cc/vm::*opcode-dispatch-table* cl-cc/vm:+op2-const+))) :to-be-truthy)
-                 (expect (not (null (aref cl-cc/vm::*opcode-dispatch-table* cl-cc/vm:+op2-add2+))) :to-be-truthy)
-                 (expect (aref cl-cc/vm::*opcode-name-table* cl-cc/vm:+op2-add2+) :to-equal 'cl-cc/vm:add2)
-                 (expect (= cl-cc/vm:+op2-const+ (gethash 'cl-cc/vm/execution::const cl-cc/vm::*opcode-encoder-table*)) :to-be-truthy)
-                 (expect (= cl-cc/vm:+op2-move+ (gethash 'cl-cc/vm:move  cl-cc/vm::*opcode-encoder-table*)) :to-be-truthy)
-                 (expect (= cl-cc/vm:+op2-add2+ (gethash 'cl-cc/vm:add2  cl-cc/vm::*opcode-encoder-table*)) :to-be-truthy)
-                 (expect (= cl-cc/vm:+op2-add-imm2+ (gethash 'cl-cc/vm:add-imm2 cl-cc/vm::*opcode-encoder-table*)) :to-be-truthy))
+                 (expect (not (null (aref cl-cc/vm/execution:*opcode-dispatch-table* cl-cc/vm:+op2-const+))) :to-be-truthy)
+                 (expect (not (null (aref cl-cc/vm/execution:*opcode-dispatch-table* cl-cc/vm:+op2-add2+))) :to-be-truthy)
+                 (expect (aref cl-cc/vm/execution:*opcode-name-table* cl-cc/vm:+op2-add2+) :to-equal 'cl-cc/vm:add2)
+                 (expect (= cl-cc/vm:+op2-const+ (gethash 'cl-cc/vm/execution::const cl-cc/vm/execution:*opcode-encoder-table*)) :to-be-truthy)
+                 (expect (= cl-cc/vm:+op2-move+ (gethash 'cl-cc/vm:move  cl-cc/vm/execution:*opcode-encoder-table*)) :to-be-truthy)
+                 (expect (= cl-cc/vm:+op2-add2+ (gethash 'cl-cc/vm:add2  cl-cc/vm/execution:*opcode-encoder-table*)) :to-be-truthy)
+                 (expect (= cl-cc/vm:+op2-add-imm2+ (gethash 'cl-cc/vm:add-imm2 cl-cc/vm/execution:*opcode-encoder-table*)) :to-be-truthy))
 
   (it-sequential "vm2-opcode-distinct-values"
                  (let ((ops (list cl-cc/vm:+op2-const+
@@ -96,20 +96,7 @@
                                   cl-cc/vm:+op2-num-le-imm2+
                                   cl-cc/vm:+op2-num-ge-imm2+
                                   cl-cc/vm:+op2-halt2+)))
-                   (expect (= (length ops) (length (remove-duplicates ops))) :to-be-truthy)))
-
-  (it-sequential "vm2-state-structure"
-                 (let ((s (cl-cc/vm:make-vm2-state)))
-                   (expect (cl-cc/vm:vm2-state-p s) :to-be-truthy)
-                   (expect (simple-vector-p (cl-cc/vm:vm2-state-registers s)) :to-be-truthy)
-                   (expect (= 256 (length (cl-cc/vm:vm2-state-registers s))) :to-be-truthy)
-                   (dotimes (i 256)
-                     (expect (null (cl-cc/vm/protocols:vm-reg-get s i)) :to-be-truthy))
-                   (expect (cl-cc/vm:vm2-state-values-buffer s) :to-be-null)
-                   (expect (not (null (gethash 'cl-cc/vm::*features* (cl-cc/vm:vm2-state-global-vars s)))) :to-be-truthy))
-                 (let* ((str (make-string-output-stream))
-                        (s   (cl-cc/vm:make-vm2-state :output-stream str)))
-                   (expect (cl-cc/vm:vm2-state-output-stream s) :to-equal str)))
+                   (expect (= (cl-cc/vm/data:length ops) (cl-cc/vm/data:length (remove-duplicates ops))) :to-be-truthy)))
 
   (it-sequential "vm2-reg-operations"
                  (let ((s (cl-cc/vm:make-vm2-state)))

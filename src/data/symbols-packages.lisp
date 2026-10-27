@@ -7,13 +7,13 @@
 
 (defun %vm-resolve-package-designator (designator)
   (labels ((registered-runtime-package-p (candidate)
-             (let ((registry cl-cc/runtime::*rt-package-registry*))
+             (let ((registry cl-cc/runtime:*rt-package-registry*))
                (and (hash-table-p registry)
                     (hash-table-p candidate)
                     (loop for package being the hash-values of registry
                           thereis (eq package candidate)))))
            (runtime-package-for-host-package (host-package)
-             (let ((registry cl-cc/runtime::*rt-package-registry*))
+             (let ((registry cl-cc/runtime:*rt-package-registry*))
                (when (and (hash-table-p registry) (packagep host-package))
                  (loop for package being the hash-values of registry
                        when (and (hash-table-p package)
@@ -39,7 +39,7 @@
                (if nickname
                    (values (runtime-package-for-host-package nickname) nickname)
                    (let ((candidate
-                           (and (hash-table-p cl-cc/runtime::*rt-package-registry*)
+                           (and (hash-table-p cl-cc/runtime:*rt-package-registry*)
                                 (cl-cc/runtime:rt-find-package name))))
                      (if (registered-runtime-package-p candidate)
                          (values candidate
@@ -71,7 +71,7 @@
 
 (defun vm-make-symbol (name)
   "Create an uninterned symbol named NAME."
-  (cl-cc/runtime::rt-make-symbol (string name)))
+  (cl-cc/runtime:rt-make-symbol (string name)))
 
 (defun vm-gensym-inst (&optional (prefix "G") counter)
   "Generate a unique uninterned symbol for self-host package tests."
@@ -107,7 +107,7 @@
 
 (defun vm-use-package (packages-to-use &optional package)
   "Use PACKAGES-TO-USE from PACKAGE in the runtime package registry."
-  (cl-cc/runtime::rt-use-package
+  (cl-cc/runtime:rt-use-package
    (if (listp packages-to-use)
        (mapcar (lambda (designator) (vm-find-package designator))
                packages-to-use)
@@ -116,7 +116,7 @@
 
 (defun vm-unuse-package (packages-to-unuse &optional package)
   "Unuse PACKAGES-TO-UNUSE from PACKAGE in the runtime package registry."
-  (cl-cc/runtime::rt-unuse-package
+  (cl-cc/runtime:rt-unuse-package
    (if (listp packages-to-unuse)
        (mapcar (lambda (designator) (vm-find-package designator))
                packages-to-unuse)
@@ -195,6 +195,6 @@
           (apply host-fn resolved-args)))))
 
 (defun %vm-registry-result (runtime-fn host-fn &rest args)
-  (if cl-cc/runtime::*rt-package-registry*
+  (if cl-cc/runtime:*rt-package-registry*
       (apply runtime-fn args)
       (apply host-fn args)))

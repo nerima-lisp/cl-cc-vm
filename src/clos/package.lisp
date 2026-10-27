@@ -48,8 +48,7 @@
    #:vm-push-call-frame
    #:vm-restore-registers
    #:vm-state-registers #:vm-clos-shadow-stack #:vm-closure-dispatch-tag #:vm-tail-call-optimization-enabled-p #:vm-store-multiple-values)
-(:export
-   #:%EQL-SPECIALIZER-MATCHES-P
+(:export #:%EQL-SPECIALIZER-MATCHES-P
    #:%EQL-SPECIALIZER-P
    #:%RESOLVE-COMBINATION-OPERATOR
    #:%VM-EXTRACT-EQL-SPECIALIZER-KEYS
@@ -123,7 +122,7 @@
    #:VM-TRY-DISPATCH-SUB
    #:VM-TYPE-PROFILE-ALIST
    #:WITH-SATIATING-GFS
-   #:deep-copy)
+   #:deep-copy #:%vm-fixed-slot-layout-p #:%vm-hashlike-storage #:%vm-raw-allocate-instance #:%vm-slot-vector-index #:%vm-vector-instance-p #:*unbound-slot-marker* #:class-slots #:copy-instance)
   (:intern
    #:%C3-MERGE
    #:%CIA-WALK
@@ -196,12 +195,10 @@
    #:%VM-EFFECTIVE-SLOT-LOCATION
    #:%VM-ENSURE-CLASS-ID
    #:%VM-FIRST-SLOT-METADATA
-   #:%VM-FIXED-SLOT-LAYOUT-P
    #:%VM-GLOBAL-GENERIC-FUNCTION
    #:%VM-HASHLIKE-GETHASH
    #:%VM-HASHLIKE-SETHASH
    #:%VM-HASHLIKE-SLOT-KEY
-   #:%VM-HASHLIKE-STORAGE
    #:%VM-INITARG-VALUES
    #:%VM-INITARGS-SIGNATURE
    #:%VM-INSTANCE-SLOT-CAPACITY
@@ -212,7 +209,6 @@
    #:%VM-MARK-CLASS-OBSOLETE
    #:%VM-METHOD-VALUE->LIST
    #:%VM-OBJ-CLASS-HT
-   #:%VM-RAW-ALLOCATE-INSTANCE
    #:%VM-RAW-SLOT-BOUNDP
    #:%VM-RAW-SLOT-MAKUNBOUND
    #:%VM-RAW-SLOT-READ
@@ -225,22 +221,17 @@
    #:%VM-SAME-NAME-GLOBAL-GENERIC-FUNCTION
    #:%VM-SEALED-SUPERCLASS-NAME
    #:%VM-SINGLE-REQUIRED-REST-LAMBDA-LIST-P
-   #:%VM-SLOT-VECTOR-INDEX
    #:%VM-SPECIALIZER-KEY-MATCHES-ARGS-P
    #:%VM-STANDARD-METACLASS-P
    #:%VM-UPDATE-OBSOLETE-INSTANCE
    #:%VM-VALIDATE-INITARGS
-   #:%VM-VECTOR-INSTANCE-P
    #:*MOP-GENERIC-FUNCTION-REGISTRY*
-   #:*UNBOUND-SLOT-MARKER*
    #:*VM-BUILTIN-CLASS-PRECEDENCE*
    #:*VM-NEXT-CLASS-ID*
    #:ALLOCATE-INSTANCE-VECTOR
    #:CLASS-PRECEDENCE-LIST
    #:CLASS-SLOT-VECTOR-INDEX
-   #:CLASS-SLOTS
    #:COMPUTE-APPLICABLE-METHODS-USING-CLASSES
-   #:COPY-INSTANCE
    #:DEFINE-SLOT-DEFINITION-ACCESSOR
    #:METHOD-SPECIALIZERS
    #:SLOT-MAKUNBOUND-USING-CLASS

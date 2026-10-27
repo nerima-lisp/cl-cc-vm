@@ -32,20 +32,20 @@
   :timeout
   5
   (let ((rope (cl-cc/vm:rope-concat "hello" " world")))
-    (expect (stringp (cl-cc/vm::rope-root rope)) :to-be-truthy)
+    (expect (stringp (cl-cc/vm/data::rope-root rope)) :to-be-truthy)
     (expect (cl-cc/vm:rope-to-string rope) :to-equal "hello world")))
 (it-sequential "rope-long-concat-is-root-node-without-copying-children"
   :timeout
   5
-  (let* ((left-text (make-string cl-cc/vm::+rope-inline-threshold+ :initial-element #\a))
-         (right-text (make-string cl-cc/vm::+rope-inline-threshold+ :initial-element #\b))
+  (let* ((left-text (make-string cl-cc/vm/data::+rope-inline-threshold+ :initial-element #\a))
+         (right-text (make-string cl-cc/vm/data::+rope-inline-threshold+ :initial-element #\b))
          (left (cl-cc/vm:rope left-text))
          (right (cl-cc/vm:rope right-text))
          (joined (cl-cc/vm:rope-concat left right))
-         (root (cl-cc/vm::rope-root joined)))
-    (expect (cl-cc/vm::rope-node-p root) :to-be-truthy)
-    (expect (cl-cc/vm::rope-node-left root) :to-be left-text)
-    (expect (cl-cc/vm::rope-node-right root) :to-be right-text)
-    (expect (cl-cc/vm:rope-length joined) :to-equal (* 2 cl-cc/vm::+rope-inline-threshold+))))
+         (root (cl-cc/vm/data::rope-root joined)))
+    (expect (cl-cc/vm/data::rope-node-p root) :to-be-truthy)
+    (expect (cl-cc/vm/data::rope-node-left root) :to-be left-text)
+    (expect (cl-cc/vm/data::rope-node-right root) :to-be right-text)
+    (expect (cl-cc/vm:rope-length joined) :to-equal (* 2 cl-cc/vm/data::+rope-inline-threshold+))))
 )
 

@@ -55,7 +55,7 @@
       (vm-symbol-property-hash-store-table entry)))
     (t (copy-list entry))))
 
-(defun %vm-copy-symbol-property-entry (entry)
+(defun vm-copy-symbol-property-entry (entry)
   (cond
     ((null entry) nil)
     ((%vm-symbol-property-entry-p entry)

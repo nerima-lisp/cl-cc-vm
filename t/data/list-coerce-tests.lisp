@@ -29,7 +29,7 @@
     (exec1 (cl-cc/vm:make-vm-coerce-to-vector :dst 0 :src 1) s)
     (let ((v (cl-cc/vm:vm-reg-get s 0)))
       (expect (vectorp v) :to-be-truthy)
-      (expect (= 3 (length v)) :to-be-truthy)
+      (expect (= 3 (cl-cc/vm/data:length v)) :to-be-truthy)
       (expect (aref v 0) :to-be 'a))))
 )
 

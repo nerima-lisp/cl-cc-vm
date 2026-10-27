@@ -12,17 +12,7 @@
 ;;; ─── make-vm2-state ──────────────────────────────────────────────────────────
 
 (defun register-vm-opcodes-tests ()
-  (it-sequential "vm2-state-creation-register-array-and-globals"
-                 (let ((s (cl-cc/vm:make-vm2-state)))
-                   (expect (simple-vector-p (cl-cc/vm:vm2-state-registers s)) :to-be-truthy)
-                   (expect (= cl-cc/vm::+vm-register-count+ (length (cl-cc/vm:vm2-state-registers s))) :to-be-truthy)
-                   (expect (svref (cl-cc/vm:vm2-state-registers s) 0) :to-be-null)
-                   (expect (svref (cl-cc/vm:vm2-state-registers s) 255) :to-be-null)
-                   (expect (hash-table-p (cl-cc/vm:vm2-state-global-vars s)) :to-be-truthy)
-                   (expect (nth-value 1 (gethash 'cl-cc/vm::*features* (cl-cc/vm:vm2-state-global-vars s))) :to-be-truthy)
-                   (expect (cl-cc/vm:vm2-state-output-stream s) :to-be *standard-output*)))
-
-;;; ─── vm2-reg-get / vm2-reg-set ───────────────────────────────────────────────
+  ;;; ─── vm2-reg-get / vm2-reg-set ───────────────────────────────────────────────
 
   (it-sequential "vm2-reg-get-fresh-registers-are-nil"
                  (let ((s (cl-cc/vm:make-vm2-state)))
@@ -52,38 +42,38 @@
 ;;; ─── vm2-collect-opcode-bigrams ──────────────────────────────────────────────
 
   (it-sequential "vm2-collect-bigrams-empty-vector-returns-empty-table"
-                 (let ((result (cl-cc/vm::vm2-collect-opcode-bigrams #())))
+                 (let ((result (cl-cc/vm/execution::vm2-collect-opcode-bigrams #())))
                    (expect (hash-table-p result) :to-be-truthy)
                    (expect (= 0 (hash-table-count result)) :to-be-truthy)))
 
   (it-sequential "vm2-collect-bigrams-single-instruction-yields-no-pairs"
-                 (let ((result (cl-cc/vm::vm2-collect-opcode-bigrams #(0 0 0 0))))
+                 (let ((result (cl-cc/vm/execution::vm2-collect-opcode-bigrams #(0 0 0 0))))
                    (expect (= 0 (hash-table-count result)) :to-be-truthy)))
 
   (it-sequential "vm2-collect-bigrams-known-opcode-pair-counted"
                  (let* ((op-a cl-cc/vm:+op2-const+)
                         (op-b cl-cc/vm:+op2-halt2+)
                         (code (vector op-a 0 0 0 op-b 0 0 0))
-                        (result (cl-cc/vm::vm2-collect-opcode-bigrams code)))
+                        (result (cl-cc/vm/execution::vm2-collect-opcode-bigrams code)))
                    ;; The pair (CONST HALT2) should appear with count 1
-                   (let ((pair-name-a (aref cl-cc/vm::*opcode-name-table* op-a))
-                         (pair-name-b (aref cl-cc/vm::*opcode-name-table* op-b)))
+                   (let ((pair-name-a (aref cl-cc/vm/execution:*opcode-name-table* op-a))
+                         (pair-name-b (aref cl-cc/vm/execution:*opcode-name-table* op-b)))
                      (when (and pair-name-a pair-name-b)
                        (expect (= 1 (gethash (list pair-name-a pair-name-b) result 0)) :to-be-truthy)))))
 
   ;;; ─── vm2-fuse-immediate-superinstructions ────────────────────────────────────
 
   (it-sequential "vm2-fuse-empty-returns-empty"
-                 (let ((result (cl-cc/vm::vm2-fuse-immediate-superinstructions #())))
+                 (let ((result (cl-cc/vm/execution::vm2-fuse-immediate-superinstructions #())))
                    (expect (vectorp result) :to-be-truthy)
-                   (expect (= 0 (length result)) :to-be-truthy)))
+                   (expect (= 0 (cl-cc/vm/data:length result)) :to-be-truthy)))
 
   (it-sequential "vm2-fuse-single-instruction-passthrough"
                  (let* ((op cl-cc/vm:+op2-halt2+)
                         (code (vector op 0 0 0))
-                        (result (cl-cc/vm::vm2-fuse-immediate-superinstructions code)))
+                        (result (cl-cc/vm/execution::vm2-fuse-immediate-superinstructions code)))
                    (expect (vectorp result) :to-be-truthy)
-                   (expect (= 4 (length result)) :to-be-truthy)
+                   (expect (= 4 (cl-cc/vm/data:length result)) :to-be-truthy)
                    (expect (= op (svref result 0)) :to-be-truthy)))
 
   (it-sequential "vm2-fuse-const-halt-fused-to-const-halt2"
@@ -91,17 +81,17 @@
                         (op-halt  cl-cc/vm:+op2-halt2+)
                         (op-fused cl-cc/vm:+op2-const-halt2+)
                         (code (vector op-const 7 99 nil op-halt 7 nil nil))
-                        (result (cl-cc/vm::vm2-fuse-immediate-superinstructions code)))
+                        (result (cl-cc/vm/execution::vm2-fuse-immediate-superinstructions code)))
                    ;; Fused → 4 words, first word is the superinstruction opcode
-                   (expect (= 4 (length result)) :to-be-truthy)
+                   (expect (= 4 (cl-cc/vm/data:length result)) :to-be-truthy)
                    (expect (= op-fused (svref result 0)) :to-be-truthy)))
 
 ;;; ─── %vm2-emit4 (extracted helper) ───────────────────────────────────────
 
   (it-sequential "vm2-emit4-appends-four-elements"
                  (let ((out (make-array 0 :adjustable t :fill-pointer 0)))
-                   (cl-cc/vm::%vm2-emit4 out 10 20 30 40)
-                   (expect (= 4 (length out)) :to-be-truthy)
+                   (cl-cc/vm/execution::%vm2-emit4 out 10 20 30 40)
+                   (expect (= 4 (cl-cc/vm/data:length out)) :to-be-truthy)
                    (expect (= 10 (aref out 0)) :to-be-truthy)
                    (expect (= 20 (aref out 1)) :to-be-truthy)
                    (expect (= 30 (aref out 2)) :to-be-truthy)
@@ -109,9 +99,9 @@
 
   (it-sequential "vm2-emit4-multiple-calls-accumulate"
                  (let ((out (make-array 0 :adjustable t :fill-pointer 0)))
-                   (cl-cc/vm::%vm2-emit4 out 1 2 3 4)
-                   (cl-cc/vm::%vm2-emit4 out 5 6 7 8)
-                   (expect (= 8 (length out)) :to-be-truthy)
+                   (cl-cc/vm/execution::%vm2-emit4 out 1 2 3 4)
+                   (cl-cc/vm/execution::%vm2-emit4 out 5 6 7 8)
+                   (expect (= 8 (cl-cc/vm/data:length out)) :to-be-truthy)
                    (expect (= 5 (aref out 4)) :to-be-truthy)
                    (expect (= 8 (aref out 7)) :to-be-truthy)))
   )

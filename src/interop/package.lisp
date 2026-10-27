@@ -23,8 +23,7 @@
      #:*documentation-table*
    #:vm-global-vars
 )
-(:export
-   #:%ALL-SYMBOLS
+(:export #:%ALL-SYMBOLS
    #:%CLASS-SLOT-DEFINITIONS
    #:%CLASS-SLOT-INITARGS-FOR-SLOT
    #:%CLASS-SLOT-METADATA
@@ -78,8 +77,7 @@
    #:STRING-TO-OCTETS
    #:VALUE-TYPE-DEF
    #:WITH-PINNED-OBJECT
-   #:WITH-PLATFORM
-  )
+   #:WITH-PLATFORM #:%vm-runtime-callable)
   (:intern
    #:%CLASS-SLOT-DEFINITIONS-FROM-KEY
    #:%CLASS-SLOT-LOCATION
@@ -100,7 +98,6 @@
    #:%VM-FILE-STRING-LENGTH
    #:%VM-QUERY-ANSWER
    #:%VM-QUERY-IO-STREAM
-   #:%VM-RUNTIME-CALLABLE
    #:%VM-RUNTIME-PACKAGE-REGISTRY
    #:%VM-SAFE-DISASSEMBLE
    #:%VM-SAFE-INSPECT

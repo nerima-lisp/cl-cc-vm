@@ -135,64 +135,64 @@
 
   (it-sequential "prim-typep-check-primitive-table integer"
                  (destructuring-bind (value type-sym expected) (list 42 'integer t)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-check-primitive-table string"
                  (destructuring-bind (value type-sym expected) (list "hi" 'string t)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-check-primitive-table symbol"
                  (destructuring-bind (value type-sym expected) (list 'x 'symbol t)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-check-primitive-table keyword"
                  (destructuring-bind (value type-sym expected) (list :k 'keyword t)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-check-primitive-table cons"
                  (destructuring-bind (value type-sym expected) (list '(a) 'cons t)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-check-primitive-table null"
                  (destructuring-bind (value type-sym expected) (list nil 'null t)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-check-primitive-table list"
                  (destructuring-bind (value type-sym expected) (list '(1 2) 'list t)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-check-primitive-table number"
                  (destructuring-bind (value type-sym expected) (list 3.14 'number t)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-check-primitive-table character"
                  (destructuring-bind (value type-sym expected) (list #\a 'character t)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-check-primitive-table function"
                  (destructuring-bind (value type-sym expected) (list #'car 'function t)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-check-primitive-table vector"
                  (destructuring-bind (value type-sym expected) (list #(1 2) 'vector t)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-check-primitive-table array"
                  (destructuring-bind (value type-sym expected) (list #(1 2) 'array t)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-check-primitive-table integer-wrong"
                  (destructuring-bind (value type-sym expected) (list "hello" 'integer nil)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-check-primitive-table string-wrong"
                  (destructuring-bind (value type-sym expected) (list 42 'string nil)
-                   (expect (cl-cc/vm::vm-typep-check value type-sym) :to-equal expected)))
+                   (expect (cl-cc/vm/protocols:vm-typep-check value type-sym) :to-equal expected)))
 
   (it-sequential "prim-typep-normalize-sym-roundtrips-cl-symbols"
-                 (expect (cl-cc/vm::%vm-typep-normalize-sym 'integer) :to-be 'cl:integer)
-                 (expect (cl-cc/vm::%vm-typep-normalize-sym 'string) :to-be 'cl:string)
-                 (expect (cl-cc/vm::%vm-typep-normalize-sym 'symbol) :to-be 'cl:symbol))
+                 (expect (cl-cc/vm/execution::%vm-typep-normalize-sym 'integer) :to-be 'cl:integer)
+                 (expect (cl-cc/vm/execution::%vm-typep-normalize-sym 'string) :to-be 'cl:string)
+                 (expect (cl-cc/vm/execution::%vm-typep-normalize-sym 'symbol) :to-be 'cl:symbol))
 
   )
 ;;; ═══════════════════════════════════════════════════════════════════════════

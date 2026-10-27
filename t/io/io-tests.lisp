@@ -10,20 +10,20 @@
   (it-sequential "io-print-circle-circular-list"
   (let ((x (list 'a)))
     (setf (cdr x) x)
-    (let ((printed (cl-cc/vm::vm-write-object-to-string x :circle t)))
+    (let ((printed (cl-cc/vm/io::vm-write-object-to-string x :circle t)))
       (expect (search "#0=" printed) :to-be-truthy)
       (expect (search "#0#" printed) :to-be-truthy)))) (it-sequential "io-print-circle-shared-vector"
   (let* ((shared (list 1 2))
          (vec (vector shared shared))
-         (printed (cl-cc/vm::vm-write-object-to-string vec :circle t)))
+         (printed (cl-cc/vm/io::vm-write-object-to-string vec :circle t)))
     (expect (search "#0=" printed) :to-be-truthy)
     (expect (search "#0#" printed) :to-be-truthy))) (defun io-vm (&optional (out (make-string-output-stream)))
   "Create a vm-io-state with a string output stream for capture."
-  (cl-cc/vm::make-vm-state :output-stream out)) (defun io-vm-full (&optional (out (make-string-output-stream)))
+  (cl-cc/vm/execution:make-vm-state :output-stream out)) (defun io-vm-full (&optional (out (make-string-output-stream)))
   "Create a vm-io-state (with file handle management) for IO tests."
-  (cl-cc/vm::make-vm-state :output-stream out)) (defun io-exec (inst state)
+  (cl-cc/vm/execution:make-vm-state :output-stream out)) (defun io-exec (inst state)
   "Execute a single instruction against STATE."
-  (cl-cc/vm::execute-instruction inst state 0 (make-hash-table :test #'equal))) (it-sequential "io-string-output-stream-roundtrip"
+  (cl-cc/vm/protocols:execute-instruction inst state 0 (make-hash-table :test #'equal))) (it-sequential "io-string-output-stream-roundtrip"
   (let ((s (io-vm)))
     ;; Create string output stream
     (io-exec (cl-cc/vm:make-vm-make-string-output-stream-inst :dst :R0) s)
@@ -55,48 +55,48 @@
   (expect (symbol-name (%io-read-str "hello")) :to-equal "HELLO")) (it-sequential "io-read-from-string-list"
   (let ((result (%io-read-str "(1 2 3)")))
     (expect (listp result) :to-be-truthy)
-    (expect (length result) :to-equal 3))) (it-sequential "io-read-from-string-empty"
+    (expect (cl-cc/vm/data:length result) :to-equal 3))) (it-sequential "io-read-from-string-empty"
   (expect (%io-read-str "") :to-be-null)) (it-sequential "io-allocate-handle-sequence"
   (let ((s (io-vm-full)))
-    (let ((h1 (cl-cc/vm::vm-allocate-file-handle s))
-          (h2 (cl-cc/vm::vm-allocate-file-handle s))
-          (h3 (cl-cc/vm::vm-allocate-file-handle s)))
+    (let ((h1 (cl-cc/vm/io:vm-allocate-file-handle s))
+          (h2 (cl-cc/vm/io:vm-allocate-file-handle s))
+          (h3 (cl-cc/vm/io:vm-allocate-file-handle s)))
       (expect h1 :to-equal 2)
       (expect h2 :to-equal 3)
       (expect h3 :to-equal 4)))) (it-sequential "io-get-stream-std-handles stdin"
-  (destructuring-bind (accessor handle) (list #'cl-cc/vm::vm-standard-input cl-cc/vm::+stdin-handle+)
+  (destructuring-bind (accessor handle) (list #'cl-cc/vm/io:vm-standard-input cl-cc/vm/io:+stdin-handle+)
     (let ((s (io-vm-full)))
-    (expect (cl-cc/vm::vm-get-stream s handle) :to-equal (funcall accessor s))))) (it-sequential "io-get-stream-std-handles stdout"
-  (destructuring-bind (accessor handle) (list #'cl-cc/vm::vm-standard-output cl-cc/vm::+stdout-handle+)
+    (expect (cl-cc/vm/io:vm-get-stream s handle) :to-equal (funcall accessor s))))) (it-sequential "io-get-stream-std-handles stdout"
+  (destructuring-bind (accessor handle) (list #'cl-cc/vm/io:vm-standard-output cl-cc/vm/io:+stdout-handle+)
     (let ((s (io-vm-full)))
-    (expect (cl-cc/vm::vm-get-stream s handle) :to-equal (funcall accessor s))))) (it-sequential "io-get-stream-cl-stream-passthrough"
+    (expect (cl-cc/vm/io:vm-get-stream s handle) :to-equal (funcall accessor s))))) (it-sequential "io-get-stream-cl-stream-passthrough"
   (let ((s (io-vm-full))
         (stream (make-string-output-stream)))
-    (expect (cl-cc/vm::vm-get-stream s stream) :to-equal stream))) (it-sequential "io-get-stream-handle-map-lookup-cases open-files"
-  (destructuring-bind (register-fn) (list (lambda (s h stream) (setf (gethash h (cl-cc/vm::vm-open-files s)) stream)))
+    (expect (cl-cc/vm/io:vm-get-stream s stream) :to-equal stream))) (it-sequential "io-get-stream-handle-map-lookup-cases open-files"
+  (destructuring-bind (register-fn) (list (lambda (s h stream) (setf (gethash h (cl-cc/vm/io:vm-open-files s)) stream)))
     (let* ((s      (io-vm-full))
          (stream (make-string-output-stream))
-         (handle (cl-cc/vm::vm-allocate-file-handle s)))
+         (handle (cl-cc/vm/io:vm-allocate-file-handle s)))
     (funcall register-fn s handle stream)
-    (expect (cl-cc/vm::vm-get-stream s handle) :to-equal stream)))) (it-sequential "io-get-stream-handle-map-lookup-cases string-streams"
-  (destructuring-bind (register-fn) (list (lambda (s h stream) (setf (gethash h (cl-cc/vm::vm-string-streams s)) stream)))
+    (expect (cl-cc/vm/io:vm-get-stream s handle) :to-equal stream)))) (it-sequential "io-get-stream-handle-map-lookup-cases string-streams"
+  (destructuring-bind (register-fn) (list (lambda (s h stream) (setf (gethash h (cl-cc/vm/io:vm-string-streams s)) stream)))
     (let* ((s      (io-vm-full))
          (stream (make-string-output-stream))
-         (handle (cl-cc/vm::vm-allocate-file-handle s)))
+         (handle (cl-cc/vm/io:vm-allocate-file-handle s)))
     (funcall register-fn s handle stream)
-    (expect (cl-cc/vm::vm-get-stream s handle) :to-equal stream)))) (it-sequential "io-get-stream-invalid-handle-error"
+    (expect (cl-cc/vm/io:vm-get-stream s handle) :to-equal stream)))) (it-sequential "io-get-stream-invalid-handle-error"
   (let ((s (io-vm-full)))
-    (signals error (cl-cc/vm::vm-get-stream s 999)))) (it-sequential "io-stream-open-p-standard-handles stdin"
-  (destructuring-bind (handle) (list cl-cc/vm::+stdin-handle+)
+    (signals error (cl-cc/vm/io:vm-get-stream s 999)))) (it-sequential "io-stream-open-p-standard-handles stdin"
+  (destructuring-bind (handle) (list cl-cc/vm/io:+stdin-handle+)
     (let ((s (io-vm-full)))
-    (expect (cl-cc/vm::vm-stream-open-p s handle) :to-be-truthy)))) (it-sequential "io-stream-open-p-standard-handles stdout"
-  (destructuring-bind (handle) (list cl-cc/vm::+stdout-handle+)
+    (expect (cl-cc/vm/io:vm-stream-open-p s handle) :to-be-truthy)))) (it-sequential "io-stream-open-p-standard-handles stdout"
+  (destructuring-bind (handle) (list cl-cc/vm/io:+stdout-handle+)
     (let ((s (io-vm-full)))
-    (expect (cl-cc/vm::vm-stream-open-p s handle) :to-be-truthy)))) (it-sequential "io-stream-open-p-unknown-handle-returns-nil"
+    (expect (cl-cc/vm/io:vm-stream-open-p s handle) :to-be-truthy)))) (it-sequential "io-stream-open-p-unknown-handle-returns-nil"
   (let ((s (io-vm-full)))
-    (expect (cl-cc/vm::vm-stream-open-p s 999) :to-equal nil))) (it-sequential "io-stream-open-p-direct-cl-stream-returns-truthy"
+    (expect (cl-cc/vm/io:vm-stream-open-p s 999) :to-equal nil))) (it-sequential "io-stream-open-p-direct-cl-stream-returns-truthy"
   (let ((s (io-vm-full)))
-    (expect (cl-cc/vm::vm-stream-open-p s (make-string-output-stream)) :to-be-truthy))) (it-sequential "io-streamp cl-stream"
+    (expect (cl-cc/vm/io:vm-stream-open-p s (make-string-output-stream)) :to-be-truthy))) (it-sequential "io-streamp cl-stream"
   (destructuring-bind (value expected) (list (make-string-output-stream) t)
     (let ((s (io-vm-full)))
     (cl-cc/vm/protocols:vm-reg-set s :R1 value)
@@ -108,7 +108,7 @@
     (io-exec (cl-cc/vm:make-vm-streamp :dst :R0 :src :R1) s)
     (expect (cl-cc/vm/protocols:vm-reg-get s :R0) :to-equal expected)))) (it-sequential "io-streamp-handle-resolved"
   (let ((s (io-vm-full)))
-    (cl-cc/vm/protocols:vm-reg-set s :R1 cl-cc/vm::+stdin-handle+)
+    (cl-cc/vm/protocols:vm-reg-set s :R1 cl-cc/vm/io:+stdin-handle+)
     (io-exec (cl-cc/vm:make-vm-streamp :dst :R0 :src :R1) s)
     (expect (cl-cc/vm/protocols:vm-reg-get s :R0) :to-equal t))) (it-sequential "io-input-stream-p input-stream"
   (destructuring-bind (stream-val expected) (list (make-string-input-stream "hello") t)
@@ -180,19 +180,19 @@
       (io-exec (cl-cc/vm:make-vm-read-line :dst :R3 :handle :R2) s)
       (expect (cl-cc/vm/protocols:vm-reg-get s :R3) :to-equal "first line")))) (it-sequential "resolve-integer-stream-handle-stdin"
   (let ((s   (io-vm-full))
-        (h   cl-cc/vm::+stdin-handle+))
-    (expect (cl-cc/vm::%resolve-integer-stream-handle h s) :to-be (cl-cc/vm::vm-standard-input s)))) (it-sequential "resolve-integer-stream-handle-stdout"
+        (h   cl-cc/vm/io:+stdin-handle+))
+    (expect (cl-cc/vm/io::%resolve-integer-stream-handle h s) :to-be (cl-cc/vm/io:vm-standard-input s)))) (it-sequential "resolve-integer-stream-handle-stdout"
   (let ((s (io-vm-full))
-        (h cl-cc/vm::+stdout-handle+))
-    (expect (cl-cc/vm::%resolve-integer-stream-handle h s) :to-be (cl-cc/vm::vm-standard-output s)))) (it-sequential "resolve-integer-stream-handle-unknown-returns-nil"
+        (h cl-cc/vm/io:+stdout-handle+))
+    (expect (cl-cc/vm/io::%resolve-integer-stream-handle h s) :to-be (cl-cc/vm/io:vm-standard-output s)))) (it-sequential "resolve-integer-stream-handle-unknown-returns-nil"
   (let ((s (io-vm-full)))
-    (expect (cl-cc/vm::%resolve-integer-stream-handle 9999 s) :to-be-null))) (it-sequential "copy-ht-into-copies-all-entries"
+    (expect (cl-cc/vm/io::%resolve-integer-stream-handle 9999 s) :to-be-null))) (it-sequential "copy-ht-into-copies-all-entries"
   (let ((src (make-hash-table :test #'eq))
         (dst (make-hash-table :test #'eq)))
     (setf (gethash :a src) 1
           (gethash :b src) 2
           (gethash :old dst) 99)
-    (cl-cc/vm::%copy-ht-into src dst)
+    (cl-cc/vm/io::%copy-ht-into src dst)
     (expect (= 1 (gethash :a dst)) :to-be-truthy)
     (expect (= 2 (gethash :b dst)) :to-be-truthy)
     (expect (gethash :old dst) :to-be-null)
@@ -200,14 +200,14 @@
   (let ((src (make-hash-table :test #'eq))
         (dst (make-hash-table :test #'eq)))
     (setf (gethash :x dst) 42)
-    (cl-cc/vm::%copy-ht-into src dst)
+    (cl-cc/vm/io::%copy-ht-into src dst)
     (expect (= 0 (hash-table-count dst)) :to-be-truthy))) (it-sequential "clone-vm-state-copies-global-vars"
-  (let ((source (cl-cc/vm:make-vm-state)))
-    (setf (gethash 'x (cl-cc/vm::vm-global-vars source)) 42)
-    (let ((clone (cl-cc/vm::clone-vm-state source)))
-      (expect (gethash 'x (cl-cc/vm::vm-global-vars clone)) :to-equal 42)
-      (setf (gethash 'x (cl-cc/vm::vm-global-vars clone)) 99)
-      (expect (gethash 'x (cl-cc/vm::vm-global-vars source)) :to-equal 42)))) (it-sequential "io-file-position-set-returns-boolean"
+  (let ((source (cl-cc/vm/execution:make-vm-state)))
+    (setf (gethash 'x (cl-cc/vm/execution:vm-global-vars source)) 42)
+    (let ((clone (cl-cc/vm/io:clone-vm-state source)))
+      (expect (gethash 'x (cl-cc/vm/execution:vm-global-vars clone)) :to-equal 42)
+      (setf (gethash 'x (cl-cc/vm/execution:vm-global-vars clone)) 99)
+      (expect (gethash 'x (cl-cc/vm/execution:vm-global-vars source)) :to-equal 42)))) (it-sequential "io-file-position-set-returns-boolean"
   (let ((s (io-vm-full)))
     (cl-cc/vm/protocols:vm-reg-set s :contents "abcdef")
     (io-exec (cl-cc/vm:make-vm-make-string-stream :dst :stream :direction :input
@@ -268,7 +268,7 @@
              (expect (read-byte stream) :to-equal 255)))
       (when (probe-file path) (delete-file path))))) (it-sequential "io-make-buffered-stream-validates-options-and-flushes"
   (let* ((raw (make-string-output-stream))
-         (stream (cl-cc/vm::make-buffered-stream raw :buffer-size 16 :strategy :line)))
+         (stream (cl-cc/vm/io::make-buffered-stream raw :buffer-size 16 :strategy :line)))
     (expect stream :to-be raw)
     (write-string "abc" stream)
     (force-output stream)
@@ -285,19 +285,19 @@
     (expect (cl-cc/vm/protocols:vm-reg-get s :interactive) :to-equal nil))) (it-sequential "io-special-string-stream-bridge"
   (let ((stream (make-string-output-stream)))
     (write-string "hello" stream)
-    (expect (cl-cc/vm::%vm-bridge-get-output-stream-string stream) :to-equal "hello"))) (it-sequential "io-special-composite-streams"
+    (expect (cl-cc/vm/io::%vm-bridge-get-output-stream-string stream) :to-equal "hello"))) (it-sequential "io-special-composite-streams"
   (let* ((out-a (make-string-output-stream))
          (out-b (make-string-output-stream))
-         (broadcast (cl-cc/vm::%vm-bridge-make-broadcast-stream out-a out-b))
-         (two-way (cl-cc/vm::%vm-bridge-make-two-way-stream
+         (broadcast (cl-cc/vm/io::%vm-bridge-make-broadcast-stream out-a out-b))
+         (two-way (cl-cc/vm/io::%vm-bridge-make-two-way-stream
                    (make-string-input-stream "x") broadcast))
-         (echo (cl-cc/vm::%vm-bridge-make-echo-stream
+         (echo (cl-cc/vm/io::%vm-bridge-make-echo-stream
                 (make-string-input-stream "y") broadcast))
-         (concat (cl-cc/vm::%vm-bridge-make-concatenated-stream
+         (concat (cl-cc/vm/io::%vm-bridge-make-concatenated-stream
                   (make-string-input-stream "ab")
                   (make-string-input-stream "cd")))
          (*standard-output* broadcast)
-         (synonym (cl-cc/vm::%vm-bridge-make-synonym-stream '*standard-output*)))
+         (synonym (cl-cc/vm/io::%vm-bridge-make-synonym-stream '*standard-output*)))
     (write-char #\A two-way)
     (expect (read-char echo) :to-equal #\y)
     (write-char #\B synonym)
@@ -325,13 +325,29 @@
              (expect (pathname-type pn) :to-equal "txt")
              (expect (namestring merged) :to-equal (namestring file))
              (expect (file-namestring parsed) :to-equal "alpha.txt")
-             (expect (plusp (length (directory-namestring parsed))) :to-be-truthy)
+             (expect (plusp (cl-cc/vm/data:length (directory-namestring parsed))) :to-be-truthy)
              (expect (enough-namestring file root) :to-equal "alpha.txt")
              (expect (wild-pathname-p wild) :to-be-truthy)
              (expect (pathname-match-p file wild) :to-be-truthy)
-             (expect (= 1 (length (directory wild))) :to-be-truthy)))
+             (expect (= 1 (cl-cc/vm/data:length (directory wild))) :to-be-truthy)))
       (when (probe-file file) (delete-file file))
-      (when (probe-file root) (uiop:delete-directory-tree root :validate t))))))
+      (when (probe-file root) (uiop:delete-directory-tree root :validate t))))) (it-sequential "vm-opcodes-defs-make-vm-state-returns-vm-io-state"
+                 (let ((s (cl-cc/vm/execution:make-vm-state)))
+                   (expect (typep s 'cl-cc/vm/io:vm-io-state) :to-be-truthy))) (it-sequential "vm-opcodes-defs-make-vm-state-defaults-to-standard-output"
+                 (let ((s (cl-cc/vm/execution:make-vm-state)))
+                   (expect (cl-cc/vm/io:vm-standard-output s) :to-be *standard-output*))) (it-sequential "vm-opcodes-defs-make-vm-state-accepts-custom-output-stream"
+                 (let* ((str (make-string-output-stream))
+                        (s   (cl-cc/vm/execution:make-vm-state :output-stream str)))
+                   (expect (cl-cc/vm/io:vm-standard-output s) :to-be str))) (it-sequential "vm-opcodes-defs-vm-standard-output-reflects-custom-stream"
+                 (let* ((str (make-string-output-stream))
+                        (s   (cl-cc/vm/execution:make-vm-state :output-stream str)))
+                   (expect (cl-cc/vm/io:vm-standard-output s) :to-be str))) (it-sequential "vm-execute-print-writes-to-stream"
+  (let* ((str (make-string-output-stream))
+         (s   (make-instance 'cl-cc/vm/io:vm-io-state :output-stream str)))
+    (cl-cc/vm:vm-reg-set s :R0 42)
+    (cl-cc/vm/protocols:execute-instruction
+     (cl-cc/vm:make-vm-print :reg :R0) s 0 (make-hash-table :test #'equal))
+    (expect (get-output-stream-string str) :to-equal (format nil "42~%")))))
 ;;; ─── Helpers ──────────────────────────────────────────────────────────────
 
 
