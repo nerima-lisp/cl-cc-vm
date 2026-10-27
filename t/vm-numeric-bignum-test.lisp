@@ -2,4 +2,3 @@
 ;;;; feature suite in t/numbers/vm-bignum-tests.lisp.
 
 (in-package :cl-cc-vm/test)
-
