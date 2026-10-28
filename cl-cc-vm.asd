@@ -382,6 +382,7 @@
   (:file "vm-clos-execute-extra-tests")
   (:file "vm-clos-execute-tests")
   (:file "vm-clos-tests")
+  (:file "vm-clos-dispatch-regression-tests")
   (:file "vm-copy-instance-tests")
   (:file "deep-copy-tests")
   (:file "vm-dispatch-gf-multi-tests")
