@@ -201,12 +201,19 @@
 
 (defmethod execute-instruction ((inst vm-next-method-p) state pc labels)
   (declare (ignore labels))
-  ;; Look for the innermost method context in method-call-stack
-  (let ((ctx (car (vm-method-call-stack state))))
-    (vm-reg-set state (vm-dst inst)
-                (if (and ctx (cddr ctx) (cadr ctx) (cdadr ctx))
-                    t
-                    nil)))
+  (let* ((ctx (car (vm-method-call-stack state)))
+         (props (when (and (listp ctx) (> (length ctx) 3)) (cdddr ctx))))
+    (vm-reg-set
+     state (vm-dst inst)
+     (cond
+       ((and props (eq (getf props :phase) :around))
+        (if (or (getf props :sync-next)
+                (getf props :around-pending)
+                (getf props :before-methods)
+                (getf props :primary))
+            t nil))
+       ((and ctx (cddr ctx) (cadr ctx) (cdadr ctx)) t)
+       (t nil))))
   (values (1+ pc) nil nil))
 
 (defmethod execute-instruction ((inst vm-call-next-method) state pc labels)
@@ -216,47 +223,169 @@
       (error "call-next-method called outside of a generic function method"))
     ;; Check if we're in an :around method (qualified dispatch)
     (let ((props (when (and (listp ctx) (> (length ctx) 3)) (cdddr ctx))))
-      (if (and props (eq (getf props :phase) :around))
-          ;; Around method's call-next-method: transition to before→primary→after chain
-          (let* ((arg-values (getf props :arg-values))
-                 (before-methods (getf props :before-methods))
-                 (primary (getf props :primary))
-                 (has-before (not (null before-methods)))
-                 (first-method (if has-before (car before-methods) primary)))
-            (unless first-method
-              (error "no-next-method: no primary method available"))
-            ;; Save around context so we can return to it
-            (setf (getf (cdddr ctx) :around-return-phase) t)
-            (setf (getf (cdddr ctx) :around-return-pc) (1+ pc))
-            (setf (getf (cdddr ctx) :around-cnm-dst) (vm-dst inst))
-            ;; Transition phase to before or primary
-            (setf (getf (cdddr ctx) :phase) (if has-before :before :primary))
-            (setf (getf (cdddr ctx) :before-pending)
-                  (if has-before (cdr before-methods) nil))
-            (when has-before
-              (setf (getf (cdddr ctx) :primary) primary))
-             (vm-bind-closure-args (%vm-method-function first-method) state arg-values)
-              (values (vm-label-table-lookup labels (vm-closure-entry-label (%vm-method-function first-method))) nil nil))
-          ;; Normal call-next-method (non-around)
-          (let* ((gf-ht (first ctx))
-                 (methods-list (second ctx))
-                 (orig-args (third ctx))
-                 (next-method (cadr methods-list)))
-            (unless next-method
-              (error "no-next-method: There is no next method for the generic function ~S when called with arguments ~S"
-                     (gethash :__name__ gf-ht) orig-args))
-             (let* ((call-args (if (vm-cnm-args-reg inst)
-                                   (vm-reg-get state (vm-cnm-args-reg inst))
-                                   orig-args))
-                    (next-fn (%vm-method-function next-method)))
-              (push (list :call-next-method :gf gf-ht :method next-method :args call-args)
-                    (vm-clos-shadow-stack state))
-              (vm-push-call-frame state (1+ pc) (vm-dst inst))
-              (push (list gf-ht (cdr methods-list) call-args
-                          :shadow (car (vm-clos-shadow-stack state)))
-                    (vm-method-call-stack state))
-               (vm-bind-closure-args next-fn state call-args)
-               (values (vm-label-table-lookup labels (vm-closure-entry-label next-fn)) nil nil)))))))
+      (cond
+        ((and props (getf props :sync-next))
+         (let* ((call-args (if (vm-cnm-args-reg inst)
+                               (vm-reg-get state (vm-cnm-args-reg inst))
+                               (third ctx)))
+                (result (funcall (getf props :sync-next) call-args)))
+           (vm-reg-set state (vm-dst inst) result)
+           (values (1+ pc) nil nil)))
+        ((and props (eq (getf props :phase) :around))
+         (let* ((gf-ht (first ctx))
+                (arg-values (or (getf props :arg-values) (third ctx)))
+                (call-args (if (vm-cnm-args-reg inst)
+                               (vm-reg-get state (vm-cnm-args-reg inst))
+                               arg-values))
+                (around-pending (getf props :around-pending))
+                (before-methods (getf props :before-methods))
+                (after-methods (getf props :after-pending))
+                (primary (getf props :primary))
+                (primary-methods (second ctx))
+                (has-before (not (null before-methods)))
+                (first-method (if has-before (car before-methods) primary))
+                (first-fn (if (hash-table-p first-method)
+                              (%vm-method-function first-method)
+                              first-method))
+                (needs-sync (or around-pending
+                                (and first-fn
+                                     (vm-closure-program-flat first-fn)
+                                     (vm-closure-label-table first-fn)
+                                     (or (not (eq (vm-closure-program-flat first-fn)
+                                                  *vm-exec-flat*))
+                                         (not (eq (vm-closure-label-table first-fn)
+                                                  *vm-exec-labels*)))))))
+           (if needs-sync
+               (labels ((call-primary (methods next-args)
+                          (let* ((method (car methods))
+                                 (next-fn (if method
+                                              (%vm-method-function method)
+                                              primary))
+                                 (shadow-entry
+                                   (list :call-next-method :gf gf-ht
+                                         :method (or method next-fn) :args next-args)))
+                            (unless next-fn
+                              (error "no-next-method: no primary method available"))
+                            (push shadow-entry (vm-clos-shadow-stack state))
+                            (unwind-protect
+                                 (%vm-call-closure-sync
+                                  next-fn state next-args
+                                  :method-context
+                                  (list gf-ht methods next-args :shadow shadow-entry))
+                              (setf (vm-clos-shadow-stack state)
+                                    (delete shadow-entry (vm-clos-shadow-stack state)
+                                            :test (function eq))))))
+                        (call-core (next-args)
+                          (dolist (method before-methods)
+                            (%vm-call-closure-sync (%vm-method-function method)
+                                                   state next-args))
+                          (let ((result (call-primary primary-methods next-args)))
+                            (dolist (method (reverse after-methods))
+                              (%vm-call-closure-sync (%vm-method-function method)
+                                                     state next-args))
+                            result))
+                        (call-around (methods next-args)
+                          (if methods
+                              (let* ((method (car methods))
+                                     (next-fn (%vm-method-function method))
+                                     (next-around (cdr methods))
+                                     (has-next-p (or next-around primary-methods primary))
+                                     (shadow-entry
+                                       (list :call-next-method :gf gf-ht
+                                             :method method :args next-args))
+                                     (method-context
+                                       (if has-next-p
+                                           (list gf-ht primary-methods next-args
+                                                 :phase :around
+                                                 :sync-next
+                                                 (lambda (next-args)
+                                                   (call-around next-around next-args))
+                                                 :around-pending next-around
+                                                 :primary primary
+                                                 :after-pending after-methods
+                                                 :arg-values next-args
+                                                 :before-methods before-methods)
+                                           (list gf-ht primary-methods next-args
+                                                 :phase :around
+                                                 :around-pending nil
+                                                 :primary nil
+                                                 :after-pending after-methods
+                                                 :arg-values next-args
+                                                 :before-methods nil))))
+                                (push shadow-entry (vm-clos-shadow-stack state))
+                                (unwind-protect
+                                     (%vm-call-closure-sync
+                                      next-fn state next-args
+                                      :method-context method-context)
+                                  (setf (vm-clos-shadow-stack state)
+                                        (delete shadow-entry (vm-clos-shadow-stack state)
+                                                :test (function eq)))))
+                              (call-core next-args))))
+                 (vm-reg-set state (vm-dst inst)
+                             (call-around around-pending call-args))
+                 (values (1+ pc) nil nil))
+               (progn
+                 (unless first-method
+                   (error "no-next-method: no primary method available"))
+                 ;; Save around context so we can return to it
+                 (setf (getf (cdddr ctx) :around-return-phase) t)
+                 (setf (getf (cdddr ctx) :around-return-pc) (1+ pc))
+                 (setf (getf (cdddr ctx) :around-cnm-dst) (vm-dst inst))
+                 ;; Transition phase to before or primary
+                 (setf (getf (cdddr ctx) :phase) (if has-before :before :primary))
+                 (setf (getf (cdddr ctx) :before-pending)
+                       (if has-before (cdr before-methods) nil))
+                 (when has-before
+                   (setf (getf (cdddr ctx) :primary) primary))
+                 (vm-bind-closure-args first-fn state arg-values)
+                 (values (vm-label-table-lookup labels
+                                               (vm-closure-entry-label first-fn))
+                         nil nil)))))
+        (t
+         ;; Normal call-next-method (non-around)
+         (let* ((gf-ht (first ctx))
+                (methods-list (second ctx))
+                (orig-args (third ctx))
+                (next-method (cadr methods-list)))
+           (unless next-method
+             (error "no-next-method: There is no next method for the generic function ~S when called with arguments ~S"
+                    (gethash :__name__ gf-ht) orig-args))
+           (let* ((call-args (if (vm-cnm-args-reg inst)
+                                 (vm-reg-get state (vm-cnm-args-reg inst))
+                                 orig-args))
+                  (next-fn (%vm-method-function next-method)))
+             (if (and (vm-closure-program-flat next-fn)
+                      (vm-closure-label-table next-fn)
+                      (or (not (eq (vm-closure-program-flat next-fn) *vm-exec-flat*))
+                          (not (eq (vm-closure-label-table next-fn) *vm-exec-labels*))))
+                 (let ((shadow-entry (list :call-next-method :gf gf-ht
+                                           :method next-method :args call-args)))
+                   (push shadow-entry (vm-clos-shadow-stack state))
+                   (unwind-protect
+                        (progn
+                          (vm-reg-set state
+                                      (vm-dst inst)
+                                      (%vm-call-closure-sync
+                                       next-fn state call-args
+                                       :method-context
+                                       (list gf-ht (cdr methods-list) call-args
+                                             :shadow shadow-entry)))
+                          (values (1+ pc) nil nil))
+                     (setf (vm-clos-shadow-stack state)
+                           (delete shadow-entry (vm-clos-shadow-stack state)
+                                   :test (function eq)))))
+                 (progn
+                   (push (list :call-next-method :gf gf-ht
+                               :method next-method :args call-args)
+                         (vm-clos-shadow-stack state))
+                   (vm-push-call-frame state (1+ pc) (vm-dst inst))
+                   (push (list gf-ht (cdr methods-list) call-args
+                               :shadow (car (vm-clos-shadow-stack state)))
+                         (vm-method-call-stack state))
+                   (vm-bind-closure-args next-fn state call-args)
+                   (values (vm-label-table-lookup
+                            labels (vm-closure-entry-label next-fn))
+                           nil nil))))))))))
 
 (defmethod execute-instruction ((inst vm-apply) state pc labels)
   (let* ((func      (vm-resolve-function state (vm-reg-get state (vm-func-reg inst))))
