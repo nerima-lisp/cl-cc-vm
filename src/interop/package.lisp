@@ -22,6 +22,7 @@
    #:*vm-current-state*
      #:*documentation-table*
    #:vm-global-vars
+   #:vm-class-registry
 )
 (:export #:%ALL-SYMBOLS
    #:%CLASS-SLOT-DEFINITIONS

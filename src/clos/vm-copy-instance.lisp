@@ -15,7 +15,14 @@
     ((and (vectorp instance)
           (> (cl:length instance) 0)
           (hash-table-p (cl:aref instance 0)))
-     (copy-seq instance))
+     (let ((copy (copy-seq instance)))
+       (when (and (> (cl:length instance) 1)
+                  (%vm-instance-storage-p (cl:aref instance 1)))
+         (setf (cl:aref copy 1)
+               (%make-vm-instance-storage
+                (copy-seq
+                 (%vm-instance-storage-values (cl:aref instance 1))))))
+       copy))
     ((typep instance 'standard-object)
      (let* ((class (class-of instance))
             (copy (allocate-instance class)))

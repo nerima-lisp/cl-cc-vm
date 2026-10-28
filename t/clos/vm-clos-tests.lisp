@@ -352,6 +352,23 @@
                                   (not (hash-table-p copy))
                                   (= (cl-cc/vm:vm-reg-get state :R5) 10)
                                   (= (cl-cc/vm:vm-reg-get state :R6) 20))
+                             :to-be-truthy)
+                     (cl-cc/vm:vm-reg-set state :R7 99)
+                     (cl-cc/vm/protocols:execute-instruction
+                      (cl-cc/vm/clos:make-vm-slot-write
+                       :obj-reg :R4 :slot-name 'x :value-reg :R7)
+                      state 0 nil)
+                     (cl-cc/vm/protocols:execute-instruction
+                      (cl-cc/vm/clos:make-vm-slot-read
+                       :dst :R8 :obj-reg :R1 :slot-name 'x)
+                      state 0 nil)
+                     (cl-cc/vm/protocols:execute-instruction
+                      (cl-cc/vm/clos:make-vm-slot-read
+                       :dst :R9 :obj-reg :R4 :slot-name 'x)
+                      state 0 nil)
+                     (expect (= (cl-cc/vm:vm-reg-get state :R8) 10)
+                             :to-be-truthy)
+                     (expect (= (cl-cc/vm:vm-reg-get state :R9) 99)
                              :to-be-truthy))))
 
   (it-sequential "fr-821-deep-copy-recursive-conses-and-vectors"

@@ -51,12 +51,9 @@ TYPE-NAME is a symbol like INTEGER, STRING, SYMBOL, CONS, NULL, LIST, etc."
 
 (defun %vm-typep-normalize-sym (type-sym)
   "Normalize TYPE-SYM: unwrap HM type primitives and intern into CL package."
-  (let* ((type-pkg (find-package "CL-CC/TYPE"))
-         (primitive-sym (and type-pkg (find-symbol "TYPE-PRIMITIVE" type-pkg)))
-         (name-sym      (and type-pkg (find-symbol "NAME" type-pkg)))
-         (primitive-class (and primitive-sym (find-class primitive-sym nil))))
-    (when (and primitive-class name-sym (typep type-sym primitive-class))
-      (setf type-sym (slot-value type-sym name-sym))))
+  (when (%vm-call-type-refinement-accessor "TYPE-PRIMITIVE-P" type-sym)
+    (setf type-sym
+          (%vm-call-type-refinement-accessor "TYPE-PRIMITIVE-NAME" type-sym)))
   (when (symbolp type-sym)
     (let ((cl-sym (find-symbol (symbol-name type-sym) :cl)))
       (when cl-sym (setf type-sym cl-sym))))

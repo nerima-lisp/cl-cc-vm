@@ -64,6 +64,35 @@
   (it-sequential "prim-typep refine-false"
                  (destructuring-bind (src type-sym expected) (list -1 '(cl-cc/vm/data:refine fixnum plusp) 0)
                    (expect (= expected (%run-vm-typep src type-sym)) :to-be-truthy)))
+  (it-sequential "prim-typep-normalizes-type-primitive-accessors"
+  (let ((type-pkg (find-package "CL-CC/TYPE")))
+    (if type-pkg
+        (let* ((type-model-pkg (find-package "CL-CC/TYPE/TYPE-MODEL"))
+               (constructor (or (find-symbol "MAKE-TYPE-PRIMITIVE" type-pkg)
+                                (and type-model-pkg
+                                     (find-symbol "MAKE-TYPE-PRIMITIVE" type-model-pkg))))
+               (predicate (find-symbol "TYPE-PRIMITIVE-P" type-pkg))
+               (name-accessor (find-symbol "TYPE-PRIMITIVE-NAME" type-pkg)))
+          (expect (and constructor (fboundp constructor)) :to-be-truthy)
+          (expect (and predicate (fboundp predicate)) :to-be-truthy)
+          (expect (and name-accessor (fboundp name-accessor)) :to-be-truthy)
+          (let ((type-object (funcall (symbol-function constructor) :name 'fixnum)))
+            (expect (= 1 (%run-vm-typep 42 type-object)) :to-be-truthy)))
+        (let* ((type-pkg (make-package "CL-CC/TYPE" :use nil))
+               (predicate (intern "TYPE-PRIMITIVE-P" type-pkg))
+               (name-accessor (intern "TYPE-PRIMITIVE-NAME" type-pkg))
+               (type-object (vector :type-primitive 'fixnum)))
+          (unwind-protect
+               (progn
+                 (setf (symbol-function predicate)
+                       (lambda (value)
+                         (and (vectorp value)
+                              (= (length value) 2)
+                              (eq (aref value 0) :type-primitive))))
+                 (setf (symbol-function name-accessor)
+                       (lambda (value) (aref value 1)))
+                 (expect (= 1 (%run-vm-typep 42 type-object)) :to-be-truthy))
+            (delete-package type-pkg))))))
 
   (it-sequential "prim-typep or-first"
                  (destructuring-bind (src type-sym expected) (list 42 '(or integer string) 1)

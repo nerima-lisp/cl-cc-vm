@@ -156,7 +156,11 @@ Accepts symbols/functions for EQ/EQL/EQUAL/EQUALP and falls back to EQL."
 
 (defun %make-instances-obsolete (class)
   "Mark CLASS metadata obsolete. Existing VM instances migrate when possible."
-  (let ((class-ht (if (symbolp class) (find-class class nil) class)))
+  (let ((class-ht (if (symbolp class)
+                      (and *vm-current-state*
+                           (gethash class
+                                    (vm-class-registry *vm-current-state*)))
+                      class)))
     (when (hash-table-p class-ht)
       (setf (gethash :__obsolete__ class-ht) t))
     class-ht))
