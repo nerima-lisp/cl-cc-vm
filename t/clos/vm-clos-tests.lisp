@@ -405,29 +405,43 @@
   (describe-sequential
     "allocate-instance direct method detection"
   (it
-      "accepts only the primary allocation protocol shape owned by the generic function"
-    (let* ((gf (make-hash-table :test (function eq)))
-           (methods (make-hash-table :test (function equal)))
-           (method (make-hash-table :test (function eq)))
-           (metaclass (quote allocation-metaclass)))
-      (setf (gethash :__generic__ gf) t
-            (gethash :__methods__ gf) methods
-            (gethash :function method) (function identity)
-            (gethash :qualifiers method) nil
-            (gethash :specializer method) (list metaclass t t)
-            (gethash :gf method) gf
-            (gethash (list metaclass t t) methods) method)
-      (expect (cl-cc/vm/clos::%vm-direct-primary-method-p gf metaclass) :to-be-truthy)
-      (remhash (list metaclass t t) methods)
-      (setf (gethash (list metaclass (quote non-top) t) methods) method)
-      (expect (cl-cc/vm/clos::%vm-direct-primary-method-p gf metaclass) :to-be nil)
-      (clrhash methods)
-      (setf (gethash :qualifiers method) (list :before)
-            (gethash (list metaclass t) methods) method)
-      (expect (cl-cc/vm/clos::%vm-direct-primary-method-p gf metaclass) :to-be nil)
-      (setf (gethash :qualifiers method) nil
-            (gethash :gf method) (make-hash-table :test (function eq)))
-      (expect (cl-cc/vm/clos::%vm-direct-primary-method-p gf metaclass) :to-be nil)))
+  "recognizes scalar and list primary allocation keys owned by the generic function"
+  (let* ((gf (make-hash-table :test (function eq)))
+         (methods (make-hash-table :test (function equal)))
+         (method (make-hash-table :test (function eq)))
+         (metaclass (quote allocation-metaclass)))
+    (setf (gethash :__generic__ gf) t
+          (gethash :__methods__ gf) methods
+          (gethash :function method) (function identity)
+          (gethash :qualifiers method) nil
+          (gethash :specializer method) (list metaclass t t)
+          (gethash :gf method) gf
+          (gethash (list metaclass t t) methods) method)
+    (expect (cl-cc/vm/clos::%vm-direct-primary-method-p gf metaclass)
+            :to-be-truthy)
+    (remhash (list metaclass t t) methods)
+    (setf (gethash :specializer method) metaclass
+          (gethash metaclass methods) method)
+    (expect (cl-cc/vm/clos::%vm-direct-primary-method-p gf metaclass)
+            :to-be-truthy)
+    (remhash metaclass methods)
+    (setf (gethash (quote other-specializer) methods) method)
+    (expect (cl-cc/vm/clos::%vm-direct-primary-method-p gf metaclass)
+            :to-be nil)
+    (clrhash methods)
+    (setf (gethash :specializer method) (list metaclass t t)
+          (gethash (list metaclass (quote non-top) t) methods) method)
+    (expect (cl-cc/vm/clos::%vm-direct-primary-method-p gf metaclass)
+            :to-be nil)
+    (clrhash methods)
+    (setf (gethash :qualifiers method) (list :before)
+          (gethash (list metaclass t) methods) method)
+    (expect (cl-cc/vm/clos::%vm-direct-primary-method-p gf metaclass)
+            :to-be nil)
+    (setf (gethash :qualifiers method) nil
+          (gethash :gf method) (make-hash-table :test (function eq)))
+    (expect (cl-cc/vm/clos::%vm-direct-primary-method-p gf metaclass)
+            :to-be nil)))
   (it
       "orders scalar rest fallbacks without leaking into fixed-arity dispatch"
     (let ((gf (make-hash-table :test (function equal)))

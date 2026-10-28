@@ -143,20 +143,22 @@ VM primitives that need protocol hooks without introducing new instructions."
 (defun %vm-direct-primary-method-p (gf-ht key)
   "Return T when GF-HT has a direct primary protocol method for KEY."
   (let ((methods-ht
-        (and
-          (hash-table-p gf-ht)
-          (nth-value 1 (gethash :__methods__ gf-ht))
-          (gethash :__methods__ gf-ht))))
+         (and
+           (hash-table-p gf-ht)
+           (nth-value 1 (gethash :__methods__ gf-ht))
+           (gethash :__methods__ gf-ht))))
     (and
       methods-ht
       (loop for specializers being the hash-keys of methods-ht using (hash-value method)
             thereis (and
-          (consp specializers)
-          (eq (first specializers) key)
-          (every
-            (lambda (specializer)
-              (eq specializer t))
-            (rest specializers))
+          (or (eq specializers key)
+              (and
+                (consp specializers)
+                (eq (first specializers) key)
+                (every
+                  (lambda (specializer)
+                    (eq specializer t))
+                  (rest specializers))))
           (hash-table-p method)
           (null (gethash :qualifiers method))
           (eq (gethash :gf method) gf-ht))))))

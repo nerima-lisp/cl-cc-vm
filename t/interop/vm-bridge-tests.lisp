@@ -33,32 +33,58 @@
 
 (defun register-vm-bridge-tests-bridge-callables ()
   (it-sequential "vm-bridge-callable-resolves-same-name-aliases"
-  (let ((callable (cl-cc/vm/protocols:vm-lookup-bridge-callable (make-symbol "STRING-TO-OCTETS"))))
-    (expect (functionp callable) :to-be-truthy)
-    (let ((octets (funcall callable "é" :external-format :latin-1)))
-      (expect (= 1 (cl-cc/vm/data:length octets)) :to-be-truthy)
-      (expect (= 233 (aref octets 0)) :to-be-truthy)))) (it-sequential "vm-bridge-string-octets-normalizes-utf-16"
-  (let ((octets (cl-cc/vm:string-to-octets "A" :encoding :utf-16)))
-    (expect (vectorp octets) :to-be-truthy)
-    (expect (= 2 (cl-cc/vm/data:length octets)) :to-be-truthy)
-    (expect (= 65 (aref octets 0)) :to-be-truthy)
-    (expect (= 0 (aref octets 1)) :to-be-truthy)
-    (expect (cl-cc/vm:octets-to-string octets :encoding :utf-16) :to-equal "A"))) (it-sequential "vm-bridge-string-octets-utf-16-surrogate-roundtrip"
-  (let* ((text (string (code-char #x1f600)))
-         (octets (cl-cc/vm:string-to-octets text :encoding :utf-16)))
-    (expect (= 4 (cl-cc/vm/data:length octets)) :to-be-truthy)
-    (expect (= #x3d (aref octets 0)) :to-be-truthy)
-    (expect (= #xd8 (aref octets 1)) :to-be-truthy)
-    (expect (= #x00 (aref octets 2)) :to-be-truthy)
-    (expect (= #xde (aref octets 3)) :to-be-truthy)
-    (expect (cl-cc/vm:octets-to-string octets :encoding :utf-16) :to-equal text))) (it-sequential "vm-bridge-registers-compile-file-pathname"
-  (let ((callable (gethash 'compile-file-pathname cl-cc/vm/protocols:*vm-host-bridge-functions*)))
-    (expect (functionp callable) :to-be-truthy)
-    (expect (pathnamep (funcall callable "/tmp/cl-cc-bridge-test.lisp")) :to-be-truthy))) (it-sequential "vm-register-runtime-callable-and-lookup"
-  (let ((name (symbol-name (gensym "RT-UNIT-TEST-CALLABLE-"))))
-    (cl-cc/vm/protocols:vm-register-runtime-callable name (lambda () :ok))
-    (expect (functionp (cl-cc/vm/interop:%vm-runtime-callable name)) :to-be-truthy)
-    (expect (funcall (cl-cc/vm/interop:%vm-runtime-callable name)) :to-be :ok))))
+    (let ((callable
+            (cl-cc/vm/protocols:vm-lookup-bridge-callable
+             (make-symbol "STRING-TO-OCTETS"))))
+      (expect (functionp callable) :to-be-truthy)
+      (let ((octets (funcall callable "é" :external-format :latin-1)))
+        (expect (= 1 (cl-cc/vm/data:length octets)) :to-be-truthy)
+        (expect (= 233 (aref octets 0)) :to-be-truthy))))
+  (it-sequential "vm-bridge-callable-resolves-interop-package-aliases"
+    (let ((foreign-funcall
+            (cl-cc/vm/protocols:vm-lookup-bridge-callable
+             (make-symbol "%FOREIGN-FUNCALL")))
+          (get-documentation
+            (cl-cc/vm/protocols:vm-lookup-bridge-callable
+             (make-symbol "%GET-DOCUMENTATION"))))
+      (expect (functionp foreign-funcall) :to-be-truthy)
+      (expect (functionp get-documentation) :to-be-truthy)
+      (expect (funcall get-documentation
+                       (make-symbol "MISSING-DOCUMENTATION")
+                       :function)
+              :to-be-null)))
+  (it-sequential "vm-bridge-string-octets-normalizes-utf-16"
+    (let ((octets (cl-cc/vm:string-to-octets "A" :encoding :utf-16)))
+      (expect (vectorp octets) :to-be-truthy)
+      (expect (= 2 (cl-cc/vm/data:length octets)) :to-be-truthy)
+      (expect (= 65 (aref octets 0)) :to-be-truthy)
+      (expect (= 0 (aref octets 1)) :to-be-truthy)
+      (expect (cl-cc/vm:octets-to-string octets :encoding :utf-16)
+              :to-equal "A")))
+  (it-sequential "vm-bridge-string-octets-utf-16-surrogate-roundtrip"
+    (let* ((text (string (code-char #x1f600)))
+           (octets (cl-cc/vm:string-to-octets text :encoding :utf-16)))
+      (expect (= 4 (cl-cc/vm/data:length octets)) :to-be-truthy)
+      (expect (= #x3d (aref octets 0)) :to-be-truthy)
+      (expect (= #xd8 (aref octets 1)) :to-be-truthy)
+      (expect (= #x00 (aref octets 2)) :to-be-truthy)
+      (expect (= #xde (aref octets 3)) :to-be-truthy)
+      (expect (cl-cc/vm:octets-to-string octets :encoding :utf-16)
+              :to-equal text)))
+  (it-sequential "vm-bridge-registers-compile-file-pathname"
+    (let ((callable
+            (gethash 'compile-file-pathname
+                     cl-cc/vm/protocols:*vm-host-bridge-functions*)))
+      (expect (functionp callable) :to-be-truthy)
+      (expect (pathnamep (funcall callable "/tmp/cl-cc-bridge-test.lisp"))
+              :to-be-truthy)))
+  (it-sequential "vm-register-runtime-callable-and-lookup"
+    (let ((name (symbol-name (gensym "RT-UNIT-TEST-CALLABLE-"))))
+      (cl-cc/vm/protocols:vm-register-runtime-callable name (lambda () :ok))
+      (expect (functionp (cl-cc/vm/interop:%vm-runtime-callable name))
+              :to-be-truthy)
+      (expect (funcall (cl-cc/vm/interop:%vm-runtime-callable name))
+              :to-be :ok))))
 
 (defun register-vm-bridge-tests-interop ()
   (it-sequential "vm-bridge-runtime-registration-uses-bootstrap-hook"
@@ -93,7 +119,69 @@
            (expect cl-cc/vm/protocols:*vm-macroexpand-1-hook* :to-be hook-1)
            (expect cl-cc/vm/protocols:*vm-macroexpand-hook* :to-be hook-all))
       (setf cl-cc/vm/protocols:*vm-macroexpand-1-hook* old-1)
-      (setf cl-cc/vm/protocols:*vm-macroexpand-hook* old-all)))) (it-sequential "vm-install-parse-forms-hook-sets-hook-var"
+      (setf cl-cc/vm/protocols:*vm-macroexpand-hook* old-all)))) (it-sequential "vm-install-macroexpand-hooks-registers-satiating-gfs"
+  (let* ((old-1 cl-cc/vm/protocols:*vm-macroexpand-1-hook*)
+         (old-all cl-cc/vm/protocols:*vm-macroexpand-hook*)
+         (hook-1 (lambda (&rest _) (declare (ignore _)) :m1))
+         (hook-all (lambda (&rest _) (declare (ignore _)) :mall))
+         (existing-expand-package (find-package "CL-CC/EXPAND"))
+         (created-expand-package-p (null existing-expand-package))
+         (expand-package (or existing-expand-package
+                             (make-package "CL-CC/EXPAND" :use nil)))
+         (register-symbol nil)
+         (register-status nil)
+         (introduced-register-symbol-p nil)
+         (old-register-function nil)
+         (old-register-function-p nil)
+         (received-symbol nil)
+         (received-macro-function nil)
+         (registered-p nil))
+    (unwind-protect
+         (progn
+           (multiple-value-setq (register-symbol register-status)
+             (find-symbol "REGISTER-MACRO" expand-package))
+           (when (eq register-status :inherited)
+             (shadow "REGISTER-MACRO" expand-package)
+             (setf introduced-register-symbol-p t)
+             (setf register-symbol
+                   (find-symbol "REGISTER-MACRO" expand-package)))
+           (unless register-symbol
+             (setf register-symbol (intern "REGISTER-MACRO" expand-package)
+                   introduced-register-symbol-p t))
+           (setf old-register-function-p (fboundp register-symbol))
+           (when old-register-function-p
+             (setf old-register-function (fdefinition register-symbol)))
+           (setf (fdefinition register-symbol)
+                 (lambda (symbol expander)
+                   (setf received-symbol symbol
+                         received-macro-function expander
+                         registered-p t)))
+           (let* ((clos-package (find-package "CL-CC/VM/CLOS"))
+                  (macro-symbol (and clos-package
+                                     (find-symbol "WITH-SATIATING-GFS" clos-package)))
+                  (macro-expander (and macro-symbol
+                                       (macro-function macro-symbol))))
+             (expect macro-symbol :to-be-truthy)
+             (expect (eq (symbol-package macro-symbol) clos-package) :to-be-truthy)
+             (expect macro-expander :to-be-truthy)
+             (cl-cc/vm/interop::vm-install-macroexpand-hooks hook-1 hook-all)
+             (expect registered-p :to-be-truthy)
+             (expect received-symbol :to-be macro-symbol)
+             (expect received-macro-function :to-be macro-expander)
+             (expect cl-cc/vm/protocols:*vm-macroexpand-1-hook* :to-be hook-1)
+             (expect cl-cc/vm/protocols:*vm-macroexpand-hook* :to-be hook-all)))
+      (setf cl-cc/vm/protocols:*vm-macroexpand-1-hook* old-1)
+      (setf cl-cc/vm/protocols:*vm-macroexpand-hook* old-all)
+      (when register-symbol
+        (if old-register-function-p
+            (setf (fdefinition register-symbol) old-register-function)
+            (fmakunbound register-symbol))
+        (when (and (not created-expand-package-p)
+                   introduced-register-symbol-p)
+          (unintern register-symbol expand-package)))
+      (when (and created-expand-package-p
+                 (eq (find-package "CL-CC/EXPAND") expand-package))
+        (delete-package expand-package))))) (it-sequential "vm-install-parse-forms-hook-sets-hook-var"
   (let ((old cl-cc/vm/protocols:*vm-parse-forms-hook*)
         (hook (lambda (&rest _) (declare (ignore _)) :parse)))
     (unwind-protect
