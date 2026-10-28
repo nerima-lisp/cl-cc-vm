@@ -56,8 +56,8 @@
                    (expect (= 2 (cl-cc/vm/execution:vm-label-table-lookup labels :done)) :to-be-truthy)))
 
   (it-sequential "vm-jump-uses-label-table-lookup"
-                 (let* ((instructions (list (cl-cc/vm:make-vm-jump :label "target")
-                                            (cl-cc/vm:make-vm-label :name "target")
+                 (let* ((instructions (list (cl-cc/vm:make-vm-jump :label (copy-seq "target"))
+                                            (cl-cc/vm:make-vm-label :name (copy-seq "target"))
                                             (cl-cc/vm:make-vm-halt :reg :r0)))
                         (labels (cl-cc/vm/protocols:build-label-table instructions))
                         (state (make-test-vm)))
@@ -66,6 +66,18 @@
                      (declare (ignore result))
                      (expect (= 1 next-pc) :to-be-truthy)
                      (expect halt-p :to-be-falsy))))
+
+  (it-sequential "vm-label-table-prefers-identity-for-equal-names"
+                 (let* ((first-label (copy-seq "target"))
+                        (second-label (copy-seq "target"))
+                        (instructions (list (cl-cc/vm:make-vm-jump :label first-label)
+                                            (cl-cc/vm:make-vm-label :name first-label)
+                                            (cl-cc/vm:make-vm-jump :label second-label)
+                                            (cl-cc/vm:make-vm-label :name second-label)
+                                            (cl-cc/vm:make-vm-halt :reg :r0)))
+                        (labels (cl-cc/vm/protocols:build-label-table instructions)))
+                   (expect (= 1 (cl-cc/vm/execution:vm-label-table-lookup labels first-label)) :to-be-truthy)
+                   (expect (= 3 (cl-cc/vm/execution:vm-label-table-lookup labels second-label)) :to-be-truthy)))
 
 ;;; ─── VM2 defopcode / run-vm tests ───────────────────────────────────────────
 

@@ -139,11 +139,14 @@ check the host bridge whitelist."
   (let* ((key (sxhash label))
          (bucket (gethash key table)))
     (setf (gethash key table)
-          (acons label pc (remove label bucket :key #'car :test #'equal)))))
+          (acons label pc bucket))))
 
 (defun vm-label-table-lookup (table label)
   "Look up LABEL in integer-keyed VM label TABLE and return its PC or NIL."
-  (cdr (assoc label (gethash (sxhash label) table) :test #'equal)))
+  (let* ((bucket (gethash (sxhash label) table))
+         (identity-match (assoc label bucket :test (function eq))))
+    (cdr (or identity-match
+             (assoc label bucket :test (function equal))))))
 
 ;;; ── Call-frame helpers ───────────────────────────────────────────────────
 
