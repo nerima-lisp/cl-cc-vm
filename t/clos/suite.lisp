@@ -6,6 +6,7 @@
   (register-vm-clos-execute-extra-tests)
   (register-vm-clos-execute-tests)
   (register-vm-clos-tests)
+  (register-vm-copy-instance-tests)
   (register-vm-dispatch-gf-multi-tests)
   (register-vm-dispatch-gf-tests)
   (register-vm-execution-moved-tests)
