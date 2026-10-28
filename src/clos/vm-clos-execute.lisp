@@ -92,21 +92,19 @@
          (slot-name (vm-slot-name-sym inst)))
     (multiple-value-bind (class-ht class-slots) (%vm-class-slots-of obj-ht)
       (let ((raw-reader
-            (lambda ()
-              (%vm-raw-slot-read class-ht class-slots obj-ht slot-name))))
+              (lambda ()
+                (%vm-raw-slot-read class-ht class-slots obj-ht slot-name))))
         (vm-reg-set
-          state
-          (vm-dst inst)
-          (if (and class-ht (%vm-class-nonstandard-metaclass-p class-ht state)) (let ((gf (%vm-global-generic-function state 'slot-value-using-class)))
-              (if gf (%vm-call-generic-sync
-                  gf
-                  state
-                  (list class-ht obj-ht slot-name)
-                  :default
-                  raw-reader)
-                (funcall raw-reader)))
-            (funcall raw-reader)))))
-    (values (1+ pc) nil nil)))
+         state
+         (vm-dst inst)
+         (if (and class-ht (%vm-class-nonstandard-metaclass-p class-ht state))
+             (let* ((args (list class-ht obj-ht slot-name))
+                    (gf (%vm-global-generic-function state 'slot-value-using-class args)))
+               (if gf
+                   (%vm-call-generic-sync gf state args :default raw-reader)
+                   (funcall raw-reader)))
+             (funcall raw-reader)))))
+  (values (1+ pc) nil nil)))
 
 (defmethod execute-instruction ((inst vm-slot-write) state pc labels)
   (declare (ignore labels))
@@ -115,20 +113,16 @@
          (value (vm-reg-get state (vm-value-reg inst))))
     (multiple-value-bind (class-ht class-slots) (%vm-class-slots-of obj-ht)
       (let ((raw-writer
-            (lambda ()
-              (%vm-raw-slot-write class-ht class-slots obj-ht slot-name value))))
-        (if (and class-ht (%vm-class-nonstandard-metaclass-p class-ht state)) (let ((gf
-                (%vm-global-generic-function
-                  state
-                  '(setf slot-value-using-class))))
-            (if gf (%vm-call-generic-sync
-                gf
-                state
-                (list value class-ht obj-ht slot-name)
-                :default
-                raw-writer)
-              (funcall raw-writer)))
-          (funcall raw-writer))))
+              (lambda ()
+                (%vm-raw-slot-write class-ht class-slots obj-ht slot-name value))))
+        (if (and class-ht (%vm-class-nonstandard-metaclass-p class-ht state))
+            (let* ((args (list value class-ht obj-ht slot-name))
+                   (gf (%vm-global-generic-function
+                        state '(setf slot-value-using-class) args)))
+              (if gf
+                  (%vm-call-generic-sync gf state args :default raw-writer)
+                  (funcall raw-writer)))
+            (funcall raw-writer))))
     (values (1+ pc) nil nil)))
 
 (defmethod execute-instruction ((inst vm-slot-boundp) state pc labels)
@@ -137,21 +131,19 @@
          (slot-name (vm-slot-name-sym inst)))
     (multiple-value-bind (class-ht class-slots) (%vm-class-slots-of obj-ht)
       (let ((raw-boundp
-            (lambda ()
-              (%vm-raw-slot-boundp class-ht class-slots obj-ht slot-name))))
+              (lambda ()
+                (%vm-raw-slot-boundp class-ht class-slots obj-ht slot-name))))
         (vm-reg-set
-          state
-          (vm-dst inst)
-          (if (and class-ht (%vm-class-nonstandard-metaclass-p class-ht state)) (let ((gf (%vm-global-generic-function state 'slot-boundp-using-class)))
-              (if gf (%vm-call-generic-sync
-                  gf
-                  state
-                  (list class-ht obj-ht slot-name)
-                  :default
-                  raw-boundp)
-                (funcall raw-boundp)))
-            (funcall raw-boundp)))))
-    (values (1+ pc) nil nil)))
+         state
+         (vm-dst inst)
+         (if (and class-ht (%vm-class-nonstandard-metaclass-p class-ht state))
+             (let* ((args (list class-ht obj-ht slot-name))
+                    (gf (%vm-global-generic-function state 'slot-boundp-using-class args)))
+               (if gf
+                   (%vm-call-generic-sync gf state args :default raw-boundp)
+                   (funcall raw-boundp)))
+             (funcall raw-boundp)))))
+  (values (1+ pc) nil nil)))
 
 (defmethod execute-instruction ((inst vm-slot-makunbound) state pc labels)
   (declare (ignore labels))
@@ -159,21 +151,19 @@
          (slot-name (vm-slot-name-sym inst)))
     (multiple-value-bind (class-ht class-slots) (%vm-class-slots-of obj-ht)
       (let ((raw-makunbound
-            (lambda ()
-              (%vm-raw-slot-makunbound class-ht class-slots obj-ht slot-name))))
+              (lambda ()
+                (%vm-raw-slot-makunbound class-ht class-slots obj-ht slot-name))))
         (vm-reg-set
-          state
-          (vm-dst inst)
-          (if (and class-ht (%vm-class-nonstandard-metaclass-p class-ht state)) (let ((gf (%vm-global-generic-function state 'slot-makunbound-using-class)))
-              (if gf (%vm-call-generic-sync
-                  gf
-                  state
-                  (list class-ht obj-ht slot-name)
-                  :default
-                  raw-makunbound)
-                (funcall raw-makunbound)))
-            (funcall raw-makunbound)))))
-    (values (1+ pc) nil nil)))
+         state
+         (vm-dst inst)
+         (if (and class-ht (%vm-class-nonstandard-metaclass-p class-ht state))
+             (let* ((args (list class-ht obj-ht slot-name))
+                    (gf (%vm-global-generic-function state 'slot-makunbound-using-class args)))
+               (if gf
+                   (%vm-call-generic-sync gf state args :default raw-makunbound)
+                   (funcall raw-makunbound)))
+             (funcall raw-makunbound)))))
+  (values (1+ pc) nil nil)))
 
 (defmethod execute-instruction ((inst vm-slot-exists-p) state pc labels)
   (declare (ignore labels))

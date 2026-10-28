@@ -67,6 +67,8 @@
 
 (defclass vm-copy-empty-host-object () ())
 
+(declaim (ftype (function () t) register-vm-clos-regression-setf-symbol-names register-vm-clos-regression-setf-argument-precedence register-vm-clos-regression-setf-eql-method register-vm-clos-regression-around-next-method register-vm-clos-regression-next-method-applicability register-vm-clos-regression-next-method-order register-vm-clos-regression-raw-method-keys))
+
 (defun register-vm-clos-tests ()
   (it-sequential "collect-inherited-slots"
                  (let ((reg (make-test-registry)))
@@ -375,33 +377,14 @@
                    (setf copy (cl-cc/vm/clos:copy-instance object))
                    (expect (eq object copy) :to-be-falsy)
                    (expect (typep copy 'vm-copy-empty-host-object) :to-be-truthy)))
-  (it-sequential "matches symbols and SETF names without matching malformed names"
-    (let ((left (make-symbol "SLOT-VALUE-USING-CLASS"))
-          (right (make-symbol "SLOT-VALUE-USING-CLASS")))
-      (expect (cl-cc/vm/clos::%vm-same-function-name-p left right) :to-be-truthy)
-      (expect (cl-cc/vm/clos::%vm-same-function-name-p (list 'setf left) (list 'setf right))
-              :to-be-truthy)
-      (expect (cl-cc/vm/clos::%vm-same-function-name-p (list 'setf left) (list 'other right))
-              :to-be nil)
-      (expect (cl-cc/vm/clos::%vm-same-function-name-p (list 'setf left 'extra) (list 'setf right))
-              :to-be nil)
-      (expect (cl-cc/vm/clos::%vm-same-function-name-p (cons 'setf left) (list 'setf right))
-              :to-be nil)))
+  (register-vm-clos-regression-setf-symbol-names)
 
-  (it-sequential "finds a SETF generic function registered with another package's symbol"
-    (let* ((state (cl-cc/vm:make-vm-state))
-           (registered-name (list 'setf (make-symbol "SLOT-VALUE-USING-CLASS")))
-           (lookup-name (list 'setf (make-symbol "SLOT-VALUE-USING-CLASS")))
-           (generic-function (make-hash-table :test #'eq))
-           (class-descriptor (make-hash-table :test #'eq)))
-      (setf (gethash :__generic__ generic-function) t
-            (gethash :__methods__ generic-function) (make-hash-table :test #'equal)
-            (gethash registered-name (cl-cc/vm:vm-global-vars state)) generic-function
-            (gethash :__methods__ class-descriptor) (make-hash-table :test #'equal))
-      (expect (cl-cc/vm/clos::%vm-global-generic-function state lookup-name)
-              :to-be generic-function)
-      (expect (cl-cc/vm:vm-generic-function-p class-descriptor)
-              :to-be nil)))
+  (register-vm-clos-regression-setf-argument-precedence)
+  (register-vm-clos-regression-setf-eql-method)
+  (register-vm-clos-regression-around-next-method)
+  (register-vm-clos-regression-next-method-applicability)
+  (register-vm-clos-regression-next-method-order)
+  (register-vm-clos-regression-raw-method-keys)
   (describe-sequential
     "allocate-instance direct method detection"
   (it
@@ -475,7 +458,3 @@
             (gethash t methods) (quote fallback))
       (expect (cl-cc/vm/clos::vm-get-all-applicable-methods gf state args)
               :to-equal (list (quote specific)))))))
-;;; 8. FR-888 allocate-instance fast path
-
-;;; 9. FR-889 default-initargs / make-instance caching
-

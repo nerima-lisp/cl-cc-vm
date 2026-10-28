@@ -20,7 +20,7 @@
             compute-applicable-methods-using-classes ensure-generic-function
             find-method method-qualifiers method-specializers remove-method)
           :cl-cc/vm)
-  (declaim (ftype (function (t t) (values t &optional))
+  (declaim (ftype (function (t t &optional t) (values t &optional))
                   %vm-global-generic-function)))
 
 (defvar *mop-generic-function-registry* (make-hash-table :test #'equal)

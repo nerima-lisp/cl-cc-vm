@@ -120,6 +120,57 @@
                                           (cl-cc/vm:make-vm-slot-write :obj-reg :R1 :slot-name 'v :value-reg :R2)
                                           s 7 nil)))))
                      (expect (= 8 new-pc) :to-be-truthy))))
+  (it-sequential "vm-slot-write-dispatches-to-custom-metaclass-hook"
+  (let* ((s (make-clos-vm))
+         (class-name
+           (intern "CUSTOM-SLOT-WRITE-TARGET"
+                   (find-package :cl-cc/vm/clos/test)))
+         (metaclass-name
+           (intern "CUSTOM-SLOT-WRITE-METACLASS"
+                   (find-package :cl-cc/vm/clos/test)))
+         (hook-name
+           (list (quote setf)
+                 (intern "SLOT-VALUE-USING-CLASS"
+                         (find-package :cl-cc/vm/clos))))
+         (gf (make-hash-table :test (function eq)))
+         (methods (make-hash-table :test (function equal)))
+         (method (make-hash-table :test (function eq)))
+         (closure
+           (let ((labels (make-hash-table :test (function eql))))
+             (cl-cc/vm:vm-label-table-store labels :write 0)
+             (make-instance
+              (quote cl-cc/vm/execution:vm-closure-object)
+              :entry-label :write
+              :params (list :new-value :class :object :slot)
+              :program-flat
+              (vector
+               (cl-cc/vm:make-vm-const :dst :HOOK-CALLED :value :called)
+               (cl-cc/vm:make-vm-set-global :name (quote custom-slot-write-hook-called)
+                                             :src :HOOK-CALLED)
+               (cl-cc/vm:make-vm-ret :reg :HOOK-CALLED))
+              :label-table labels)))
+         (instance nil)
+         (class nil))
+    (make-test-instance s :R0 :R1 class-name (list (quote value-slot)))
+    (setf instance (cl-cc/vm:vm-reg-get s :R1)
+          class (test-instance-class instance)
+          (gethash :__metaclass__ class) metaclass-name
+          (gethash :__generic__ gf) t
+          (gethash :__methods__ gf) methods
+          (gethash :specializer method) (list t t t t)
+          (gethash :function method) closure
+          (gethash (list t t t t) methods) method
+          (gethash hook-name (cl-cc/vm:vm-global-vars s)) gf)
+    (cl-cc/vm:vm-reg-set s :R2 :written)
+    (cl-cc/vm/protocols:execute-instruction
+     (cl-cc/vm:make-vm-slot-write
+      :obj-reg :R1 :slot-name (quote value-slot) :value-reg :R2)
+     s 0 nil)
+    (expect (gethash (quote custom-slot-write-hook-called)
+                 (cl-cc/vm:vm-global-vars s))
+        :to-be :called)
+    (expect (test-instance-slot-value instance (quote value-slot))
+            :to-be nil)))
 
   (it-sequential "vm-slot-boundp-bound-and-unbound bound"
                  (destructuring-bind (remove-p) (list nil)
