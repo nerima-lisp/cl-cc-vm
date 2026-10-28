@@ -114,7 +114,7 @@
   (:shadowing-import-from #:cl-cc/vm/clos
     #:%eql-specializer-matches-p #:%eql-specializer-p #:%resolve-combination-operator #:%vm-extract-eql-specializer-keys #:%vm-gf-eql-methods #:%vm-gf-uses-composite-keys-p #:%vm-resolve-single-dispatch #:*collect-profile* #:*method-combination-operators* #:*profile-output*
     #:collect-inherited-initargs #:collect-inherited-slots #:compute-class-precedence-list #:deep-copy #:generic-function-method-combination #:generic-function-methods #:make-vm-class-def #:make-vm-class-name-fn #:make-vm-class-of-fn #:make-vm-compute-effective-slot-definition #:make-vm-find-class
-    #:make-vm-generic-call #:make-vm-make-obj #:make-vm-register-method #:make-vm-slot-boundp #:make-vm-slot-exists-p #:make-vm-slot-makunbound #:make-vm-slot-read #:make-vm-slot-write #:satiate-generic-function #:satiating-gfs-p
+    #:make-vm-generic-call #:make-vm-make-obj #:make-vm-register-method #:make-vm-slot-boundp #:make-vm-slot-exists-p #:make-vm-slot-makunbound #:make-vm-slot-read #:make-vm-slot-write #:satiate-generic-function #:satiating-gfs-p #:ensure-generic-function #:slot-value-using-class
     #:slot-definition-name #:vm-class-def #:vm-class-name-fn #:vm-class-name-sym #:vm-class-of-fn #:vm-class-reg #:vm-class-slots #:vm-classify-arg #:vm-compute-effective-slot-definition #:vm-dump-type-profile
     #:vm-find-class #:vm-generic-call #:vm-generic-call-metadata #:vm-gf-reg #:vm-ic-type-counters #:vm-initarg-regs #:vm-make-obj #:vm-method-qualifier #:vm-method-reg #:vm-method-specializer
     #:vm-obj-reg #:vm-pgo-specializer #:vm-register-method #:vm-sealed-p #:vm-slot-boundp #:vm-slot-exists-p #:vm-slot-initargs #:vm-slot-makunbound #:vm-slot-name-sym #:vm-slot-names
@@ -358,7 +358,8 @@
     #:repl-complete #:repl-undo #:report-stack-overflow #:resolve-hash-test #:restart-bind #:restart-case #:restart-interactive #:restart-name #:retry #:return-nil
     #:room #:rope #:rope-concat #:rope-length #:rope-p #:rope-split #:rope-to-string #:rotate-right #:rt-hash-table-weakness #:rt-make-hash-table
     #:rt-string-dedup #:rt-string-intern #:run-bytecode #:run-compiled #:run-compiled-with-io #:run-doctests #:run-program-slice #:run-string-with-io #:runtime-tuning-report #:satiate-generic-function
-    #:satiating-gfs-p #:save-pgo-data #:sendfile #:serious-condition #:set-dispatch-macro-character #:set-global #:set-macro-character #:set-pprint-dispatch #:setenv #:sexp->instruction
+    #:satiating-gfs-p
+    #:save-pgo-data #:sendfile #:serious-condition #:set-dispatch-macro-character #:set-global #:set-macro-character #:set-pprint-dispatch #:setenv #:sexp->instruction
     #:sha256-rounds #:shape-slot-offset #:shm-open #:show-types #:sign-binary #:signum #:simple-condition-format-arguments #:simple-condition-format-control #:simple-error #:simple-warning
     #:sleep #:slot-definition-allocation #:slot-definition-initargs #:slot-definition-initform #:slot-definition-initfunction #:slot-definition-location #:slot-definition-name #:slot-definition-type #:socket-accept #:socket-bind
     #:socket-close #:socket-connect #:socket-listen #:socket-local-address #:socket-receive #:socket-send #:software-type #:software-version #:source-location #:source-location-column

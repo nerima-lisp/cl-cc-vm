@@ -250,5 +250,17 @@
 (defun register-vm-bridge-tests ()
   (register-vm-bridge-tests-hash-table)
   (register-vm-bridge-tests-bridge-callables)
-  (register-vm-bridge-tests-interop))
+  (progn
+  (register-vm-bridge-tests-interop)
+  (it-sequential "make-instances-obsolete-resolves-vm-class-symbol"
+    (let* ((state (cl-cc/vm/execution:make-vm-state))
+           (class-name (gensym "VM-OBSOLETE-CLASS-"))
+           (class (make-hash-table :test #'eq)))
+      (setf (gethash class-name
+                     (cl-cc/vm/execution:vm-class-registry state))
+            class)
+      (let ((cl-cc/vm/execution:*vm-current-state* state))
+        (expect (cl-cc/vm/interop:%make-instances-obsolete class-name)
+                :to-be class)
+        (expect (gethash :__obsolete__ class) :to-be-truthy))))))
 
