@@ -19,7 +19,9 @@
   (shadow '(add-method compute-applicable-methods
             compute-applicable-methods-using-classes ensure-generic-function
             find-method method-qualifiers method-specializers remove-method)
-          :cl-cc/vm))
+          :cl-cc/vm)
+  (declaim (ftype (function (t t) (values t &optional))
+                  %vm-global-generic-function)))
 
 (defvar *mop-generic-function-registry* (make-hash-table :test #'equal)
   "Host-side registry for generic functions created by ENSURE-GENERIC-FUNCTION.")
@@ -293,26 +295,30 @@
             (setf (gethash (car update) table) (cdr update)))))))
   (%mop-invalidate-gf gf))
 
-(defun ensure-generic-function (name &rest options
-                                &key lambda-list method-class documentation
-                                &allow-other-keys)
-  "Return an explicitly marked generic-function descriptor for NAME."
-  (declare (ignore options))
-  (let ((gf (if (hash-table-p name)
-                name
-                (gethash name *mop-generic-function-registry*))))
-    (unless gf
-      (setf gf (make-hash-table :test #'equal)
-            (gethash :__name__ gf) name
-            (gethash :__methods__ gf) (make-hash-table :test #'equal)
-            (gethash :__eql-index__ gf) (make-hash-table :test #'equal)
-            (gethash :__method-combination__ gf) 'standard)
-      (setf (gethash name *mop-generic-function-registry*) gf))
-    (setf (gethash :__generic__ gf) t)
-    (when lambda-list (setf (gethash :__lambda-list__ gf) lambda-list))
-    (when method-class (setf (gethash :__method-class__ gf) method-class))
-    (when documentation (setf (gethash :__documentation__ gf) documentation))
-    gf))
+(progn
+  (defun ensure-generic-function (name &rest options
+                                  &key lambda-list method-class documentation
+                                  &allow-other-keys)
+    "Return an explicitly marked generic-function descriptor for NAME."
+    (declare (ignore options))
+    (let ((gf (if (hash-table-p name)
+                  name
+                  (or (and *vm-current-state*
+                           (%vm-global-generic-function *vm-current-state* name))
+                      (gethash name *mop-generic-function-registry*)))))
+      (unless gf
+        (setf gf (make-hash-table :test #'equal)
+              (gethash :__name__ gf) name
+              (gethash :__methods__ gf) (make-hash-table :test #'equal)
+              (gethash :__eql-index__ gf) (make-hash-table :test #'equal)
+              (gethash :__method-combination__ gf) 'standard)
+        (setf (gethash name *mop-generic-function-registry*) gf))
+      (setf (gethash :__generic__ gf) t)
+      (when lambda-list (setf (gethash :__lambda-list__ gf) lambda-list))
+      (when method-class (setf (gethash :__method-class__ gf) method-class))
+      (when documentation (setf (gethash :__documentation__ gf) documentation))
+      gf))
+  (vm-register-host-bridge 'ensure-generic-function #'ensure-generic-function))
 
 (defun %vm-hashlike-slot-key (object slot-name)
   "Return the most specific hash-table key for SLOT-NAME in OBJECT."
@@ -334,7 +340,8 @@
            (gethash slot-name class))
           ((and (vectorp object) (plusp (length object)) (hash-table-p class))
            (let ((index (class-slot-vector-index class slot-name)))
-             (if index (aref object index) (error "Missing slot ~S" slot-name))))
+             (unless index (error "Missing slot ~S" slot-name))
+             (slot-value-by-index object index)))
           ((hash-table-p object)
            (let ((key (%vm-hashlike-slot-key object slot-name)))
              (if key
@@ -350,7 +357,7 @@
           ((and (vectorp object) (plusp (length object)) (hash-table-p class))
            (let ((index (class-slot-vector-index class slot-name)))
              (unless index (error "Missing slot ~S" slot-name))
-             (setf (aref object index) new-value)))
+             (setf (slot-value-by-index object index) new-value)))
           ((hash-table-p object)
            (let ((key (%vm-hashlike-slot-key object slot-name)))
              (if key
@@ -359,7 +366,8 @@
                        new-value))))
           (t (error "(setf slot-value-using-class): unsupported object ~S" object)))))
 
-(defun slot-makunbound-using-class (class object slot-name)
+(progn
+  (defun slot-makunbound-using-class (class object slot-name)
   "Make SLOT-NAME unbound in OBJECT using CLASS metadata and return OBJECT."
   (let ((class-slots (and (hash-table-p class) (gethash :__class-slots__ class))))
     (cond ((and class-slots (member slot-name class-slots :test #'eq))
@@ -367,7 +375,7 @@
           ((and (vectorp object) (plusp (length object)) (hash-table-p class))
            (let ((index (class-slot-vector-index class slot-name)))
              (unless index (error "Missing slot ~S" slot-name))
-             (setf (aref object index) *unbound-slot-marker*)))
+             (setf (slot-value-by-index object index) *unbound-slot-marker*)))
           ((hash-table-p object)
            (let ((key (%vm-hashlike-slot-key object slot-name)))
              (if key
@@ -375,3 +383,17 @@
                  (remhash (string-downcase (symbol-name slot-name)) object))))
           (t (error "slot-makunbound-using-class: unsupported object ~S" object))))
   object)
+  (defun slot-bound-using-class-p (class object slot-name)
+  "Return true when SLOT-NAME is bound in OBJECT using CLASS metadata."
+  (let ((class-slots (and (hash-table-p class) (gethash :__class-slots__ class))))
+    (cond ((and class-slots (member slot-name class-slots :test #'eq))
+           (nth-value 1 (gethash slot-name class)))
+          ((and (vectorp object) (plusp (length object)) (hash-table-p class))
+           (let ((index (class-slot-vector-index class slot-name)))
+             (unless index (error "Missing slot ~S" slot-name))
+             (not (eq (slot-value-by-index object index) *unbound-slot-marker*))))
+          ((hash-table-p object)
+           (not (null (%vm-hashlike-slot-key object slot-name))))
+          (t (error "slot-bound-using-class-p: unsupported object ~S" object)))))
+  (shadowing-import '(slot-bound-using-class-p slot-makunbound-using-class)
+                    :cl-cc/vm))

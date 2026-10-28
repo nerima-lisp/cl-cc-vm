@@ -128,6 +128,18 @@ the program could not observe."
   "Install the VM macroexpansion hooks."
   (setf *vm-macroexpand-1-hook* macroexpand-1-hook)
   (setf *vm-macroexpand-hook* macroexpand-hook)
+  ;; The expander calls this after loading its registry; resolve it dynamically to avoid a dependency cycle.
+  (let* ((vm-clos-package (find-package "CL-CC/VM/CLOS"))
+         (expand-package (find-package "CL-CC/EXPAND"))
+         (macro-symbol (and vm-clos-package
+                            (find-symbol "WITH-SATIATING-GFS" vm-clos-package)))
+         (register-symbol (and expand-package
+                               (find-symbol "REGISTER-MACRO" expand-package)))
+         (macro-expander (and macro-symbol (macro-function macro-symbol))))
+    (when (and macro-expander register-symbol
+               (fboundp register-symbol))
+      (funcall (symbol-function register-symbol)
+               macro-symbol macro-expander)))
   t)
 
 (defun vm-install-parse-forms-hook (parse-hook)
