@@ -9,4 +9,5 @@
   (register-runtime-stdlib-2-print-circle-tests)
   (register-runtime-stdlib-3-external-format-tests)
   (register-runtime-stdlib-3-io-tests)
+  (register-vm-stream-bridge-regression-tests)
   (register-vm-runtime-stdlib-2-smoke-tests))

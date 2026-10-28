@@ -55,6 +55,28 @@
       (expect (= 6 next-pc) :to-be-truthy)
       (expect halted :to-be-falsy)
       (expect (= 100 (cl-cc/vm:vm-reg-get s :R0)) :to-be-truthy))))
+(it-sequential "vm-execute-vm-apply-generic-method-binds-numeric-argument"
+  (let* ((s (make-test-vm))
+         (methods (make-hash-table :test #'equal))
+         (generic-function (make-hash-table :test #'eq))
+         (method (make-hash-table :test #'eq))
+         (closure (make-instance 'cl-cc/vm/execution:vm-closure-object
+                                 :entry-label "numeric-apply-method"
+                                 :params '(:ARG))))
+    (setf (gethash :__generic__ generic-function) t
+          (gethash :__methods__ generic-function) methods
+          (gethash :function method) closure
+          (gethash 'integer methods) method)
+    (cl-cc/vm:vm-reg-set s :R1 generic-function)
+    (cl-cc/vm:vm-reg-set s :R2 '(41))
+    (multiple-value-bind (next-pc halted result)
+        (cl-cc/vm/protocols:execute-instruction
+         (cl-cc/vm:make-vm-apply :dst :R0 :func :R1 :args '(:R2))
+         s 5 (%labels "numeric-apply-method" 42))
+      (declare (ignore result))
+      (expect (= 42 next-pc) :to-be-truthy)
+      (expect halted :to-be-falsy)
+      (expect (= 41 (cl-cc/vm:vm-reg-get s :ARG)) :to-be-truthy))))
 
 (it-sequential "vm-execute-vm-values-buffer-management"
   (let ((s (make-test-vm)))
