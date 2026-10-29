@@ -17,6 +17,10 @@
                 (function ,alien-return-type ,@alien-arg-types))
               ,@arg-values)))))
 
+(defun foreign-funcall (name &rest arguments)
+  "Call a host C function with CFFI-style arguments and return type."
+  (apply (function %foreign-funcall) name arguments))
+
 (defun %vm-safe-disassemble (object)
   "Disassemble function designators safely and always return NIL."
   (handler-case
@@ -220,6 +224,10 @@ the program could not observe."
       (when (and symbol (boundp symbol) (hash-table-p (symbol-value symbol)))
         (setf (gethash (list name doc-type) (symbol-value symbol)) docstring)))
     docstring))
+
+(defun register-documentation (name doc-type docstring)
+  "Register DOCSTRING for (NAME DOC-TYPE) in the VM and host tables."
+  (%register-documentation name doc-type docstring))
 
 (defun %get-documentation (name doc-type)
   "Return documentation string for (NAME DOC-TYPE) from *documentation-table*, or nil."

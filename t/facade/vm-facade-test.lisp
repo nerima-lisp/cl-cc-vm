@@ -1,51 +1,90 @@
 (in-package #:cl-cc-vm/facade-test)
 
 (describe-sequential "cl-cc-vm facade symbol identity"
-  (it "re-exports each baseline symbol from its recorded owner"
-    (let* ((snapshot-path (asdf:system-relative-pathname "cl-cc-vm" "t/export-surface.txt"))
-           (rows
-             (with-open-file (stream snapshot-path)
-               (let ((*read-eval* nil))
-                 (let* ((sentinel (gensym "EOF"))
-                       (rows (read stream nil sentinel)))
-                  (unless (eq (read stream nil sentinel) sentinel)
-                    (error "Export surface contains trailing S-expressions: ~S" snapshot-path))
-                  rows))))
-           (facade (find-package "CL-CC/VM"))
-           (expected-names (make-hash-table :test (function equal)))
-           (mismatches nil)
-           (extra-names nil)
-           (actual-count 0))
-      (unless facade
-        (error "Missing cl-cc/vm facade package"))
-      (dolist (row rows)
-        (destructuring-bind (kind policy facade-name legacy-owner owner-name name) row
-          (declare (ignore legacy-owner))
-          (setf (gethash name expected-names) t)
-          (let ((owner (find-package (string-upcase owner-name))))
-            (multiple-value-bind (facade-symbol facade-status)
-                (find-symbol name facade)
-              (multiple-value-bind (owner-symbol owner-status)
-                  (if owner (find-symbol name owner) (values nil nil))
-                (unless (eq owner-status :external) (push name mismatches))
-                (unless (and (eq kind :symbol)
-                             (eq policy :keep)
-                             (string= facade-name "cl-cc/vm")
-                             owner
-                             (symbolp owner-symbol)
-                             (eq facade-status :external)
-                             (eq facade-symbol owner-symbol)
-                             (eq (symbol-package facade-symbol) owner))
-                  (push name mismatches)))))))
-      (do-external-symbols (symbol facade)
-        (incf actual-count)
-        (unless (gethash (symbol-name symbol) expected-names)
-          (push (symbol-name symbol) extra-names)))
-      (expect (cl-cc/vm/data:length rows) :to-be 2070)
-      (expect (hash-table-count expected-names) :to-be 2070)
-      (expect mismatches :to-be nil)
-      (expect actual-count :to-be 2070)
-      (expect extra-names :to-be nil)))
+  (it "matches facade exports to their reviewed feature packages"
+      (let* ((snapshot-path (asdf:system-relative-pathname "cl-cc-vm" "t/export-surface.txt"))
+             (changelog-path (asdf:system-relative-pathname "cl-cc-vm" "CHANGELOG.md"))
+             (rows
+              (with-open-file (stream snapshot-path)
+                (let ((*read-eval* nil))
+                  (let* ((sentinel (gensym "EOF"))
+                         (rows (read stream nil sentinel)))
+                    (unless (eq (read stream nil sentinel) sentinel)
+                      (error "Export surface contains trailing S-expressions: ~S" snapshot-path))
+                    rows))))
+             (changelog (uiop:read-file-string changelog-path))
+             (facade (find-package "CL-CC/VM"))
+             (expected-names (make-hash-table :test (function equal)))
+             (mismatches nil)
+             (extra-names nil)
+             (actual-count 0))
+        (unless facade
+          (error "Missing cl-cc/vm facade package"))
+        (dolist (row rows)
+          (destructuring-bind (kind policy facade-name feature-name owner-name name
+                                    &optional change-reference)
+              row
+            (let ((feature (find-package (string-upcase feature-name)))
+                  (owner (find-package (string-upcase owner-name))))
+              (case policy
+                ((:keep :add)
+                 (setf (gethash name expected-names) t)
+                 (multiple-value-bind (facade-symbol facade-status)
+                     (find-symbol name facade)
+                   (multiple-value-bind (feature-symbol feature-status)
+                       (if feature (find-symbol name feature) (values nil nil))
+                     (multiple-value-bind (owner-symbol owner-status)
+                         (if owner (find-symbol name owner) (values nil nil))
+                       (unless (and (eq kind :symbol)
+                                    (string= facade-name "cl-cc/vm")
+                                    feature
+                                    owner
+                                    (symbolp facade-symbol)
+                                    (symbolp feature-symbol)
+                                    (symbolp owner-symbol)
+                                    (eq facade-status :external)
+                                    (or (eq policy :keep)
+                                        (eq feature-status :external))
+                                    (eq owner-status :external)
+                                    (eq facade-symbol feature-symbol)
+                                    (eq facade-symbol owner-symbol)
+                                    (eq (symbol-package facade-symbol) owner))
+                         (push name mismatches)))))
+                 (when (and (eq policy :keep) change-reference)
+                   (push name mismatches))
+                 (when (and (eq policy :add)
+                            (not (and (stringp change-reference)
+                                      (string= change-reference "CHANGELOG.md#unreleased")
+                                      (search "## Unreleased"
+                                              changelog
+                                              :test (function char-equal))))
+                            (push name mismatches))))
+                (:remove
+                 (unless (and (eq kind :symbol)
+                              (string= facade-name "cl-cc/vm"))
+                   (push name mismatches))
+                 (multiple-value-bind (facade-symbol facade-status)
+                     (find-symbol name facade)
+                   (declare (ignore facade-symbol))
+                   (when (eq facade-status :external)
+                     (push name mismatches)))
+                 (unless (and (stringp change-reference)
+                              (string= change-reference "CHANGELOG.md#unreleased")
+                              (search "## Unreleased"
+                                      changelog
+                                      :test (function char-equal)))
+                   (push name mismatches)))
+                (otherwise
+                 (push name mismatches))))))
+        (do-external-symbols (symbol facade)
+                             (incf actual-count)
+                             (unless (gethash (symbol-name symbol) expected-names)
+                               (push (symbol-name symbol) extra-names)))
+        (expect (cl-cc/vm/data:length rows) :to-be 2072)
+        (expect (hash-table-count expected-names) :to-be 2072)
+        (expect mismatches :to-be nil)
+        (expect actual-count :to-be 2072)
+        (expect extra-names :to-be nil)))
   (it "preserves legacy VM2 initial bindings through the facade API"
     (let* ((state (cl-cc/vm:make-vm2-state))
            (globals (cl-cc/vm:vm2-state-global-vars state))
@@ -163,3 +202,15 @@
              (cl-cc/vm:make-vm-abort-to-prompt :prompt :prompt
                                                 :value :abort-value))
             :to-be :abort-value))))
+
+(describe-sequential "cl-cc/vm interop facade API"
+  (it "calls foreign functions through the root facade"
+    (expect (= 4 (cl-cc/vm:foreign-funcall "strlen" :string "abcd" :int))
+            :to-be t))
+  (it "registers documentation through the root facade"
+    (let ((name (gensym "FACADE-PUBLIC-DOC-"))
+          (docstring "facade public documentation"))
+      (expect (string=
+               docstring
+               (cl-cc/vm:register-documentation name :function docstring))
+              :to-be t))))

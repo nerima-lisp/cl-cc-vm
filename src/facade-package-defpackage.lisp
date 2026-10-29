@@ -241,6 +241,8 @@
   )
   (:import-from #:cl-cc/vm/interop #:%all-symbols #:%class-slot-definitions #:%class-slot-initargs-for-slot #:%class-slot-metadata #:%make-instances-obsolete #:%package-external-symbols #:%package-symbols #:*code-sign-identity* #:*sandbox-enabled* #:*seccomp-filter-rules*
     #:*shape-registry* #:*value-types* #:+imt-size+ #:aes-encrypt #:class-metaclass #:compute-effective-slot-definition #:defvalue-type #:emit-header #:export-c-api #:find-or-create-shape
+    #:foreign-funcall
+    #:register-documentation
     #:foreign-call-varargs #:hash-table-values #:imt-entry #:imt-insert #:imt-lookup #:initialize-sandbox #:inline-method-table #:make-callback #:make-imt-entry #:make-inline-method-table
     #:make-mark-word #:make-object-shape #:mark-word-gc-color #:object-shape #:octets-to-string #:regex-all-matches #:regex-replace #:regex-replace-all #:regex-scan #:regex-split
     #:register-gc-root #:resolve-hash-test #:sha256-rounds #:shape-slot-offset #:sign-binary #:slot-definition-allocation #:slot-definition-initargs #:slot-definition-initform #:slot-definition-initfunction #:slot-definition-location
@@ -463,7 +465,7 @@
     #:vm-warn #:vm-warning #:vm-with-raw-terminal #:vm-with-simple-restart #:vm-with-trace #:vm-wrap #:vm-wrap-dynamic #:vm-write-char #:vm-write-instruction-profile #:vm-write-string
     #:vm-write-to-fasl #:vm-write-to-string-inst #:vm2-state-global-vars #:vm2-state-output-stream #:vm2-state-p #:vm2-state-registers #:vm2-state-values-buffer #:vpshufb #:warning #:when-feature
     #:with-float-traps-masked #:with-mmap #:with-pinned-object #:with-platform #:with-precision #:with-satiating-gfs #:with-simple-restart #:with-socket #:with-standard-io-syntax #:with-string-builder
-    #:with-timeout #:with-vm-instance-lock #:with-vm-state-dispatch #:wrap #:%vm-vector-instance-p #:%vm-slot-vector-index #:copy-instance #:class-slots #:%vm-hashlike-storage #:*unbound-slot-marker* #:%vm-fixed-slot-layout-p #:%vm-raw-allocate-instance #:vm-current-closure-stack #:%vm-closure-object-p #:vm-closure-dispatch-tag #:%vm-call-closure-sync #:%vm-runtime-callable #:*vm-guest-function-package*)
+    #:with-timeout #:with-vm-instance-lock #:with-vm-state-dispatch #:wrap #:%vm-vector-instance-p #:%vm-slot-vector-index #:copy-instance #:class-slots #:%vm-hashlike-storage #:*unbound-slot-marker* #:%vm-fixed-slot-layout-p #:%vm-raw-allocate-instance #:vm-current-closure-stack #:%vm-closure-object-p #:vm-closure-dispatch-tag #:%vm-call-closure-sync #:%vm-runtime-callable #:*vm-guest-function-package* #:foreign-funcall #:register-documentation)
 )
 
 
