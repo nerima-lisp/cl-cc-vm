@@ -78,7 +78,7 @@
    #:STRING-TO-OCTETS
    #:VALUE-TYPE-DEF
    #:WITH-PINNED-OBJECT
-   #:WITH-PLATFORM #:%vm-runtime-callable)
+   #:WITH-PLATFORM #:%vm-runtime-callable #:foreign-funcall #:register-documentation)
   (:intern
    #:%CLASS-SLOT-DEFINITIONS-FROM-KEY
    #:%CLASS-SLOT-LOCATION
